@@ -1,0 +1,23 @@
+{
+  "events": [
+    {
+      "event_type": "touch",
+      "view_str": "New note",
+      "from_state": "s1",
+      "to_state": "s2"
+    },
+    {
+      "event_type": "text",
+      "view_str": "Title",
+      "event_text": "Trip",
+      "from_state": "s2",
+      "to_state": "s3"
+    },
+    {
+      "event_type": "touch",
+      "view_str": "Save",
+      "from_state": "s3",
+      "to_state": "s4"
+    }
+  ]
+}
