@@ -20,7 +20,7 @@ from specfcg.models import (
     TestPlan,
     Trace,
 )
-from tests.fakes import FakeLLMClient
+from tests.fakes import FakeLLMClient, FakeProbe
 
 
 @pytest.fixture
@@ -242,6 +242,25 @@ def failed_result(sample_plan) -> RunResult:
         failure_type="widget_failure",
         new_trace=trace,
         step_results=[{"card": "create_note", "success": False}],
+    )
+
+
+@pytest.fixture
+def fake_probe() -> FakeProbe:
+    return FakeProbe()
+
+
+@pytest.fixture
+def probe_trace() -> Trace:
+    return Trace(
+        trace_id="t9",
+        app="omninotes",
+        start_state="note open",
+        goal="attach a photo",
+        steps=[
+            Step(action="click", target="text=Attach"),
+            Step(action="click", target="text=Photo"),
+        ],
     )
 
 

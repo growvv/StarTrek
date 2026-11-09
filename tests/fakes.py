@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from specfcg.llm.client import LLMParseError
+from specfcg.models import MissingCapability, Trace
 
 
 class FakeLLMClient:
@@ -45,3 +46,17 @@ class FakeLLMClient:
         if not isinstance(parsed, dict):
             raise LLMParseError(f"response is not a JSON object: {raw!r}")
         return parsed
+
+
+class FakeProbe:
+    """Injected ProbeRunner: returns the configured trace and records calls."""
+
+    def __init__(self) -> None:
+        self.trace: Trace | None = None
+        self.calls: list[tuple[str, str]] = []
+
+    def run(
+        self, capability: MissingCapability, state: str
+    ) -> Trace | None:
+        self.calls.append((capability.name, state))
+        return self.trace
