@@ -1,0 +1,17 @@
+llm:
+  model: gpt-4.1
+  api_key_env: OPENAI_API_KEY
+  base_url: null
+  temperature: 0.0
+  cache_dir: .cache/llm
+device:
+  serial: null
+  timeout_s: 30
+paths:
+  root: .
+  cards: cards
+  graph: graph
+  traces: traces
+  runs: runs
+  state: state
+  completion: completion
