@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from specfcg.models import Edge, FunctionCard, Graph
+from specfcg.models import Edge, FunctionCard, Graph, Step, Trace
 from tests.fakes import FakeLLMClient
 
 
@@ -57,6 +57,44 @@ def _card(name: str) -> FunctionCard:
         postconditions="",
         effects_outputs="",
         steps=[],
+    )
+
+
+@pytest.fixture
+def sample_trace() -> Trace:
+    return Trace(
+        trace_id="t1",
+        app="omninotes",
+        start_state="Notes list",
+        goal="create and share a note",
+        steps=[
+            Step(
+                action="click",
+                target="text=+",
+                before_state="Notes list",
+                after_state="Editor",
+            ),
+            Step(
+                action="input",
+                target="text=Title",
+                args="Trip",
+                before_state="Editor",
+                after_state="Editor",
+            ),
+            Step(
+                action="click",
+                target="text=Share",
+                before_state="Editor",
+                after_state="Share sheet",
+            ),
+            Step(
+                action="click",
+                target="text=Email",
+                before_state="Share sheet",
+                after_state="Email",
+            ),
+        ],
+        metadata={"source": "fixture"},
     )
 
 
