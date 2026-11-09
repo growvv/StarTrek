@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from specfcg.models import FunctionCard
+from specfcg.models import Edge, FunctionCard, Graph
 from tests.fakes import FakeLLMClient
 
 
@@ -46,3 +46,38 @@ def another_card() -> FunctionCard:
 @pytest.fixture
 def two_cards(sample_card, another_card) -> dict[str, FunctionCard]:
     return {sample_card.name: sample_card, another_card.name: another_card}
+
+
+def _card(name: str) -> FunctionCard:
+    return FunctionCard(
+        name=name,
+        intent=f"do {name}",
+        inputs=[],
+        preconditions="",
+        postconditions="",
+        effects_outputs="",
+        steps=[],
+    )
+
+
+@pytest.fixture
+def simple_graph() -> Graph:
+    cards = {name: _card(name) for name in ("A", "B", "C")}
+    edges = [
+        Edge(from_card="A", to_card="C", type="enables"),
+        Edge(from_card="C", to_card="B", type="sequence"),
+        Edge(from_card="B", to_card="C", type="sequence"),
+    ]
+    return Graph(cards=cards, edges=edges)
+
+
+@pytest.fixture
+def long_chain() -> Graph:
+    names = [f"N{index}" for index in range(9)] + ["Z"]
+    cards = {name: _card(name) for name in names}
+    edges = [
+        Edge(from_card=left, to_card=right, type="sequence")
+        for left, right in zip(names, names[1:])
+    ]
+    return Graph(cards=cards, edges=edges)
+
