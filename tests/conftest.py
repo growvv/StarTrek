@@ -2,7 +2,17 @@ from __future__ import annotations
 
 import pytest
 
-from specfcg.models import Edge, FunctionCard, Graph, Step, Trace
+from specfcg.executor.device import FakeDevice
+from specfcg.models import (
+    Edge,
+    FunctionCard,
+    Goal,
+    Graph,
+    PlanStep,
+    Step,
+    TestPlan,
+    Trace,
+)
 from tests.fakes import FakeLLMClient
 
 
@@ -117,6 +127,53 @@ def single_step_trace() -> Trace:
                 after_state="Notes list",
             )
         ],
+    )
+
+
+@pytest.fixture
+def fake_device() -> FakeDevice:
+    return FakeDevice(["start"], [True])
+
+
+@pytest.fixture
+def sample_graph(sample_card, another_card) -> Graph:
+    return Graph(
+        cards={
+            sample_card.name: sample_card,
+            another_card.name: another_card,
+        },
+        edges=[
+            Edge(
+                from_card=sample_card.name,
+                to_card=another_card.name,
+                type="enables",
+                description="a created note can be shared",
+            )
+        ],
+    )
+
+
+@pytest.fixture
+def sample_plan(sample_card) -> TestPlan:
+    return TestPlan(
+        goal=Goal("create a note", app="omninotes"),
+        path=[sample_card.name],
+        steps=[
+            PlanStep(
+                card=sample_card.name, action="click", target="text=+"
+            ),
+            PlanStep(
+                card=sample_card.name,
+                action="input",
+                target="text=Title",
+                args="Trip",
+            ),
+        ],
+        assertions=[
+            "create a note",
+            sample_card.postconditions,
+        ],
+        app="omninotes",
     )
 
 
