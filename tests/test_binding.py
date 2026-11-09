@@ -57,3 +57,10 @@ def test_bind_normalizes_input_descriptions(
     ]
     out = ParamBinder(fake_llm).bind(card, Goal("share"), "state", {})
     assert out == {"note": "Trip", "channel": "email"}
+
+
+def test_bind_optional_input_may_be_missing(fake_llm, sample_card):
+    fake_llm.responses = [{"bindings": {"title": "Trip"}}]
+    assert ParamBinder(fake_llm).bind(
+        sample_card, Goal("create a note"), "state", {}
+    ) == {"title": "Trip"}

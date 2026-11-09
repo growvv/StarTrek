@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from specfcg.executor.device import FakeDevice
@@ -26,7 +28,7 @@ def sample_card() -> FunctionCard:
     return FunctionCard(
         name="create_note",
         intent="Create a new note with a title and optional content.",
-        inputs=["title", "content"],
+        inputs=["title", "content (optional)"],
         preconditions="Logged in; on the notes list screen.",
         postconditions="A note with the given title appears in the notes list.",
         effects_outputs="Adds a note to the list; the new note is identified by its title.",
@@ -137,15 +139,19 @@ def fake_device() -> FakeDevice:
 
 @pytest.fixture
 def sample_graph(sample_card, another_card) -> Graph:
+    planner_share = replace(
+        another_card,
+        inputs=["note (optional)", "channel (optional)"],
+    )
     return Graph(
         cards={
             sample_card.name: sample_card,
-            another_card.name: another_card,
+            planner_share.name: planner_share,
         },
         edges=[
             Edge(
                 from_card=sample_card.name,
-                to_card=another_card.name,
+                to_card=planner_share.name,
                 type="enables",
                 description="a created note can be shared",
             )

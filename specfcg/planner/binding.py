@@ -38,13 +38,14 @@ class ParamBinder:
         state: str,
         prior_outputs: dict[str, str],
     ) -> dict[str, str] | None:
-        inputs: list[str] = []
+        inputs: list[tuple[str, bool]] = []
         for declaration in card.inputs:
             name = _param_name(declaration)
-            if name and name not in inputs:
-                inputs.append(name)
+            if name and all(existing != name for existing, _ in inputs):
+                inputs.append((name, "optional" in declaration.lower()))
         if not inputs:
             return {}
+        required = [name for name, optional in inputs if not optional]
 
         prompt = (
             f"Card: {card.name}\nIntent: {card.intent}\n"
@@ -67,12 +68,12 @@ class ParamBinder:
 
             resolved = {
                 name: self._resolve(raw[name], prior_outputs)
-                for name in inputs
+                for name, _optional in inputs
                 if name in raw
             }
             missing = [
                 name
-                for name in inputs
+                for name in required
                 if not self._is_bound(resolved.get(name, ""))
             ]
             if not missing:
