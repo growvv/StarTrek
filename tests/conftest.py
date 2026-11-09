@@ -4,13 +4,18 @@ from dataclasses import replace
 
 import pytest
 
+from specfcg.cards.store import CardStore
 from specfcg.executor.device import FakeDevice
+from specfcg.graph.store import GraphStore
+from specfcg.maintainer.builder import EdgeBuilder
+from specfcg.maintainer.miner import CardMiner
 from specfcg.models import (
     Edge,
     FunctionCard,
     Goal,
     Graph,
     PlanStep,
+    RunResult,
     Step,
     TestPlan,
     Trace,
@@ -180,6 +185,63 @@ def sample_plan(sample_card) -> TestPlan:
             sample_card.postconditions,
         ],
         app="omninotes",
+    )
+
+
+@pytest.fixture
+def graph_store(tmp_path, sample_card, another_card) -> GraphStore:
+    cards = CardStore(tmp_path)
+    cards.save(sample_card)
+    cards.save(another_card)
+    return GraphStore(tmp_path, cards)
+
+
+@pytest.fixture
+def edge_builder(fake_llm) -> EdgeBuilder:
+    return EdgeBuilder(fake_llm)
+
+
+@pytest.fixture
+def card_miner(fake_llm, tmp_path) -> CardMiner:
+    return CardMiner(fake_llm, CardStore(tmp_path))
+
+
+@pytest.fixture
+def successful_result(sample_plan) -> RunResult:
+    trace = Trace(
+        trace_id="t1",
+        app="omninotes",
+        steps=[
+            Step(action="click", target="text=+"),
+            Step(action="input", target="text=Title", args="Trip"),
+        ],
+    )
+    return RunResult(
+        plan=sample_plan,
+        success=True,
+        goal_success=True,
+        new_trace=trace,
+        step_results=[
+            {"card": "create_note", "success": True},
+            {"card": "create_note", "success": True},
+        ],
+    )
+
+
+@pytest.fixture
+def failed_result(sample_plan) -> RunResult:
+    trace = Trace(
+        trace_id="t1",
+        app="omninotes",
+        steps=[Step(action="click", target="text=+", success=False)],
+    )
+    return RunResult(
+        plan=sample_plan,
+        success=False,
+        goal_success=False,
+        failure_type="widget_failure",
+        new_trace=trace,
+        step_results=[{"card": "create_note", "success": False}],
     )
 
 

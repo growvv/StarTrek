@@ -54,6 +54,16 @@ def test_infer_semantic_returns_empty_on_malformed_output(fake_llm, two_cards):
     assert EdgeBuilder(fake_llm).infer_semantic(two_cards) == []
 
 
+def test_sequence_edges_do_not_call_llm(fake_llm, two_cards):
+    segments = [
+        {"trace_id": "t1", "start": 0, "end": 1, "card": "create_note"},
+        {"trace_id": "t1", "start": 2, "end": 3, "card": "share_note"},
+    ]
+    edges = EdgeBuilder(fake_llm).sequence_edges(two_cards, segments)
+    assert len(edges) == 1
+    assert fake_llm.calls == 0
+
+
 def test_infer_semantic_dedupes_and_merges_evidence(fake_llm, two_cards):
     fake_llm.responses = [
         {

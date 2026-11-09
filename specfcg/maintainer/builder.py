@@ -83,6 +83,14 @@ class EdgeBuilder:
                 )
         return self._merge_edges(edges)
 
+    def sequence_edges(
+        self,
+        cards: dict[str, FunctionCard],
+        segments: list[dict[str, Any]],
+    ) -> list[Edge]:
+        """Sequence edges from observed episodes; makes no LLM call."""
+        return self._sequence_edges(cards, segments)
+
     def infer_semantic(
         self, cards: dict[str, FunctionCard]
     ) -> list[Edge]:
