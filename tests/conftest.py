@@ -99,6 +99,28 @@ def sample_trace() -> Trace:
 
 
 @pytest.fixture
+def empty_trace() -> Trace:
+    return Trace(trace_id="t0", app="omninotes", steps=[])
+
+
+@pytest.fixture
+def single_step_trace() -> Trace:
+    return Trace(
+        trace_id="t1",
+        app="omninotes",
+        goal="open the app",
+        steps=[
+            Step(
+                action="click",
+                target="text=OmniNotes",
+                before_state="Launcher",
+                after_state="Notes list",
+            )
+        ],
+    )
+
+
+@pytest.fixture
 def simple_graph() -> Graph:
     cards = {name: _card(name) for name in ("A", "B", "C")}
     edges = [
