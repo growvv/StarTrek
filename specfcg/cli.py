@@ -106,7 +106,7 @@ class _OfflineLLM:
         return {}
 
 
-def _build_pipeline(
+def build_pipeline(
     config: AppConfig, fake_llm: bool, fake_device: bool
 ) -> Pipeline:
     root = Path(config.paths.root)
@@ -232,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         config = load_config(Path(args.config))
-        pipeline = _build_pipeline(
+        pipeline = build_pipeline(
             config, args.fake_llm, args.fake_device
         )
 

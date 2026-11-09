@@ -1,0 +1,22 @@
+app: AntennaPod
+cases:
+  - id: antennapod-01
+    text: "Add a podcast by RSS URL"
+  - id: antennapod-02
+    text: "Search for a podcast"
+  - id: antennapod-03
+    text: "Subscribe to a podcast"
+  - id: antennapod-04
+    text: "Open the episode list of a podcast"
+  - id: antennapod-05
+    text: "Play an episode"
+  - id: antennapod-06
+    text: "Pause the current playback"
+  - id: antennapod-07
+    text: "Add an episode to the queue"
+  - id: antennapod-08
+    text: "Mark an episode as played"
+  - id: antennapod-09
+    text: "Open the queue screen"
+  - id: antennapod-10
+    text: "Change the playback speed"

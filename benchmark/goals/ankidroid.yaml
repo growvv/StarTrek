@@ -1,0 +1,30 @@
+app: AnkiDroid
+goals:
+  - id: ankidroid-g01
+    text: "Create a deck, add a note to it, then review that note"
+    assertions:
+      - "The new deck exists in the deck list"
+      - "The note appears in the deck"
+      - "The review screen shows the note"
+  - id: ankidroid-g02
+    text: "Create a tagged note, search for the tag, and open the result"
+    assertions:
+      - "The note has the tag"
+      - "Search returns the note"
+      - "The note detail view opens"
+  - id: ankidroid-g03
+    text: "Create two notes, suspend one, and verify only the other is reviewable"
+    assertions:
+      - "Both notes were created"
+      - "One note is suspended"
+      - "Review shows only the unsuspended note"
+  - id: ankidroid-g04
+    text: "Create a new deck, change its options, and add a note"
+    assertions:
+      - "The deck options are saved"
+      - "The note is added to the new deck"
+  - id: ankidroid-g05
+    text: "Create a deck and export it as a collection package"
+    assertions:
+      - "The export completes"
+      - "The exported package exists"

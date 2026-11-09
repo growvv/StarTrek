@@ -1,0 +1,22 @@
+app: AnkiDroid
+cases:
+  - id: ankidroid-01
+    text: "Create a new basic note in the default deck"
+  - id: ankidroid-02
+    text: "Add a tag to an existing note"
+  - id: ankidroid-03
+    text: "Search for a card by its front text"
+  - id: ankidroid-04
+    text: "Review the next due card"
+  - id: ankidroid-05
+    text: "Flip the current card to reveal the answer"
+  - id: ankidroid-06
+    text: "Suspend the current card"
+  - id: ankidroid-07
+    text: "Create a new deck named Languages"
+  - id: ankidroid-08
+    text: "Delete a note from the browser"
+  - id: ankidroid-09
+    text: "Export the default deck as a collection package"
+  - id: ankidroid-10
+    text: "Change the deck options for daily new cards"

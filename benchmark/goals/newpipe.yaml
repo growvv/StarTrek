@@ -1,0 +1,27 @@
+app: NewPipe
+goals:
+  - id: newpipe-g01
+    text: "Search for a video, play it, and add it to watch later"
+    assertions:
+      - "The video plays"
+      - "The video is in the watch later queue"
+  - id: newpipe-g02
+    text: "Search for a video, open its channel, and subscribe"
+    assertions:
+      - "The channel page opens"
+      - "The channel is subscribed"
+  - id: newpipe-g03
+    text: "Play a video, change the playback speed, pause, and resume"
+    assertions:
+      - "The speed changes"
+      - "Playback pauses and resumes"
+  - id: newpipe-g04
+    text: "Search for a video and open the downloads screen"
+    assertions:
+      - "Search returns results"
+      - "The downloads screen opens"
+  - id: newpipe-g05
+    text: "Open settings, change a playback setting, and return to search"
+    assertions:
+      - "The setting is saved"
+      - "The search screen opens"

@@ -50,6 +50,19 @@ def test_load_apps_from_list(tmp_path):
     assert load_apps(path)[0].name == "PodListen"
 
 
+def test_load_apps_reads_version(tmp_path):
+    path = _write(
+        tmp_path / "apps.yaml",
+        "apps:\n"
+        "  - name: OmniNotes\n"
+        "    package: it.feio.android.omninotes\n"
+        "    apk_path: apps/omninotes.apk\n"
+        "    version: 6.1.0\n",
+    )
+
+    assert load_apps(path)[0].version == "6.1.0"
+
+
 def test_load_cases_from_directory(tmp_path):
     cases_dir = tmp_path / "cases"
     cases_dir.mkdir()

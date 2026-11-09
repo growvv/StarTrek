@@ -1,0 +1,25 @@
+apps:
+  - name: AnkiDroid
+    package: com.ichi2.anki
+    apk_path: third_party/apks/AnkiDroid-2.16.5.apk
+    version: "2.16.5"
+  - name: AmazeFileManager
+    package: com.amaze.filemanager
+    apk_path: third_party/apks/AmazeFileManager-3.8.5.apk
+    version: "3.8.5"
+  - name: OmniNotes
+    package: it.feio.android.omninotes
+    apk_path: third_party/apks/OmniNotes-6.1.0.apk
+    version: "6.1.0"
+  - name: NewPipe
+    package: org.schabi.newpipe
+    apk_path: third_party/apks/NewPipe-0.26.1.apk
+    version: "0.26.1"
+  - name: ActivityDiary
+    package: de.rampro.activitydiary
+    apk_path: third_party/apks/ActivityDiary-1.5.1.apk
+    version: "1.5.1"
+  - name: AntennaPod
+    package: de.danoeh.antennapod
+    apk_path: third_party/apks/AntennaPod-3.3.2.apk
+    version: "3.3.2"

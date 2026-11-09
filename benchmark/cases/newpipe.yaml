@@ -1,0 +1,22 @@
+app: NewPipe
+cases:
+  - id: newpipe-01
+    text: "Search for a video by keyword"
+  - id: newpipe-02
+    text: "Open a video from the search results"
+  - id: newpipe-03
+    text: "Play a video"
+  - id: newpipe-04
+    text: "Pause the current playback"
+  - id: newpipe-05
+    text: "Add a video to the watch later queue"
+  - id: newpipe-06
+    text: "Open the channel page of a video"
+  - id: newpipe-07
+    text: "Subscribe to a channel"
+  - id: newpipe-08
+    text: "Open the downloads screen"
+  - id: newpipe-09
+    text: "Change the playback speed"
+  - id: newpipe-10
+    text: "Open the settings screen"

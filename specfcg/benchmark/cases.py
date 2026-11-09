@@ -14,6 +14,7 @@ class AppSpec:
     name: str
     package: str
     apk_path: Path
+    version: str = ""
 
 
 @dataclass
@@ -71,6 +72,7 @@ def load_apps(path: Path) -> list[AppSpec]:
         name = str(item.get("name") or item.get("app") or "").strip()
         package = str(item.get("package") or "").strip()
         apk_path = str(item.get("apk_path") or "").strip()
+        version = str(item.get("version") or "").strip()
         if not name or not package or not apk_path:
             raise ValueError(
                 f"{file}: app needs name, package, and apk_path"
@@ -80,6 +82,7 @@ def load_apps(path: Path) -> list[AppSpec]:
                 name=name,
                 package=package,
                 apk_path=Path(apk_path),
+                version=version,
             )
         )
     return apps

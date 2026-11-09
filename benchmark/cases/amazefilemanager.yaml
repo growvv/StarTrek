@@ -1,0 +1,22 @@
+app: AmazeFileManager
+cases:
+  - id: amazefilemanager-01
+    text: "Open the internal storage directory"
+  - id: amazefilemanager-02
+    text: "Create a new folder named Documents"
+  - id: amazefilemanager-03
+    text: "Rename a file in the current folder"
+  - id: amazefilemanager-04
+    text: "Delete a file in the current folder"
+  - id: amazefilemanager-05
+    text: "Copy a file to another folder"
+  - id: amazefilemanager-06
+    text: "Move a file to another folder"
+  - id: amazefilemanager-07
+    text: "Search for a file by name"
+  - id: amazefilemanager-08
+    text: "Open a text file in the editor"
+  - id: amazefilemanager-09
+    text: "Sort files by size"
+  - id: amazefilemanager-10
+    text: "Compress a folder into a zip archive"

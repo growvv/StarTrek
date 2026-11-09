@@ -1,0 +1,22 @@
+app: OmniNotes
+cases:
+  - id: omninotes-01
+    text: "Create a new text note"
+  - id: omninotes-02
+    text: "Add a title and content to a note"
+  - id: omninotes-03
+    text: "Search notes by keyword"
+  - id: omninotes-04
+    text: "Archive a note"
+  - id: omninotes-05
+    text: "Delete a note"
+  - id: omninotes-06
+    text: "Add a tag to a note"
+  - id: omninotes-07
+    text: "Change the color of a note"
+  - id: omninotes-08
+    text: "Attach a photo to a note"
+  - id: omninotes-09
+    text: "Share a note through another app"
+  - id: omninotes-10
+    text: "Sort notes by title"

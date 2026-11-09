@@ -1,0 +1,29 @@
+app: OmniNotes
+goals:
+  - id: omninotes-g01
+    text: "Create a note, add a tag, search by the tag, and open the note"
+    assertions:
+      - "The note has the tag"
+      - "Search returns the note"
+      - "The note opens"
+  - id: omninotes-g02
+    text: "Create a note, archive it, and verify it leaves the active list"
+    assertions:
+      - "The note is archived"
+      - "The note is absent from the active list"
+  - id: omninotes-g03
+    text: "Create a note, attach a photo, and share it"
+    assertions:
+      - "The photo is attached"
+      - "The share sheet opens"
+      - "The note is shared"
+  - id: omninotes-g04
+    text: "Create three notes, sort by title, and verify the order"
+    assertions:
+      - "Three notes exist"
+      - "The list is sorted by title"
+  - id: omninotes-g05
+    text: "Create a note, change its color, archive it, and verify the color persists"
+    assertions:
+      - "The note color is changed"
+      - "The archived note keeps the color"

@@ -1,0 +1,28 @@
+app: AmazeFileManager
+goals:
+  - id: amazefilemanager-g01
+    text: "Create a folder, copy a file into it, and verify the copy"
+    assertions:
+      - "The folder is created"
+      - "The file appears inside the folder"
+  - id: amazefilemanager-g02
+    text: "Rename a file, search for the new name, and open it"
+    assertions:
+      - "The file has the new name"
+      - "Search finds the file"
+      - "The file opens"
+  - id: amazefilemanager-g03
+    text: "Compress a folder and verify the archive appears"
+    assertions:
+      - "The zip file is created"
+      - "The archive appears in the parent folder"
+  - id: amazefilemanager-g04
+    text: "Move a file into a folder and verify it survives a refresh"
+    assertions:
+      - "The file is moved"
+      - "The file is still present after refresh"
+  - id: amazefilemanager-g05
+    text: "Sort files by size and delete the largest file"
+    assertions:
+      - "Files are sorted by size"
+      - "The largest file is removed"

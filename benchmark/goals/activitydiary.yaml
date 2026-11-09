@@ -1,0 +1,28 @@
+app: ActivityDiary
+goals:
+  - id: activitydiary-g01
+    text: "Create an activity category, add an entry for it, and verify the timeline"
+    assertions:
+      - "The category exists"
+      - "The entry uses the category"
+      - "The timeline shows the entry"
+  - id: activitydiary-g02
+    text: "Create an entry, set its start and end times, and add a note"
+    assertions:
+      - "The start and end times are saved"
+      - "The note is attached"
+  - id: activitydiary-g03
+    text: "Create an entry, edit its note, and verify the update"
+    assertions:
+      - "The entry is edited"
+      - "The updated note is visible"
+  - id: activitydiary-g04
+    text: "Create two entries, filter by one activity, and verify the result"
+    assertions:
+      - "Two entries exist"
+      - "Only the matching entry is shown"
+  - id: activitydiary-g05
+    text: "Create an entry, delete it, and verify it leaves the timeline"
+    assertions:
+      - "The entry is deleted"
+      - "The timeline no longer shows it"

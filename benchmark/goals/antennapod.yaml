@@ -1,0 +1,28 @@
+app: AntennaPod
+goals:
+  - id: antennapod-g01
+    text: "Add a podcast by RSS, subscribe, open an episode, and play it"
+    assertions:
+      - "The podcast is added"
+      - "The subscription succeeds"
+      - "The episode plays"
+  - id: antennapod-g02
+    text: "Search for a podcast, subscribe, and add an episode to the queue"
+    assertions:
+      - "The podcast is subscribed"
+      - "The episode is in the queue"
+  - id: antennapod-g03
+    text: "Play an episode, change the speed, and mark it as played"
+    assertions:
+      - "The speed changes"
+      - "The episode is marked as played"
+  - id: antennapod-g04
+    text: "Add two podcasts, open the queue, and remove one episode"
+    assertions:
+      - "Two podcasts are subscribed"
+      - "One episode leaves the queue"
+  - id: antennapod-g05
+    text: "Open settings, change the playback speed, and return to the queue"
+    assertions:
+      - "The speed setting is saved"
+      - "The queue screen opens"

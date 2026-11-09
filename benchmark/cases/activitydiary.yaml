@@ -1,0 +1,22 @@
+app: ActivityDiary
+cases:
+  - id: activitydiary-01
+    text: "Create a new activity entry"
+  - id: activitydiary-02
+    text: "Select an activity category for an entry"
+  - id: activitydiary-03
+    text: "Set the start time of an entry"
+  - id: activitydiary-04
+    text: "Set the end time of an entry"
+  - id: activitydiary-05
+    text: "Add a note to an entry"
+  - id: activitydiary-06
+    text: "Edit an existing entry"
+  - id: activitydiary-07
+    text: "Delete an entry"
+  - id: activitydiary-08
+    text: "View the diary timeline for today"
+  - id: activitydiary-09
+    text: "Create a new activity category"
+  - id: activitydiary-10
+    text: "Filter the timeline by activity"
