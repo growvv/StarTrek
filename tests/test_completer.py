@@ -54,6 +54,7 @@ def test_complete_adds_card_on_successful_probe(
         "**Preconditions**: note exists\n**Postconditions**: photo attached\n"
         "**Effects/Outputs**: note has photo\n**Steps**:\n1. Tap attach\n"
         "**Evidence**: traces t9; 1/1 successes",
+        {"edges": []},
     ]
     fake_probe.trace = probe_trace
     patch = _completer(
@@ -61,6 +62,98 @@ def test_complete_adds_card_on_successful_probe(
     ).complete(Goal("attach a photo"), "state")
     assert patch is not None
     assert any(card.name == "attach_photo" for card in patch.new_cards)
+
+
+def test_complete_adds_semantic_edges_for_new_card(
+    fake_llm,
+    graph_store,
+    card_miner,
+    edge_builder,
+    fake_probe,
+    probe_trace,
+):
+    fake_llm.responses = [
+        {"gap": "need attach_photo"},
+        {
+            "capabilities": [
+                {
+                    "name": "attach_photo",
+                    "intent": "attach a photo",
+                    "probe": ["tap attach"],
+                }
+            ]
+        },
+        "# attach_photo\n\n**Intent**: attach a photo\n**Inputs**: none\n"
+        "**Preconditions**: note exists\n**Postconditions**: photo attached\n"
+        "**Effects/Outputs**: photo attached\n**Steps**:\n1. Tap attach\n"
+        "**Evidence**: traces t9; 1/1 successes",
+        {
+            "edges": [
+                {
+                    "from": "create_note",
+                    "to": "attach_photo",
+                    "type": "enables",
+                    "description": "a note enables attaching a photo",
+                }
+            ]
+        },
+    ]
+    fake_probe.trace = probe_trace
+
+    patch = _completer(
+        fake_llm, graph_store, card_miner, edge_builder, fake_probe
+    ).complete(Goal("attach a photo"), "state")
+
+    assert patch is not None
+    assert any(
+        edge["from"] == "create_note"
+        and edge["to"] == "attach_photo"
+        and edge["type"] == "enables"
+        for edge in patch.edge_updates
+    )
+
+
+def test_complete_merges_existing_card_on_name_collision(
+    fake_llm,
+    graph_store,
+    card_miner,
+    edge_builder,
+    fake_probe,
+    probe_trace,
+):
+    fake_llm.responses = [
+        {"gap": "need create_note"},
+        {
+            "capabilities": [
+                {
+                    "name": "create_note",
+                    "intent": "create a note",
+                    "probe": ["tap plus"],
+                }
+            ]
+        },
+        "# create_note\n\n**Intent**: Create a note.\n**Inputs**: none\n"
+        "**Preconditions**: note exists\n**Postconditions**: created\n"
+        "**Effects/Outputs**: note\n**Steps**:\n1. Tap plus\n"
+        "**Evidence**: traces t9; 1/1 successes",
+        {"edges": []},
+    ]
+    fake_probe.trace = probe_trace
+
+    patch = _completer(
+        fake_llm, graph_store, card_miner, edge_builder, fake_probe
+    ).complete(Goal("create a note"), "state")
+
+    assert patch is not None
+    assert patch.new_cards == []
+    update = next(
+        item
+        for item in patch.card_updates
+        if item["name"] == "create_note"
+    )
+    assert update["fields"]["evidence"] == ["t1", "t2", "t9"]
+    assert update["fields"]["success_count"] == 3
+    assert update["fields"]["attempt_count"] == 4
 
 
 def test_budget_limits_hypotheses(

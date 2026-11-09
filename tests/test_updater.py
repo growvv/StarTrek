@@ -27,6 +27,24 @@ def test_invalid_patch_does_not_corrupt_graph(
     assert "missing" not in graph_store.load().cards
 
 
+def test_failure_patch_rejects_new_card_with_existing_name(
+    fake_llm, graph_store, failed_result
+):
+    fake_llm.responses = [
+        {
+            "new_cards": [
+                {"name": "create_note", "intent": "replace it"}
+            ],
+            "reason": "replace",
+        }
+    ]
+    patch = GraphUpdater(
+        fake_llm, graph_store, EdgeBuilder(fake_llm)
+    ).update(failed_result)
+    assert patch.new_cards == []
+    assert patch.reason == "invalid patch rejected"
+
+
 def test_malformed_failure_patch_returns_empty(
     fake_llm, graph_store, failed_result
 ):

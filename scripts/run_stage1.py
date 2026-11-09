@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from specfcg.benchmark.cases import (  # noqa: E402
+    app_packages,
     load_apps,
     load_cases,
     load_goals,
@@ -31,8 +32,10 @@ from specfcg.models import RunResult  # noqa: E402
 from specfcg.pipeline import Pipeline  # noqa: E402
 
 
-def _run_one(pipeline: Pipeline, text: str) -> RunResult:
-    result = pipeline.execute_goal(text)
+def _run_one(
+    pipeline: Pipeline, text: str, app: str = ""
+) -> RunResult:
+    result = pipeline.execute_goal(text, app=app)
     if result is not None:
         return result
     return RunResult(
@@ -92,16 +95,26 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config(Path(args.config))
     pipeline = build_pipeline(config, args.fake, args.fake)
+    packages = app_packages(apps)
 
     case_results = {
-        case.id: _run_one(pipeline, case.text) for case in cases
+        case.id: _run_one(
+            pipeline,
+            case.text,
+            packages.get(case.app, ""),
+        )
+        for case in cases
     }
     case_rows = Runner(case_results.__getitem__).run(cases)
 
     goal_results: list[RunResult] = []
     goal_rows: list[dict] = []
     for goal in goals:
-        result = _run_one(pipeline, goal.text)
+        result = _run_one(
+            pipeline,
+            goal.text,
+            packages.get(goal.app, ""),
+        )
         goal_results.append(result)
         goal_rows.append(
             {

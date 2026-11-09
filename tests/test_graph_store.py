@@ -84,6 +84,30 @@ def test_edge_with_unknown_endpoint_is_skipped(
     assert store.edges() == []
 
 
+def test_uncoercible_card_update_field_is_skipped(tmp_path, sample_card):
+    cards = CardStore(tmp_path)
+    cards.save(sample_card)
+    store = GraphStore(tmp_path, cards)
+
+    store.apply_patch(
+        GraphPatch(
+            card_updates=[
+                {
+                    "name": sample_card.name,
+                    "fields": {
+                        "success_count": "many",
+                        "evidence": ["t3"],
+                    },
+                }
+            ]
+        )
+    )
+
+    card = cards.load(sample_card.name)
+    assert card.success_count == sample_card.success_count
+    assert "t3" in card.evidence
+
+
 def test_neighbors_orders_by_type_priority(
     tmp_path, sample_card, another_card
 ):

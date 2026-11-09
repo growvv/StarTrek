@@ -64,6 +64,48 @@ def test_sequence_edges_do_not_call_llm(fake_llm, two_cards):
     assert fake_llm.calls == 0
 
 
+def test_infer_semantic_skips_non_string_endpoint(fake_llm, two_cards):
+    fake_llm.responses = [
+        {
+            "edges": [
+                {
+                    "from": ["create_note"],
+                    "to": "share_note",
+                    "type": "enables",
+                }
+            ]
+        }
+    ]
+    assert EdgeBuilder(fake_llm).infer_semantic(two_cards) == []
+
+
+def test_infer_semantic_skips_non_string_type(fake_llm, two_cards):
+    fake_llm.responses = [
+        {
+            "edges": [
+                {
+                    "from": "create_note",
+                    "to": "share_note",
+                    "type": ["enables"],
+                }
+            ]
+        }
+    ]
+    assert EdgeBuilder(fake_llm).infer_semantic(two_cards) == []
+
+
+def test_sequence_edges_skip_non_string_card(fake_llm, two_cards):
+    segments = [
+        {
+            "trace_id": "t1",
+            "start": 0,
+            "end": 0,
+            "card": ["create_note"],
+        }
+    ]
+    assert EdgeBuilder(fake_llm).sequence_edges(two_cards, segments) == []
+
+
 def test_infer_semantic_dedupes_and_merges_evidence(fake_llm, two_cards):
     fake_llm.responses = [
         {

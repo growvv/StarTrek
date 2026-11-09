@@ -6,7 +6,7 @@ import logging
 
 from specfcg.graph.search import search
 from specfcg.llm.client import LLMClient, LLMParseError
-from specfcg.models import Goal, Graph, TestPlan
+from specfcg.models import Goal, Graph, TestPlan, as_bool
 from specfcg.planner.binding import ParamBinder
 from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.retrieval import CardRetriever
@@ -57,7 +57,7 @@ class Planner:
                 result = False
             else:
                 result = (
-                    bool(data.get("can_execute", False))
+                    as_bool(data.get("can_execute", False))
                     if isinstance(data, dict)
                     else False
                 )
@@ -84,7 +84,7 @@ class Planner:
                 result = False
             else:
                 result = (
-                    bool(data.get("is_goal", False))
+                    as_bool(data.get("is_goal", False))
                     if isinstance(data, dict)
                     else False
                 )

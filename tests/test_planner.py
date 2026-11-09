@@ -1,8 +1,21 @@
-from specfcg.models import Goal
+from specfcg.models import FunctionCard, Goal, Graph
 from specfcg.planner.binding import ParamBinder
 from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.planner import Planner
 from specfcg.planner.retrieval import CardRetriever
+
+
+def _single_card_graph() -> Graph:
+    card = FunctionCard(
+        name="act",
+        intent="act",
+        inputs=[],
+        preconditions="",
+        postconditions="done",
+        effects_outputs="",
+        steps=['Tap "Go"'],
+    )
+    return Graph(cards={"act": card}, edges=[])
 
 
 def _planner(graph, llm):
@@ -38,5 +51,28 @@ def test_plan_returns_none_when_no_path(fake_llm, sample_graph):
     fake_llm.responses = [{"can_execute": False}, {"can_execute": False}]
     assert (
         _planner(sample_graph, fake_llm).plan(Goal("impossible"), "start")
+        is None
+    )
+
+
+def test_string_false_can_execute_returns_none(fake_llm):
+    fake_llm.responses = [{"can_execute": "false"}]
+    assert (
+        _planner(_single_card_graph(), fake_llm).plan(
+            Goal("impossible"), "start"
+        )
+        is None
+    )
+
+
+def test_string_false_is_goal_returns_none(fake_llm):
+    fake_llm.responses = [
+        {"can_execute": True},
+        {"is_goal": "false"},
+    ]
+    assert (
+        _planner(_single_card_graph(), fake_llm).plan(
+            Goal("impossible"), "start"
+        )
         is None
     )

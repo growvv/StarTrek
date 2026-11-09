@@ -88,6 +88,10 @@ def load_apps(path: Path) -> list[AppSpec]:
     return apps
 
 
+def app_packages(apps: list[AppSpec]) -> dict[str, str]:
+    return {app.name: app.package for app in apps}
+
+
 def load_cases(path: Path) -> list[NLTestCase]:
     cases: list[NLTestCase] = []
     for file, file_app, item in _iter_records(path, "cases"):

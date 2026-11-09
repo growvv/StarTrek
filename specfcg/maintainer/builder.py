@@ -59,9 +59,14 @@ class EdgeBuilder:
             trace_id = segment.get("trace_id")
             card = segment.get("card")
             start = segment.get("start")
-            if not trace_id or card not in cards or type(start) is not int:
+            if (
+                not isinstance(trace_id, str)
+                or not isinstance(card, str)
+                or type(start) is not int
+                or card not in cards
+            ):
                 continue
-            by_trace.setdefault(str(trace_id), []).append(segment)
+            by_trace.setdefault(trace_id, []).append(segment)
 
         edges: list[Edge] = []
         for trace_id, episodes in by_trace.items():
@@ -128,7 +133,10 @@ class EdgeBuilder:
             to_card = item.get("to")
             edge_type = item.get("type")
             if (
-                from_card not in cards
+                not isinstance(from_card, str)
+                or not isinstance(to_card, str)
+                or not isinstance(edge_type, str)
+                or from_card not in cards
                 or to_card not in cards
                 or from_card == to_card
                 or edge_type not in {"enables", "dataflow"}

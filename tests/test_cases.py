@@ -8,6 +8,7 @@ from specfcg.benchmark.cases import (
     AppSpec,
     CompositionalGoal,
     NLTestCase,
+    app_packages,
     load_apps,
     load_cases,
     load_goals,
@@ -61,6 +62,18 @@ def test_load_apps_reads_version(tmp_path):
     )
 
     assert load_apps(path)[0].version == "6.1.0"
+
+
+def test_app_packages_maps_names_to_packages():
+    apps = [
+        AppSpec("OmniNotes", "it.feio.android.omninotes", Path("a.apk")),
+        AppSpec("NewPipe", "org.schabi.newpipe", Path("b.apk")),
+    ]
+
+    assert app_packages(apps) == {
+        "OmniNotes": "it.feio.android.omninotes",
+        "NewPipe": "org.schabi.newpipe",
+    }
 
 
 def test_load_cases_from_directory(tmp_path):

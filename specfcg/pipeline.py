@@ -115,21 +115,25 @@ class Pipeline:
         )
         return edges
 
-    def plan(self, goal_text: str, state: str = "") -> TestPlan | None:
-        return self.planner.plan(Goal(description=goal_text), state)
+    def plan(
+        self, goal_text: str, state: str = "", app: str = ""
+    ) -> TestPlan | None:
+        return self.planner.plan(
+            Goal(description=goal_text, app=app), state
+        )
 
     def execute_goal(
-        self, goal_text: str, state: str = ""
+        self, goal_text: str, state: str = "", app: str = ""
     ) -> RunResult | None:
-        plan = self.plan(goal_text, state)
+        plan = self.plan(goal_text, state, app)
         if plan is None:
             return None
         return self.executor.execute(plan)
 
     def refine(
-        self, goal_text: str, state: str = ""
+        self, goal_text: str, state: str = "", app: str = ""
     ) -> GraphPatch | None:
-        plan = self.plan(goal_text, state)
+        plan = self.plan(goal_text, state, app)
         if plan is None:
             return None
         result = self.executor.execute(plan)
@@ -138,15 +142,21 @@ class Pipeline:
         return patch
 
     def complete(
-        self, goal_text: str, state: str = ""
+        self, goal_text: str, state: str = "", app: str = ""
     ) -> GraphPatch | None:
-        patch = self.completer.complete(Goal(description=goal_text), state)
+        patch = self.completer.complete(
+            Goal(description=goal_text, app=app), state
+        )
         if patch is not None:
             self._apply_patch(patch, backup=True)
         return patch
 
     def run_goal(
-        self, goal_text: str, state: str = "", max_rounds: int = 2
+        self,
+        goal_text: str,
+        state: str = "",
+        max_rounds: int = 2,
+        app: str = "",
     ) -> dict[str, Any]:
         summary: dict[str, Any] = {
             "goal": goal_text,
@@ -161,9 +171,9 @@ class Pipeline:
         }
         for round_index in range(max(1, max_rounds)):
             summary["rounds"] = round_index + 1
-            plan = self.plan(goal_text, state)
+            plan = self.plan(goal_text, state, app)
             if plan is None:
-                completion = self.complete(goal_text, state)
+                completion = self.complete(goal_text, state, app)
                 if completion is None:
                     summary["error"] = (
                         "no plan and no capability completion"

@@ -232,13 +232,20 @@ class GraphUpdater:
         new_names: set[str] = set()
         for item in raw_new:
             if isinstance(item, FunctionCard):
+                if item.name in existing or item.name in new_names:
+                    return None
                 new_cards.append(item)
                 new_names.add(item.name)
                 continue
             if not isinstance(item, dict):
                 return None
             name = item.get("name")
-            if not isinstance(name, str) or not name:
+            if (
+                not isinstance(name, str)
+                or not name
+                or name in existing
+                or name in new_names
+            ):
                 return None
             try:
                 card = FunctionCard(

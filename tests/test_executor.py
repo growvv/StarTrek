@@ -55,6 +55,33 @@ def test_execute_postcondition_failure(
     assert not result.success
 
 
+def test_execute_string_false_postcondition_is_failure(
+    fake_device, fake_llm, sample_graph, sample_plan
+):
+    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
+    fake_llm.responses = [
+        "Current screen: start",
+        {"satisfied": "false", "reason": "no note"},
+    ]
+    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
+    assert result.failure_type == "postcondition_failure"
+    assert not result.success
+
+
+def test_execute_string_false_goal_is_failure(
+    fake_device, fake_llm, sample_graph, sample_plan
+):
+    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
+    fake_llm.responses = [
+        "Current screen: start",
+        {"satisfied": True, "reason": "ok"},
+        {"achieved": "false", "reason": "no shared note"},
+    ]
+    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
+    assert result.failure_type == "goal_failure"
+    assert not result.goal_success
+
+
 def test_execute_goal_failure(
     fake_device, fake_llm, sample_graph, sample_plan
 ):

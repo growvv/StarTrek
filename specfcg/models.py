@@ -19,6 +19,15 @@ FailureType = Literal[
 EDGE_PRIORITY: tuple[str, ...] = ("enables", "dataflow", "sequence", "calls")
 
 
+def as_bool(value: Any) -> bool:
+    """Interpret bool-like model output without trusting string truthiness."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "yes", "1", "y"}
+    return bool(value)
+
+
 @dataclass
 class Step:
     action: str

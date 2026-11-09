@@ -242,6 +242,54 @@ def test_plan_wraps_goal_text(tmp_path, fake_llm, fake_device):
     assert plan.steps[0].action == "click"
 
 
+def test_plan_uses_app_package(tmp_path, fake_llm, fake_device):
+    fake_llm.responses = [
+        {"can_execute": True},
+        {"is_goal": True},
+        {"steps": [{"action": "click", "target": "text=Next"}]},
+    ]
+    pipeline = _pipeline(
+        tmp_path, fake_llm, fake_device, cards=[_card("create_note")]
+    )
+
+    plan = pipeline.plan(
+        "create a note",
+        "Notes list",
+        app="com.example.omninotes",
+    )
+
+    assert plan is not None
+    assert plan.goal.app == "com.example.omninotes"
+    assert plan.app == "com.example.omninotes"
+
+
+def test_execute_goal_starts_target_package(
+    tmp_path, fake_llm, fake_device
+):
+    fake_llm.responses = [
+        {"can_execute": True},
+        {"is_goal": True},
+        {"steps": [{"action": "click", "target": "text=Next"}]},
+        "Notes list with a plus button",
+        {"satisfied": True},
+        {"achieved": True},
+    ]
+    pipeline = _pipeline(
+        tmp_path, fake_llm, fake_device, cards=[_card("create_note")]
+    )
+
+    result = pipeline.execute_goal(
+        "create a note",
+        "Notes list",
+        app="com.example.omninotes",
+    )
+
+    assert result is not None
+    assert result.plan is not None
+    assert result.plan.app == "com.example.omninotes"
+    assert fake_device.app == "com.example.omninotes"
+
+
 def test_run_goal_executes_and_applies_success_patch(
     tmp_path, fake_llm, fake_device
 ):

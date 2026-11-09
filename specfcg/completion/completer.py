@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -176,7 +177,38 @@ class CapabilityCompleter:
             card.inputs = list(capability.inputs)
 
         cards = self.store.cards.all()
-        cards[card.name] = card
+        existing = cards.get(card.name)
+        new_cards = []
+        card_updates = []
+        if existing is None:
+            cards[card.name] = card
+            new_cards = [card]
+        else:
+            evidence = list(existing.evidence)
+            for item in card.evidence:
+                if item not in evidence:
+                    evidence.append(item)
+            fields: dict[str, Any] = {
+                "evidence": evidence,
+                "success_count": existing.success_count
+                + card.success_count,
+                "attempt_count": existing.attempt_count
+                + card.attempt_count,
+            }
+            for attr in (
+                "intent",
+                "inputs",
+                "preconditions",
+                "postconditions",
+                "effects_outputs",
+                "steps",
+            ):
+                if not getattr(existing, attr) and getattr(card, attr):
+                    fields[attr] = getattr(card, attr)
+            merged = replace(existing, **fields)
+            cards[card.name] = merged
+            card_updates = [{"name": card.name, "fields": fields}]
+
         segments = [
             {
                 "trace_id": trace.trace_id,
@@ -195,10 +227,11 @@ class CapabilityCompleter:
                 "description": edge.description,
                 "evidence": edge.evidence,
             }
-            for edge in self.builder.sequence_edges(cards, segments)
+            for edge in self.builder.build(cards, segments)
         ]
         return GraphPatch(
-            new_cards=[card],
+            new_cards=new_cards,
+            card_updates=card_updates,
             edge_updates=edge_updates,
             reason=f"completed capability {capability.name}",
         )

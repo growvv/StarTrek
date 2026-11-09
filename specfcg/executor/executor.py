@@ -16,6 +16,7 @@ from specfcg.models import (
     Step,
     TestPlan,
     Trace,
+    as_bool,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,7 +141,7 @@ class Executor:
                     failure_type="check_error",
                     error=f"postcondition check failed: {exc}",
                 )
-            if not bool(check.get("satisfied", False)):
+            if not as_bool(check.get("satisfied", False)):
                 return self._result(
                     plan,
                     trace,
@@ -167,7 +168,7 @@ class Executor:
                 failure_type="check_error",
                 error=f"goal check failed: {exc}",
             )
-        achieved = bool(goal_check.get("achieved", False))
+        achieved = as_bool(goal_check.get("achieved", False))
         if not achieved:
             return self._result(
                 plan,

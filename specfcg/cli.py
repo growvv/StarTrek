@@ -193,6 +193,7 @@ def _add_common(parser: argparse.ArgumentParser) -> None:
 def _add_goal(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--goal", required=True)
     parser.add_argument("--state", default="")
+    parser.add_argument("--app", default="")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -244,24 +245,28 @@ def main(argv: list[str] | None = None) -> int:
             )
             return _cmd_build_graph(pipeline, segments_path)
         if args.command == "plan":
-            plan = pipeline.plan(args.goal, args.state)
+            plan = pipeline.plan(args.goal, args.state, args.app)
             _print_json(asdict(plan) if plan is not None else None)
             return 0 if plan is not None else 1
         if args.command == "execute":
-            result = pipeline.execute_goal(args.goal, args.state)
+            result = pipeline.execute_goal(
+                args.goal, args.state, args.app
+            )
             _print_json(asdict(result) if result is not None else None)
             return 0 if result is not None else 1
         if args.command == "refine":
-            patch = pipeline.refine(args.goal, args.state)
+            patch = pipeline.refine(args.goal, args.state, args.app)
             _print_json(asdict(patch) if patch is not None else None)
             return 0 if patch is not None else 1
         if args.command == "complete":
-            patch = pipeline.complete(args.goal, args.state)
+            patch = pipeline.complete(
+                args.goal, args.state, args.app
+            )
             _print_json(asdict(patch) if patch is not None else None)
             return 0
         if args.command == "run":
             summary = pipeline.run_goal(
-                args.goal, args.state, args.max_rounds
+                args.goal, args.state, args.max_rounds, args.app
             )
             _print_json(summary)
             return 0 if summary["goal_success"] else 1

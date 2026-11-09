@@ -138,7 +138,17 @@ class GraphStore:
             attr = _normalize_field(str(key))
             if attr is None:
                 continue
-            setattr(card, attr, _coerce(attr, value))
+            try:
+                coerced = _coerce(attr, value)
+            except (TypeError, ValueError) as exc:
+                logger.warning(
+                    "card update field skipped %s=%r: %s",
+                    key,
+                    value,
+                    exc,
+                )
+                continue
+            setattr(card, attr, coerced)
         self.cards.save(card)
 
     def _apply_edge_updates(

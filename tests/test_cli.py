@@ -100,6 +100,32 @@ def test_cli_execute_prints_result(tmp_path, sample_trace, capsys):
     assert data["goal_success"] is True
 
 
+def test_cli_execute_threads_app_package(tmp_path, sample_trace, capsys):
+    config_path, _root = _config(tmp_path)
+    _mine(config_path, _trace_path(tmp_path, sample_trace))
+    capsys.readouterr()
+
+    code = main(
+        [
+            "execute",
+            "--config",
+            str(config_path),
+            "--goal",
+            "create a note",
+            "--state",
+            "Notes list",
+            "--app",
+            "com.example.omninotes",
+            "--fake-llm",
+            "--fake-device",
+        ]
+    )
+
+    assert code == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["plan"]["app"] == "com.example.omninotes"
+
+
 def test_cli_refine_prints_patch(tmp_path, sample_trace, capsys):
     config_path, _root = _config(tmp_path)
     _mine(config_path, _trace_path(tmp_path, sample_trace))
