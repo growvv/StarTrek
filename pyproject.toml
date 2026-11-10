@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "specfcg"
 version = "0.1.0"
@@ -10,6 +14,9 @@ device = ["uiautomator2>=3.0"]
 
 [project.scripts]
 specfcg = "specfcg.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["specfcg*", "mobile_agent*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
