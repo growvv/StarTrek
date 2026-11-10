@@ -24,9 +24,10 @@ _REQUIRED = (
 _NAME_RE = re.compile(r"^#\s+(.+?)\s*$")
 _SECTION_RE = re.compile(
     r"^\*\*(Intent|Inputs|Preconditions|Postconditions|Effects/Outputs|"
-    r"Steps|Evidence)\*\*:\s*(.*)$"
+    r"Steps|Evidence)\*\*\s*:?\s*(.*)$"
 )
 _STEP_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
+_BULLET_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.*)$")
 
 
 def _split_names(text: str) -> list[str]:
@@ -63,6 +64,34 @@ def _section_text(sections: dict[str, list[str]], key: str) -> str:
     ).strip()
 
 
+def _parse_inputs(lines: list[str]) -> list[str]:
+    """Parse comma-separated canonical inputs or Markdown bullet inputs.
+
+    A bullet's description may contain commas; only an input section written
+    without bullets is split on commas.
+    """
+    bullets: list[str] = []
+    plain: list[str] = []
+    for line in lines:
+        if not line.strip():
+            continue
+        match = _BULLET_RE.match(line)
+        if match:
+            bullets.append(match.group(1).strip())
+        elif bullets:
+            bullets[-1] = f"{bullets[-1]} {line.strip()}"
+        else:
+            plain.append(line.strip())
+
+    if bullets:
+        return [item for item in bullets if item]
+    return [
+        item.strip()
+        for item in _split_names(" ".join(plain))
+        if item.strip()
+    ]
+
+
 def _parse_steps(lines: list[str]) -> list[str]:
     steps = [match.group(1) for line in lines if (match := _STEP_RE.match(line))]
     if steps:
@@ -73,10 +102,22 @@ def _parse_steps(lines: list[str]) -> list[str]:
 def _parse_evidence(text: str) -> tuple[list[str], int, int]:
     refs_match = re.search(r"traces?\s*:?\s*(.*?)(?:;|$)", text, re.IGNORECASE)
     refs = refs_match.group(1).strip() if refs_match else ""
-    if refs.lower() in {"", "none", "n/a"}:
-        evidence: list[str] = []
-    else:
-        evidence = [part.strip() for part in refs.split(",") if part.strip()]
+
+    # Models often explain the evidence in prose. A trace id is the first
+    # backticked token in each comma-separated reference; resource ids later
+    # in the same prose are not evidence.
+    evidence: list[str] = []
+    for part in refs.split(","):
+        match = re.search(r"`([^`]+)`", part)
+        if match and match.group(1).strip():
+            evidence.append(match.group(1).strip())
+    if not evidence and refs.lower() not in {"", "none", "n/a"}:
+        refs = re.sub(r"^evidence\s*:?\s*", "", refs, flags=re.IGNORECASE)
+        evidence = [
+            part.strip().strip("`'\"")
+            for part in refs.split(",")
+            if part.strip().strip("`'\"")
+        ]
 
     counts = re.search(
         r"(\d+)\s*/\s*(\d+)\s*success", text, re.IGNORECASE
@@ -130,7 +171,7 @@ def parse_card(text: str) -> FunctionCard:
     return FunctionCard(
         name=name,
         intent=_section_text(sections, "Intent"),
-        inputs=_split_names(_section_text(sections, "Inputs")),
+        inputs=_parse_inputs(sections["Inputs"]),
         preconditions=_section_text(sections, "Preconditions"),
         postconditions=_section_text(sections, "Postconditions"),
         effects_outputs=_section_text(sections, "Effects/Outputs"),

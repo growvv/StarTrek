@@ -1,0 +1,102 @@
+# Long-horizon tasks for the screenshot-first agent.
+# Labels in the goals are the actual Chinese UI labels on the test device.
+
+tasks:
+  - id: omni_three_notes_edit_archive
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create three text notes: (1) title Groceries, content Buy milk;
+      (2) title Work, content Finish report; (3) title Travel, content Book train.
+      Then search for Work, open the Work note, replace its content with
+      "Finish report today", go back to the notes list, open the Work note's
+      menu and archive it. Finish on the notes list.
+    expect_text: ["Groceries", "Travel"]
+    expect_absent: ["Finish report today"]
+    max_steps: 40
+
+  - id: omni_two_notes_pin_delete
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create two text notes: title Alpha with content First note, and title Beta
+      with content Second note. Open Alpha, use its overflow menu (更多选项) and
+      choose 置顶笔记 to pin it. Then open Beta, use its overflow menu and choose
+      删除记事, confirming the deletion. Finish on the notes list.
+    expect_text: ["Alpha"]
+    expect_absent: ["Beta", "Second note"]
+    max_steps: 36
+
+  - id: omni_checklist_archive
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create a checklist note titled Tasks with three checklist items:
+      Buy milk, Call mom, Ship paper. Mark the first item as done. Then open
+      the note's overflow menu and archive the note (归档). Finish on the
+      notes list.
+    expect_text: ["暂无内容"]
+    expect_absent: ["Tasks", "Call mom"]
+    max_steps: 34
+
+  - id: omni_same_title_delete_one
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create two text notes both titled Meeting, with different contents:
+      first "Agenda A", second "Agenda B". Search for Meeting. Open the
+      Meeting note whose content is "Agenda B", replace its content with
+      "Agenda B final", then delete that note and confirm. Finally leave the
+      search and return to the notes list.
+    expect_text: ["Meeting", "Agenda A"]
+    expect_absent: ["Agenda B final"]
+    max_steps: 32
+
+  - id: omni_tag_search
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create a text note titled Urgent with content "Fix login bug". Add the tag
+      "urgent" by writing it inside the note body as a hashtag (#urgent), which
+      is how OmniNotes stores tags. Save the note and return to the notes list,
+      then search for "urgent". Finish on the search results showing the Urgent
+      note.
+    expect_text: ["Urgent"]
+    expect_absent: []
+    max_steps: 28
+
+  - id: omni_four_card_share
+    app: it.feio.android.omninotes.foss
+    app_name: OmniNotes
+    goal: >-
+      Create a text note titled Groceries with content Buy milk, then search
+      for it, open the note, and share it. Stop when the Android share chooser
+      is open; do not select a target app.
+    expect_text: ["Buy milk"]
+    expect_absent: []
+    max_steps: 24
+
+  - id: diary_officework_session
+    app: de.rampro.activitydiary
+    app_name: Activity Diary
+    goal: >-
+      Open Activity Diary. If a notification permission dialog appears, allow
+      it. Start the Officework activity, wait 3 seconds, then stop it by tapping
+      the current Officework activity again. Finally start the Cinema activity.
+      Finish with Cinema shown as the current activity.
+    expect_text: ["Cinema"]
+    expect_absent: ["<No Activity>"]
+    max_steps: 18
+
+  - id: tasks_buy_milk
+    app: org.tasks
+    app_name: Tasks.org
+    goal: >-
+      Open Tasks.org. On the welcome screen choose 继续但不同步 (continue without
+      sync). Create a task named Buy milk. Add a subtask named Check fridge and
+      set the main task's priority to high. Mark the main task as completed and
+      open the completed-task view if needed. Finish on a screen where the
+      Buy milk task is visibly completed.
+    expect_text: ["Buy milk"]
+    expect_absent: []
+    max_steps: 30

@@ -30,11 +30,19 @@ _FAILURE_TYPES = {
 }
 
 _PATCH_SCHEMA = (
-    '{"card_updates": [{"name": "create_note", "fields": {"Intent": "..."}}], '
+    '{"card_updates": [{"name": "create_note", "fields": {"Steps": ["..."]}}], '
     '"new_cards": [], "edge_updates": [{"from": "a", "to": "b", '
     '"type": "enables", "action": "add", "description": "..."}], '
     '"split": [], "merge": [], "reason": "..."}'
 )
+
+_EXECUTABLE_FIELDS = {
+    "steps",
+    "preconditions",
+    "postconditions",
+    "inputs",
+    "effects_outputs",
+}
 
 
 def _as_list(value: Any) -> list[str]:
@@ -166,6 +174,39 @@ class GraphUpdater:
             reason="successful execution",
         )
 
+    @staticmethod
+    def _card_detail(card: FunctionCard) -> str:
+        steps = (
+            "\n".join(
+                f"  {index}. {step}"
+                for index, step in enumerate(card.steps, 1)
+            )
+            or "  (none)"
+        )
+        return (
+            f"# {card.name}\n"
+            f"Intent: {card.intent}\n"
+            f"Inputs: {', '.join(card.inputs) or 'none'}\n"
+            f"Preconditions: {card.preconditions}\n"
+            f"Postconditions: {card.postconditions}\n"
+            f"Steps:\n{steps}"
+        )
+
+    @staticmethod
+    def _action_detail(result: RunResult) -> str:
+        lines = []
+        for item in result.step_results:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"- card={item.get('card')} "
+                f"action={item.get('action')} "
+                f"target={item.get('target')!r} "
+                f"args={item.get('args')!r} "
+                f"success={item.get('success')}"
+            )
+        return "\n".join(lines) or "- (none recorded)"
+
     def _failure_patch(self, result: RunResult) -> GraphPatch:
         cards = self.store.cards.all()
         edges = self.store.edges()
@@ -173,18 +214,34 @@ class GraphUpdater:
             f"{edge.from_card} -> {edge.to_card} [{edge.type}]"
             for edge in edges
         ]
+        path_names = result.plan.path if result.plan is not None else []
+        path_cards = [
+            self._card_detail(cards[name])
+            for name in path_names
+            if name in cards
+        ]
+        if not path_cards:
+            path_cards = [
+                self._card_detail(card)
+                for card in list(cards.values())[:10]
+            ]
         summary = (
             f"Goal: {result.plan.goal.description if result.plan else 'unknown'}\n"
             f"Failure type: {result.failure_type}\n"
             f"Error: {result.error}\n"
-            f"Executed steps: {len(result.step_results)}\n"
             f"Cards: {list(cards)}\n"
-            f"Edges: {edge_lines}\n"
+            f"Edges: {edge_lines}\n\n"
+            f"Planned cards:\n{chr(10).join(path_cards)}\n\n"
+            f"Executed steps:\n{self._action_detail(result)}\n"
         )
         prompt = (
             f"{summary}\n"
-            "Propose the smallest patch that fixes the graph after this "
-            "failure. You may update cards, add cards/edges, split a card "
+            "Propose the smallest patch that fixes the behavior after this "
+            "failure. Do not only reword Intent or Evidence: add or fix "
+            "executable Steps (or pre/postconditions/inputs) that change what "
+            "runs. Write one Step per physical action; if the fix needs two "
+            "Back presses, add two Back steps. You may update cards, add "
+            "cards/edges, split a card "
             "(delete it; replacements go in new_cards), or merge two cards "
             "(keep the first, delete the second). Return JSON."
         )
@@ -330,6 +387,11 @@ class GraphUpdater:
                 return None
             merge.append(dict(item))
 
+        if not self._has_executable_change(
+            card_updates, new_cards, edge_updates, split, merge
+        ):
+            return None
+
         return GraphPatch(
             new_cards=new_cards,
             card_updates=card_updates,
@@ -338,6 +400,26 @@ class GraphUpdater:
             merge=merge,
             reason=str(data.get("reason", "")),
         )
+
+    @staticmethod
+    def _has_executable_change(
+        card_updates: list[dict[str, Any]],
+        new_cards: list[FunctionCard],
+        edge_updates: list[dict[str, Any]],
+        split: list[dict[str, Any]],
+        merge: list[dict[str, Any]],
+    ) -> bool:
+        if new_cards or edge_updates or split or merge:
+            return True
+        for update in card_updates:
+            fields = update.get("fields") or {}
+            normalized = {
+                re.sub(r"[^a-z0-9]+", "_", str(key).lower()).strip("_")
+                for key in fields
+            }
+            if normalized & _EXECUTABLE_FIELDS:
+                return True
+        return False
 
     def update(self, result: RunResult) -> GraphPatch:
         if result.success:

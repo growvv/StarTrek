@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentProg 真机基线验收报告</title>
+<style>
+:root { --ink:#17202a; --muted:#65727f; --line:#e2e8ee; --bg:#f6f8fa;
+        --ok:#137a3f; --ok-bg:#e6f5ec; --fail:#b42318; --fail-bg:#fdecea;
+        --accent:#1f5fbf; --accent-bg:#eaf1fb; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+       line-height:1.65; }
+main { max-width:1240px; margin:0 auto; padding:32px 24px 80px; }
+h1 { font-size:30px; line-height:1.25; margin:0 0 8px; }
+h2 { font-size:21px; margin:34px 0 12px; padding-bottom:8px;
+     border-bottom:2px solid var(--line); }
+h3 { font-size:16px; margin:20px 0 8px; }
+p { margin:8px 0; }
+code, pre { font-family:"Cascadia Code",Consolas,monospace; }
+code { background:#eef2f6; padding:1px 5px; border-radius:4px; font-size:0.92em; }
+pre { background:#0f1720; color:#e6edf3; padding:14px 16px; border-radius:8px;
+      overflow:auto; font-size:12px; line-height:1.55; max-height:520px; }
+details { background:#fff; border:1px solid var(--line); border-radius:8px;
+          padding:10px 14px; margin:10px 0; }
+summary { cursor:pointer; font-weight:600; }
+.sub { color:var(--muted); font-size:14px; margin-bottom:24px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+         gap:12px; margin:20px 0 8px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:10px;
+        padding:14px 16px; }
+.card .n { font-size:26px; font-weight:700; }
+.card .l { color:var(--muted); font-size:13px; }
+.badge { display:inline-block; padding:2px 9px; border-radius:999px;
+         font-size:12px; font-weight:700; vertical-align:middle; }
+.badge.ok { color:var(--ok); background:var(--ok-bg); }
+.badge.fail { color:var(--fail); background:var(--fail-bg); }
+.badge.skip { color:var(--muted); background:#eef2f6; }
+.pill { display:inline-block; padding:1px 8px; border-radius:999px;
+        font-size:12px; font-weight:700; background:#eef2f6; color:var(--muted); }
+.pill.pass { background:var(--ok-bg); color:var(--ok); }
+.pill.fail { background:var(--fail-bg); color:var(--fail); }
+table { width:100%; border-collapse:collapse; background:#fff;
+        border:1px solid var(--line); border-radius:8px; overflow:hidden;
+        margin:12px 0 18px; font-size:13px; }
+th, td { padding:8px 10px; border-bottom:1px solid var(--line);
+         text-align:left; vertical-align:top; }
+th { background:#f0f4f8; font-size:12px; text-transform:uppercase;
+     letter-spacing:.03em; color:#40505f; }
+tr:last-child td { border-bottom:0; }
+table.mini { font-size:12px; }
+table.mini code { font-size:11px; word-break:break-all; }
+.task { background:#fff; border:1px solid var(--line); border-radius:12px;
+        padding:20px 22px; margin:22px 0; }
+.goal { background:var(--accent-bg); border-left:4px solid var(--accent);
+        padding:10px 14px; border-radius:6px; margin:12px 0 16px; }
+.meta { color:var(--muted); font-size:13px; }
+.final-grid { display:grid; grid-template-columns:minmax(260px,560px) 1fr;
+              gap:20px; align-items:start; }
+.check { background:#fbfcfd; border:1px solid var(--line); border-radius:10px;
+         padding:14px 16px; }
+.shot img, .final-shot { width:100%; height:auto; border-radius:8px;
+                         border:1px solid var(--line); }
+.cap { color:var(--muted); font-size:12px; margin-top:6px; }
+.steps-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+              gap:14px; }
+.step-card { border:1px solid var(--line); border-radius:10px; padding:10px;
+             background:#fbfcfd; }
+.step-no { font-weight:700; color:var(--accent); font-size:13px; margin-bottom:6px; }
+.step-shot { width:100%; height:auto; border-radius:7px; border:1px solid var(--line); }
+.start-shot { max-width:340px; margin:10px 0; }
+.compare-card { background:#fbfcfd; border:1px solid var(--line);
+                border-radius:10px; padding:14px 16px; margin:16px 0; }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px;
+                max-width:620px; }
+.compare-shot { width:100%; border-radius:7px; border:1px solid var(--line); }
+.call { background:#fbfcfd; border:1px solid var(--line); border-radius:8px;
+        padding:8px 12px; margin:8px 0; }
+.call summary { font-size:12px; }
+.call-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+.call-label { font-size:11px; color:var(--muted); font-weight:700;
+              text-transform:uppercase; letter-spacing:.03em; }
+.call pre { max-height:360px; }
+@media (max-width:860px) { .call-grid { grid-template-columns:1fr; } }
+.files { color:var(--muted); font-size:12px; margin-top:16px; }
+.muted { color:var(--muted); }
+.missing { background:#f1f5f9; color:var(--muted); padding:20px;
+           border-radius:8px; text-align:center; }
+.warn { background:#fff7e6; border-left:4px solid #d97706;
+        padding:10px 14px; border-radius:6px; margin:12px 0; }
+.toc a { color:var(--accent); text-decoration:none; }
+.toc li { margin:3px 0; }
+@media (max-width:860px) { .final-grid, .compare-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<main>
+<h1>AgentProg 真机基线验收报告</h1>
+<p class="sub">
+  真机：Pixel 9 Pro XL（Android 16，1008×2244，serial 47261FDAS00DTQ）·
+  Baseline：<code>MobileLLM/AgentProg</code>（Tsinghua AIR，arXiv 2512.10371，2025-12，开源）·
+  模型网关：本地 magpie，<code>auto/gpt-6.1-sol</code>（fallback <code>auto/gpt-6-luna</code>）·
+  判定：<code>final_state_v1</code>（最终可观察状态）·
+  生成日期：2026-11-10
+</p>
+
+<div class="cards">
+  <div class="card"><div class="n">0/1</div><div class="l">最终状态成功</div></div>
+  <div class="card"><div class="n">0</div><div class="l">模型调用</div></div>
+  <div class="card"><div class="n">3</div><div class="l">逐步真实截图</div></div>
+  <div class="card"><div class="n">0.0 min</div><div class="l">Agent 累计耗时</div></div>
+  <div class="card"><div class="n">0/1</div><div class="l">AppAgent 同规则（对比）</div></div>
+  <div class="card"><div class="n">0/1</div><div class="l">AppAgent 旧严格规则</div></div>
+</div>
+
+<h2>1. 为什么用 AgentProg 作为 baseline</h2>
+<p>
+要求是“学术界论文里用的、代码开源的 Agent，后续可以改、可以看实现”。
+AgentProg 来自清华 AIR（Tsinghua AIR），论文
+<a href="https://arxiv.org/abs/2512.10371">arXiv 2512.10371</a>（2025-12），
+代码在 <code>github.com/MobileLLM/AgentProg</code>，是面向长程 GUI 任务的
+program-guided context management 工作；它用 Semantic Task Program（STP）把执行过程
+表示成带变量和控制流的程序，从而在长任务中裁掉无关历史、保留关键数据。
+它支持真实 Android（adb），动作覆盖 click / long_press / type / scroll / open_app /
+drag / press_home / press_back 等。
+</p>
+<table>
+  <thead><tr><th>候选</th><th>时间/许可</th><th>与本地的兼容性</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td><b>AgentProg</b></td><td>2025-12，开源（Tsinghua AIR）</td>
+        <td>Python 3.12；litellm + OpenAI-compatible base URL；真实 adb；STP 程序执行；
+        UI-TARS grounding 可替换为本地 VLM；论文 arXiv 2512.10371</td>
+        <td><b>采用</b></td></tr>
+    <tr><td>mobile-use</td><td>2026-02，Apache-2.0（Minitap 商业公司）</td>
+        <td>能跑通真机，planner/orchestrator/cortex/executor 多 Agent；但属于商业应用，
+        不符合“学术界的、论文里用的”要求</td>
+        <td>不作为最终 baseline</td></tr>
+    <tr><td>Mobile-Agent-v3</td><td>2025-08，arXiv 2508.15144</td>
+        <td>学术开源；但依赖 GUI-Owl-7B/32B 与 vLLM，本地 magpie 没有对应模型</td>
+        <td>备选，未运行</td></tr>
+    <tr><td>V-Droid</td><td>MobiCom'26，arXiv 2503.15937</td>
+        <td>学术开源；依赖 V-Droid-8B 专用模型</td>
+        <td>备选，未运行</td></tr>
+    <tr><td>AppAgent</td><td>CHI 2025</td>
+        <td>截图 + 标注元素 ReAct；无 Back/Wait/planner/循环检测，长任务弱</td>
+        <td>保留为旧对照</td></tr>
+  </tbody>
+</table>
+
+<h2>2. 成功/失败判定规则</h2>
+<p><b>旧规则</b>要求最终截图同时显示完整目标的过程证据，对“归档/删除/完成”类任务天然不可能，
+导致 AppAgent 在 8 个任务上只有 2/8（旧严格规则）。</p>
+<p><b>新规则 <code>final_state_v1</code>：</b>只判断 Agent 停止后、App 的最终可观察状态是否满足目标。
+不要求看到中间步骤、不要求复现路径、不要求读取隐藏数据库；如果目标是“归档/删除/完成”，
+最终列表/完成视图中的状态即可作为证据。最终截图 + final UI 文本交给外部 VLM，按下面提示词判定。</p>
+<pre>Goal: {goal}
+Useful visible strings (may be empty): {expect}
+Forbidden visible strings (may be empty): {expect_absent}
+
+Final UI text (may be truncated):
+{ui}
+
+Judge ONLY the final observable state in the screenshot and the final UI text.
+Success means the end state asked for by the goal is present now, or is
+unambiguously visible as a direct consequence (for example, an empty list after
+every note was archived). Do NOT require the screenshot to show intermediate
+steps, the exact navigation path, or hidden database state. Ignore how the
+agent got there. If the goal explicitly ends in a transient screen (for
+example, an open Android share chooser), judge that screen. If the final screen
+is ambiguous or shows a different state, fail.
+
+Return exactly one JSON object with three fields:
+{{&quot;success&quot;: true or false, &quot;reason&quot;: &quot;one or two sentences citing visible evidence&quot;, &quot;evidence&quot;: &quot;short quote or visual element&quot;}}
+</pre>
+<p class="muted">确定性文本检查仍会记录（required / forbidden），但只作为辅助信号；最终判定以最终状态 VLM 为准，
+且如果 final UI 中出现了 forbidden 文本，直接判失败。AgentProg 自己的程序执行状态只记录，不参与评分。</p>
+
+<h2>3. 结果总览（AgentProg，新规则）</h2>
+<table>
+  <thead><tr><th>#</th><th>任务</th><th>App</th><th>成功</th><th>模型调用</th><th>Agent 耗时</th><th>判定理由（截断）</th></tr></thead>
+  <tbody><tr><td>1</td><td><a href="#task-omni_tag_search"><code>omni_tag_search</code></a></td><td>OmniNotes</td><td><span class="badge fail">失败</span></td><td>0</td><td>—s</td><td>The screenshot shows an app version-information dialog, not the notes search results. No note titled “Urgent” or search for “urgent” is visible.</td></tr></tbody>
+</table>
+
+<h2>4. 与 AppAgent 的对比（同一批任务、同一最终状态规则）</h2>
+<table>
+  <thead><tr><th>任务</th><th>App</th><th>AppAgent 旧严格规则</th><th>AppAgent 新最终状态规则</th><th>AgentProg 新规则</th><th>AppAgent 新规则理由（截断）</th></tr></thead>
+  <tbody><tr><td><code>omni_tag_search</code></td><td>OmniNotes</td><td><span class="badge fail">失败</span></td><td><span class="badge skip">未判定</span></td><td><span class="badge fail">失败</span></td><td></td></tr></tbody>
+</table>
+<p class="muted">
+汇总：AppAgent 旧严格 0/1；AppAgent 仅换判定规则（不重跑）
+0/1；AgentProg 新规则 0/1。
+AppAgent 的新规则分数来自其已完成的最终截图 + final UI 重新判定，不是重跑结果。
+</p>
+
+<h2>5. 逐任务证据</h2>
+<p class="toc">目录：<ul class="toc"><li><a href="#task-omni_tag_search">1. omni_tag_search</a></li></ul></p>
+
+    <section class="task" id="task-omni_tag_search">
+      <h2>1. <code>omni_tag_search</code> <span class="badge fail">失败</span></h2>
+      <p class="meta">
+        App：OmniNotes |
+        模型调用：0 次 |
+        Agent 耗时：—s |
+        逐步截图：3 张 |
+        timeout：否
+      </p>
+      <div class="goal"><b>用户目标：</b>Create a text note titled Urgent with content &quot;Fix login bug&quot;. Open the note, add the tag &quot;urgent&quot; using the tag action (the toolbar action with content description 添加标签), and save it. Return to the notes list and search for &quot;urgent&quot;. Finish on the search results showing the Urgent note.</div>
+      <div class="warn"><b>AgentProg 运行异常：</b><code>child exited with 1</code></div>
+      <details>
+        <summary>任务开始前的真机画面（App 重置/启动后，Agent 尚未动作）</summary>
+        <div class="start-shot"><img class="step-shot" loading="lazy" src="data:image/jpeg;base64,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" alt="start.png"></div>
+      </details>
+      <div class="final-grid">
+        <div class="shot">
+          <div class="missing">（无截图）</div>
+          <div class="cap">真机最终截图（AgentProg 运行结束后立即抓取）</div>
+        </div>
+        <div class="check">
+          <h3>最终状态判定</h3>
+          <p><b>规则：</b><code>final_state_v1</code>（只看最终可观察状态）</p>
+          <p><b>任务成功：</b><span class="badge fail">失败</span></p>
+          <p><b>理由：</b>The screenshot shows an app version-information dialog, not the notes search results. No note titled “Urgent” or search for “urgent” is visible.</p>
+          <p><b>视觉证据：</b>Visible dialog text: “VERSION 6.5.1 OCT 22, 2026”</p>
+          <p><b>确定性文本检查：</b>未通过；缺失：Urgent</p>
+        </div>
+      </div>
+      
+        <div class="compare-card">
+          <h3>同任务 AppAgent 最终画面（对比）</h3>
+          <div class="compare-grid">
+            <div><img class="compare-shot" loading="lazy" src="data:image/jpeg;base64,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" alt="final.jpg"><div class="cap">AppAgent 最终画面</div></div>
+            <div><div class="missing">（无截图）</div><div class="cap">AgentProg 最终画面</div></div>
+          </div>
+          <p><b>AppAgent 旧严格规则：</b><span class="badge skip">未判定</span> <b>新最终状态规则：</b><span class="badge skip">未判定</span></p>
+          <p class="muted"></p>
+        </div>
+        
+      <h3>AgentProg 生成的 Task Program（STP）</h3>
+      <pre># 30.0225 seconds
+
+text
+In the &quot;Notes&quot; App, create a new text note titled &quot;Urgent&quot; with content &quot;Fix login bug&quot;.
+In the &quot;Notes&quot; App, open the note titled &quot;Urgent&quot;.
+In the &quot;Notes&quot; App, use the toolbar action with content description &quot;添加标签&quot; to add the tag &quot;urgent&quot; to the note.
+In the &quot;Notes&quot; App, save the edited note.
+In the &quot;Notes&quot; App, return to the notes list.
+In the &quot;Notes&quot; App, search for &quot;urgent&quot;.
+In the &quot;Notes&quot; App, leave the search results displayed with the note titled &quot;Urgent&quot; visible.
+</pre>
+      <h3>逐步真实截图（AgentProg 自己保存的每一步画面）</h3>
+      <div class="steps-grid"><div class="step-card"><div class="step-no">screenshot_0</div><img class="step-shot" loading="lazy" src="data:image/jpeg;base64,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" alt="screenshot_0.png"></div><div class="step-card"><div class="step-no">screenshot_1</div><img class="step-shot" loading="lazy" src="data:image/jpeg;base64,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" alt="screenshot_1.png"></div><div class="step-card"><div class="step-no">screenshot_2</div><img class="step-shot" loading="lazy" src="data:image/jpeg;base64,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" alt="screenshot_2.png"></div></div>
+      <h3>真机动作时间线（AgentProg 日志中的点击/输入/等待）</h3>
+      <table class="mini"><thead><tr><th>时间</th><th>真机动作</th></tr></thead><tbody><tr><td><code>2026-11-10 19:34:43</code></td><td>👆 Clicking: red floating plus button for creating a new note</td></tr><tr><td><code>2026-11-10 19:36:19</code></td><td>👆 Clicking: red circular 文本注释 button with document icon</td></tr></tbody></table>
+      <h3>模型 I/O</h3>
+      
+    <details open>
+      <summary>模型调用统计（8 次）</summary>
+      <table class="mini"><thead><tr><th>#</th><th>用途</th><th>耗时</th><th>输入/输出 token</th><th>响应（截断）</th></tr></thead><tbody><tr><td>1</td><td><code>workflow</code></td><td>30.02s</td><td>7792/360</td><td>--- Thought --- Create a text note titled “Urgent” with the content “Fix login bug” in the Notes app. Open the note, use the toolbar tag action identified by the content description `添加标签` to add the `urgent` tag, save the note, return to the notes list, and …</td></tr><tr><td>2</td><td><code>executor</code></td><td>74.85s</td><td>3303/666</td><td>--- Thought --- I will describe the screen from top to bottom and left to right, covering the status bar, toolbar controls, empty-state content, floating action button, and bottom navigation bar. I will mention the visible text, colors, positions, and likely …</td></tr><tr><td>3</td><td><code>executor</code></td><td>12.52s</td><td>12968/356</td><td>--- Observation --- The Notes app is open on the notes list. The blue toolbar shows the title “笔记”, a hamburger menu on the left, search and sort icons, and an overflow menu on the right. The main area is empty and displays a bell illustration with the text “…</td></tr><tr><td>4</td><td><code>ui_tars_grounding</code></td><td>5.05s</td><td>993/91</td><td>Thought: 计划：点击右下角红色悬浮加号按钮以创建新笔记。目标元素是红色圆形“+”按钮。 Action: click(point=&#x27;&lt;point&gt;886 892&lt;/point&gt;&#x27;)</td></tr><tr><td>5</td><td><code>executor</code></td><td>27.71s</td><td>3303/761</td><td>--- Thought --- I will describe the screen from top to bottom and left to right, including the status bar, app bar, empty-state content, expanded floating action menu, and bottom navigation bar. I will mention the visible text, colors, icons, positions, and f…</td></tr><tr><td>6</td><td><code>executor</code></td><td>17.31s</td><td>13262/474</td><td>--- Observation --- The Notes app is open on an empty notes list. The blue header shows the hamburger menu, title “笔记”, search icon, sort icon, and overflow menu. The main area displays an empty-state illustration and the message “暂无内容!”. An expanded floating…</td></tr><tr><td>7</td><td><code>executor</code></td><td>42.99s</td><td>13412/402</td><td>--- Observation --- The Notes app is displaying an empty notes list with the header title “笔记”. The expanded floating action menu is visible in the lower-right area. It contains buttons labeled “照片”, “待办事项列表”, and “文本注释”; the “文本注释” option has a red circular …</td></tr><tr><td>8</td><td><code>ui_tars_grounding</code></td><td>4.98s</td><td>994/94</td><td>Thought: 目标是点击右下方红色圆形“文本注释”按钮（带文档图标），将执行该操作。 Action: click(point=&#x27;&lt;point&gt;889 812&lt;/point&gt;&#x27;)</td></tr></tbody></table>
+    </details>
+    <details>
+      <summary>UI-TARS 定位调用（2 次；真机点击坐标由此产生）</summary>
+      <table class="mini"><thead><tr><th>#</th><th>定位指令</th><th>返回动作</th><th>耗时</th></tr></thead><tbody><tr><td>4</td><td><code>Click on red floating plus button for creating a new note.</code></td><td><code>Thought: 计划：点击右下角红色悬浮加号按钮以创建新笔记。目标元素是红色圆形“+”按钮。 Action: click(point=&#x27;&lt;point&gt;886 892&lt;/point&gt;&#x27;)</code></td><td>5.05s</td></tr><tr><td>8</td><td><code>Click on red circular 文本注释 button with document icon.</code></td><td><code>Thought: 目标是点击右下方红色圆形“文本注释”按钮（带文档图标），将执行该操作。 Action: click(point=&#x27;&lt;point&gt;889 812&lt;/point&gt;&#x27;)</code></td><td>4.98s</td></tr></tbody></table>
+    </details>
+    <details>
+      <summary>每一步的模型请求与响应（8 次调用，展开查看）</summary>
+      
+    <details class="call">
+      <summary>#1 <code>workflow</code>
+        · 30.02s · 7792/360 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+
+I will introduce you to a new programming language called **Task Program**. This is a natural language style domain-specific language (DSL) used to describe task execution flows. You need to master this language and complete the tasks I arrange.
+
+# Task Program Language Syntax
+
+## 1. Basic Syntax and Concepts
+
+The syntax of Task Program is similar to natural language, but following certain structures and concepts will help the system understand your intent more precisely.
+
+A Task Program consists of a series of statements, usually one per line, describing an operation or a step, using imperative sentences or clear declarative sentences.
+
+### Comments
+
+Start a line with the `#` symbol to indicate that the line is a comment. Comments are used to explain code, and the system will ignore them during execution.
+
+```
+# This is a comment, the system will not execute this sentence
+Tell user &amp;quot;Hello, comments make code easier to understand&amp;quot; # This is also an inline comment
+```
+
+### Variables
+
+In Task Program, variables are represented by words wrapped in curly braces.
+
+*   **Declaring (Recording) Variables**: Usually done using `record as {variable_name}` or similar natural language phrasing.
+
+    ```
+    Set variable {user_name} to &amp;quot;John&amp;quot;
+    Set {current_city} to &amp;quot;Beijing&amp;quot;
+    Create variable {visitor_count}, initial value is 0
+    ```
+*   **Using Variables**: Where stored information is needed, use `{variable_name}` to represent filling in the position with the variable&amp;#x27;s value.
+
+    ```
+    Tell user &amp;quot;Hello, {user_name}&amp;quot;
+    Search in browser for &amp;quot;{current_city} population&amp;quot;, record as {population_count}
+    Tell user &amp;quot;The population of {current_city} is {population_count}.&amp;quot;
+    ```
+*   Variable names should use meaningful words to facilitate understanding.
+
+### Data Types
+
+When variables are stored and passed in the system, they are understood as different types of data for actual operations. Different types of variables are used for data processing in different scenarios, such as number types for statistics, text types for document operations, dialogue, etc.
+
+In Task Program, you do not need to specifically care about variable types; Task Program will automatically understand the type of each variable based on your code. Of course, you can also supplement the type description when defining variables to have more control over the entire process.
+
+#### Basic Data Types
+
+Task Program currently supports the following basic data types:
+
+*   **Text**: A sequence of characters enclosed in quotes, such as `&amp;quot;Hello world!&amp;quot;` or `&amp;#x27;Hello, World!&amp;#x27;`.
+*   **Number**: Integers or decimals, such as `10` or `3.14`.
+*   **Boolean**: `True` or `False` (or `Yes` / `No`), used to represent conditions or states.
+
+    ```
+    Judge if {age} is greater than 18, record as {is_adult} # {is_adult} will be True or False
+    If {is_adult} is true:
+        Tell user &amp;quot;You are an adult.&amp;quot;
+    ```
+*   **Image**: Represents image data. Can be obtained by reading files, etc.
+
+    ```
+  
+...[truncated 29127 chars; tail follows]...
+ thoughtfully, beyond the user&amp;#x27;s expectations.
+
+# Your Work Procedure
+
+your goal is to generate a high-level workflow that summarizes the steps to complete the user-given task. The workflow should:
+
+1. Follow the syntax of Task Program (a natural-language-style domain-specific language designed to describe workflows).
+2. Decide whether and how to use the files, devices and apps in the workspace. Any non-existing file/device/app is not allowed in the workflow.
+   Try to make the workflow generalizable (i.e. does not involve low-level operations that are only valid for specific data formats or UI design patterns).
+
+# The Current Task
+
+Create a text note titled Urgent with content &amp;quot;Fix login bug&amp;quot;. Open the note, add the tag &amp;quot;urgent&amp;quot; using the tag action (the toolbar action with content description 添加标签), and save it. Return to the notes list and search for &amp;quot;urgent&amp;quot;. Finish on the search results showing the Urgent note.
+
+# Output Instruction
+
+
+Note: 
+1. Current user&amp;#x27;s language is English. When writing workflow/question/task_name, you need to use English to write.
+2. **Do not** ask the user questions within the code. The user requires the task to be fully automated and will not participate in any part of the workflow. Therefore, asking or informing the user is unnecessary; you should complete the task autonomously.
+3. Please set variable {answer} to as the final answer if the task requires you to answer a question.
+4. Note: You must declare in which APP to operate. For example: `In &amp;quot;Contacts&amp;quot; App, add a new contact name &amp;#x27;Alice&amp;#x27;, and save it.` Otherwise, the workflow lacks accuracy, and the executor will not know which APP you need to use to complete the task.
+5. The mobile phone is configured via a virtual image, and its date and time differ from the real-world date and time!! The date referred to in the Current Task is based on the **date on the mobile phone**, not the real-world date! Therefore, please make sure to emphasize using the mobile phone&amp;#x27;s date and time function to check today&amp;#x27;s date and time, instead of obtaining the real-world date via Python&amp;#x27;s datetime module! After obtaining &amp;quot;today&amp;#x27;s&amp;quot; date on the mobile phone, you can use the datetime module to calculate other dates based on the mobile phone&amp;#x27;s &amp;quot;today&amp;quot;.
+
+6. Remember to save! You must emphasize in the workflow that for tasks involving editing or creation, saving is mandatory at the end!
+
+Now, Respond with the following content:
+
+Your thought (starts with `--- Thought ---`), which contains your understanding about the task and plan of how to do the task in natural language.
+
+The workflow (starts with `--- Workflow ---`), which is the workflow steps in Task Program syntax generated based on your understanding.
+
+Example Format:
+--- Thought --- (This contains your understanding about the task and plan of how to do the task in natural language.)
+--- Workflow --- 
+```
+(Write the workflow steps in Task Program syntax generated based on your understan</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Thought ---  
+Create a text note titled “Urgent” with the content “Fix login bug” in the Notes app. Open the note, use the toolbar tag action identified by the content description `添加标签` to add the `urgent` tag, save the note, return to the notes list, and search for `urgent`. Leave the app displaying the search results containing the Urgent note.
+
+--- Workflow ---
+```text
+In the &quot;Notes&quot; App, create a new text note titled &quot;Urgent&quot; with content &quot;Fix login bug&quot;.
+In the &quot;Notes&quot; App, open the note titled &quot;Urgent&quot;.
+In the &quot;Notes&quot; App, use the toolbar action with content description &quot;添加标签&quot; to add the tag &quot;urgent&quot; to the note.
+In the &quot;Notes&quot; App, save the edited note.
+In the &quot;Notes&quot; App, return to the notes list.
+In the &quot;Notes&quot; App, search for &quot;urgent&quot;.
+In the &quot;Notes&quot; App, leave the search results displayed with the note titled &quot;Urgent&quot; visible.
+```</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#2 <code>executor</code>
+        · 74.85s · 3303/666 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[system]&lt;/b&gt;
+You are a helpful assistant aiming to solve the user&amp;#x27;s task.
+
+&lt;b&gt;[user]&lt;/b&gt;
+# Task Requirements
+
+[image omitted, 72066 bytes]
+
+&amp;quot;Describe what you see on the current screen in as much detail as possible. 
+Requirements: 
+1. Every element, especially the icons, should be mentioned in your response. 
+2. You should describe the function, text, color, and position of every element, following a top-to-bottom and left-to-right order. 
+3. Additionally, if there is a popup window, be sure to emphasize its presence and explain whether it blocks the background elements. 
+4. You do not need to output the content in the Position Locator (A horizontal status bar in blue with data labels and values like: &amp;#x27;P: 0 / 1&amp;#x27;, &amp;#x27;dX: 0.0&amp;#x27;, &amp;#x27;dY: 0.0&amp;#x27;, &amp;#x27;Xv: 0.0&amp;#x27;, &amp;#x27;Yv: 0.0&amp;#x27;, &amp;#x27;Prs: 1.0&amp;#x27; in alternating black or red text on multicolored backgrounds (blue and red for &amp;#x27;Prs&amp;#x27;). The information in the Position Locator is meaningless, please ignore it.
+5. You should respond with a string split by &amp;quot;;&amp;quot;. An example:
+&amp;quot;top-left: App title &amp;#x27;Contacts&amp;#x27; in bold white text on a dark blue background; To the right of the app title: White search icon; ...&amp;quot;. Don&amp;#x27;t output a json dict, just a string that can be parsed as json as the answer is ok (using double quotes to enclose it).
+6. Answer in English.
+
+# Response Format Content
+You should respond with the following content:
+
+--- Thought ---
+Your thoughts, which contains your understanding about the task and plan of how to do the task in natural language.
+--- Answer --- 
+(The answer part. It should be standard JSON content that can be parsed by json.loads as the response. It can be a number, null, string, list, or dictionary. (Note that basic types such as integer, boolean, and string are also considered JSON-parseable content). Note: There must be a line break before &amp;#x27;Answer&amp;#x27;, i.e., at least one carriage return.)
+
+## Return Format Requirements
+为字符串类型，表示：description of the current screen.
+
+## Notes:
+The Answer part **MUST** be content parseable by JSON format (including basic types like integer, boolean, string), not a Python dictionary! It cannot contain &amp;#x27;None&amp;#x27;; it should be written as &amp;#x27;null&amp;#x27;!
+
+## Example Answer
+Here is a valid example answer:
+
+--- Thought ---
+Example Thought.
+--- Answer ---
+&amp;quot;&amp;lt;string of description of the current screen.&amp;gt;&amp;quot;
+
+## Extra Requirements
+Do not ask any questions; return directly according to the requirements. If there are any issues, choose the solution you think is most reasonable. You are an excellent large language model!</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Thought ---
+I will describe the screen from top to bottom and left to right, covering the status bar, toolbar controls, empty-state content, floating action button, and bottom navigation bar. I will mention the visible text, colors, positions, and likely functions of each icon, and note that no popup window is present.
+--- Answer ---
+&quot;Top status bar: a solid blue background spans the full width; at the upper left, the white time reads 7:34; to its right are several white status and notification icons, including a rounded-square Xiaohongshu notification icon with Chinese text, a small device or security-style icon, a square icon containing a downward arrow, and a white notification dot; at the upper right are a muted-speaker icon indicating silent or muted sound, a white Wi-Fi signal icon, a green battery indicator with a small gray segment at its right edge, and a white shield icon suggesting security protection; below the status bar, the blue app toolbar contains a white three-line hamburger menu on the far left for opening navigation; next to it is the large bold white Chinese title 笔记, meaning Notes; toward the right is a white magnifying-glass icon for search; to its right is a white sorting or ordering icon showing opposing up and down arrows beside horizontal lines; on the far right is a vertical three-dot white overflow menu for more options; a subtle dark shadow separates the toolbar from the content area; the main content area is a uniform light gray and contains no notes or list items; centered in the middle-lower portion is a gray empty-state bell illustration with a small loop at the top, a rounded bell body, a smiling face, and a darker clapper, indicating that the notes list is empty; directly below the illustration, large dark-gray Chinese text reads 暂无内容!, meaning No content yet!; near the lower right above the navigation bar is a red circular floating action button with a soft shadow and a white plus sign, used to add or create a new note; no popup window or dialog is visible, so all background elements remain unobstructed; at the bottom is a blue Android navigation bar containing a white left-pointing triangle on the left for Back, a white circle in the center for Home, and a white rounded square on the right for Recent Apps.&quot;
+</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#3 <code>executor</code>
+        · 12.52s · 12968/356 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+# Introduction
+
+You are an expert in solving problems with python. You job is to complete given tasks by tranlating pesudo code (natural language-style step-by-step workflow description) to python code lines that can be executed reliably on the fly.
+
+You will be given:
+
+- **(1) The task description**, such as &amp;quot;read the math expressions in each line of data.txt&amp;quot;, &amp;quot;read the emails and add relevant events to calendar&amp;quot;, etc.
+- **(2) The current workflow context**, including the pesudo code of the workflow, the current position of workflow code (marked as &amp;quot;current step&amp;quot; in inline comment).
+- **(3) The current python context**, including the recent python code lines generated and executed.
+- **(4) The available variables and files** in the current context and their current values (or brief summary of values).
+
+You will be requested to run in two mode:
+
+**Mode 1: Code Generation**
+
+In this mode, you should output the **next lines of python code** to complete the current workflow step (marked as &amp;quot;current step&amp;quot; in inline comment) according to the task and context. The new python code lines should follow the principles below:
+
+- **(1) Correctness**: The code will be executed immediately after being generated, so it must be a valid line of python code (do not use undefined variables; do not perform infeasible operations on the current data).
+- **(2) Simplicity**: You are encouraged to break the workflow step into multiple python steps; Keep each python step simple and atomic. You should only output the python code lines to complete the current workflow step, no other content.
+- **(3) Data awareness**: You are provided with the data schema and values, so your code should be closely customized to the data, you can directly use the data values (or any values inferred from the data) in the python code. You don&amp;#x27;t have to worry about whether the generated code can be generalized or reused.
+- **(4) Sequential execution**: The control-flow structures (loops, if-else, etc.) in the workflow should be interpreted as sequential steps in python, i.e. you decide which branch to take based on the loop/if-else conditions.
+
+**Mode 2: Workflow Status Update**
+
+In this mode, you should decide how to update the workflow program counter (WPC) based on the execution output of your generated python code. The WPC operations include:
+
+- **hold**: stay in the current workflow step if it has not been completed.
+- **continue**: move to the next workflow step.
+- **break**: jump out of the current loop in the workflow.
+- **return**: jump out of the current function in the workflow.
+
+** Important tips
+
+- One Step at a Time: Only write the Python code for the single task marked with a comment like # &amp;lt;-- current step. Do not try to solve future steps.
+- No Complex Logic: Do not write full Python loops (for ...:) or conditionals (if ...:) yourself. The plan already contains the logic. You will be guided through loops and conditionals one piece at a time.
+- When you encounter the loop for t
+...[truncated 48891 chars; tail follows]...
+e icons, texts, should be mentioned in your response.)
+
+--- Thought ---
+(Your thoughts, which contains your understanding about the observation, and how to update belief state, next plan and action. Pay attention to detecting all possible anomalies or unexpected situations from the Observation! If a situation occurs that does not meet workflow expectations, you need to update the Belief State. Even if an error occurred in a previous step, you need to correct it immediately in the current situation, **pause the execution of the current workflow step, switch to attempting to fix the unexpected/abnormal situation**, and attempt to handle these unexpected and abnormal situations in the Plan.)
+
+--- Updated Belief State ---
+(The new Belief State, in natural language, as required above. It needs to be corrected based on environmental facts while inheriting the previous Belief State, and all previous details should be preserved as much as possible.)
+
+--- Judgement ---
+(Output a judgment on the current global situation. If suspicious errors or unexpected errors are raised in the Belief State, you should pause the execution of the workflow plan, switch to dealing with these suspicious issues, and make the correct choice in the Plan.)
+
+--- Plan ---
+(Description about what you want to do next single step. Since a problem in any step of the workflow will lead to task failure, please take responsibility and care about the global situation, not just the current step.)
+
+--- Action ---
+(In Code Generation Mode, you should output code as action, which is the actual script in Python syntax generated based on your understanding and the task requirements; Or wpc operations including `continue`, `hold`, `break`, `return` in Workflow Status Update Mode. In Workflow Status Update Mode, you can only output one of `hold`, `continue`, `break`, `return` as the Action.)
+
+# Your Turn!
+
+Now, please generate the python code lines based on the following task and context.
+
+Task: Create a text note titled Urgent with content &amp;quot;Fix login bug&amp;quot;. Open the note, add the tag &amp;quot;urgent&amp;quot; using the tag action (the toolbar action with content description 添加标签), and save it. Return to the notes list and search for &amp;quot;urgent&amp;quot;. Finish on the search results showing the Urgent note.
+
+Workflow context:
+```
+text  # &amp;lt;-- current step
+In the &amp;quot;Notes&amp;quot; App, create a new text note titled &amp;quot;Urgent&amp;quot; with content &amp;quot;Fix login bug&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, open the note titled &amp;quot;Urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, use the toolbar action with content description &amp;quot;添加标签&amp;quot; to add the tag &amp;quot;urgent&amp;quot; to the note.
+In the &amp;quot;Notes&amp;quot; App, save the edited note.
+In the &amp;quot;Notes&amp;quot; App, return to the notes list.
+In the &amp;quot;Notes&amp;quot; App, search for &amp;quot;urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, leave the search results displayed with the note titled &amp;quot;Urgent&amp;quot; visible.
+```
+
+Data &amp;amp; variables:
+
+global variables:
+llm: &amp;lt;FoundationModel&amp;gt;
+mobile: &amp;lt;MobileAPI(config=MobileAPIConfig(locator=&amp;#x27;ui_tars&amp;#x27;, device_serial_id=&amp;#x27;47261FDAS00DTQ&amp;#x27;, ll</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Observation ---
+The Notes app is open on the notes list. The blue toolbar shows the title “笔记”, a hamburger menu on the left, search and sort icons, and an overflow menu on the right. The main area is empty and displays a bell illustration with the text “暂无内容!”. A red circular floating action button with a white plus sign is visible near the lower right. No dialog or popup is present.
+
+--- Thought ---
+The notes list is empty, so the first workflow action is to create a new note. The visible plus button is the control for creating a note. No unexpected error is shown.
+
+--- Updated Belief State ---
+- The Notes app is open on the empty notes list.
+- No notes currently appear in the list.
+- The red floating plus button is visible and likely opens the new-note editor.
+- The toolbar includes search, sorting, and overflow controls.
+- No popup or blocking dialog is visible.
+- The note must be created with title “Urgent” and content “Fix login bug”, then tagged “urgent”, saved, and searched.
+
+--- Judgement ---
+The environment is ready to begin creating the note.
+
+--- Plan ---
+Open the new-note editor by tapping the red plus button.
+
+--- Action ---
+```python
+mobile.click(view_description=&quot;red floating plus button for creating a new note&quot;)
+```</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#4 <code>ui_tars_grounding</code>
+        · 5.05s · 993/91 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
+## Output Format
+```
+Thought: ...
+Action: ...
+```
+## Action Space
+
+click(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;)
+long_press(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;)
+type(content=&amp;#x27;&amp;#x27;) #If you want to submit your input, use &amp;quot;\n&amp;quot; at the end of `content`.
+scroll(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;, direction=&amp;#x27;down or up or right or left&amp;#x27;)
+open_app(app_name=&amp;#x27;&amp;#x27;)
+drag(start_point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;, end_point=&amp;#x27;&amp;lt;point&amp;gt;x2 y2&amp;lt;/point&amp;gt;&amp;#x27;)
+press_home()
+press_back()
+finished(content=&amp;#x27;xxx&amp;#x27;) # Use escape characters \&amp;#x27;, \&amp;quot;, and \n in content part to ensure we can parse the content in normal python string format.
+
+
+## Note
+- Coordinates in &amp;lt;point&amp;gt; MUST be normalized to a 0-1000 scale: x = round(pixel_x / image_width * 1000), y = round(pixel_y / image_height * 1000). Do NOT output raw pixel coordinates.
+- Use Chinese in `Thought` part.
+- Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
+
+## User Instruction
+Click on red floating plus button for creating a new note.
+
+
+&lt;b&gt;[user]&lt;/b&gt;
+
+[image omitted, 41006 bytes]</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>Thought: 计划：点击右下角红色悬浮加号按钮以创建新笔记。目标元素是红色圆形“+”按钮。  
+Action: click(point=&#x27;&lt;point&gt;886 892&lt;/point&gt;&#x27;)</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#5 <code>executor</code>
+        · 27.71s · 3303/761 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[system]&lt;/b&gt;
+You are a helpful assistant aiming to solve the user&amp;#x27;s task.
+
+&lt;b&gt;[user]&lt;/b&gt;
+# Task Requirements
+
+[image omitted, 130526 bytes]
+
+&amp;quot;Describe what you see on the current screen in as much detail as possible. 
+Requirements: 
+1. Every element, especially the icons, should be mentioned in your response. 
+2. You should describe the function, text, color, and position of every element, following a top-to-bottom and left-to-right order. 
+3. Additionally, if there is a popup window, be sure to emphasize its presence and explain whether it blocks the background elements. 
+4. You do not need to output the content in the Position Locator (A horizontal status bar in blue with data labels and values like: &amp;#x27;P: 0 / 1&amp;#x27;, &amp;#x27;dX: 0.0&amp;#x27;, &amp;#x27;dY: 0.0&amp;#x27;, &amp;#x27;Xv: 0.0&amp;#x27;, &amp;#x27;Yv: 0.0&amp;#x27;, &amp;#x27;Prs: 1.0&amp;#x27; in alternating black or red text on multicolored backgrounds (blue and red for &amp;#x27;Prs&amp;#x27;). The information in the Position Locator is meaningless, please ignore it.
+5. You should respond with a string split by &amp;quot;;&amp;quot;. An example:
+&amp;quot;top-left: App title &amp;#x27;Contacts&amp;#x27; in bold white text on a dark blue background; To the right of the app title: White search icon; ...&amp;quot;. Don&amp;#x27;t output a json dict, just a string that can be parsed as json as the answer is ok (using double quotes to enclose it).
+6. Answer in English.
+
+# Response Format Content
+You should respond with the following content:
+
+--- Thought ---
+Your thoughts, which contains your understanding about the task and plan of how to do the task in natural language.
+--- Answer --- 
+(The answer part. It should be standard JSON content that can be parsed by json.loads as the response. It can be a number, null, string, list, or dictionary. (Note that basic types such as integer, boolean, and string are also considered JSON-parseable content). Note: There must be a line break before &amp;#x27;Answer&amp;#x27;, i.e., at least one carriage return.)
+
+## Return Format Requirements
+为字符串类型，表示：description of the current screen.
+
+## Notes:
+The Answer part **MUST** be content parseable by JSON format (including basic types like integer, boolean, string), not a Python dictionary! It cannot contain &amp;#x27;None&amp;#x27;; it should be written as &amp;#x27;null&amp;#x27;!
+
+## Example Answer
+Here is a valid example answer:
+
+--- Thought ---
+Example Thought.
+--- Answer ---
+&amp;quot;&amp;lt;string of description of the current screen.&amp;gt;&amp;quot;
+
+## Extra Requirements
+Do not ask any questions; return directly according to the requirements. If there are any issues, choose the solution you think is most reasonable. You are an excellent large language model!</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Thought ---
+I will describe the screen from top to bottom and left to right, including the status bar, app bar, empty-state content, expanded floating action menu, and bottom navigation bar. I will mention the visible text, colors, icons, positions, and functions, and clarify that there is no separate popup window.
+--- Answer ---
+&quot;Top status bar: a blue background spans the full width; at the upper left is the white time &#x27;7:35&#x27;; to its right are a white rounded-square Xiaohongshu app icon with small Chinese characters, a white shield/lock-style status icon, a white outlined phone/download icon, and a small white notification dot; at the upper right are a muted speaker icon with a slash, a white Wi-Fi icon, a green battery indicator with a small blue segment at its right edge, and a white shield/security icon; below the status bar, the blue application header contains a white three-line hamburger menu at the far left; to its right is the large bold white Chinese title &#x27;笔记&#x27;; on the right side are a white magnifying-glass search icon, a white sort/order icon with up and down arrows beside a horizontal line, and a vertical three-dot overflow menu; a thin gray shadow separates the header from the content area; the main content area is light gray and otherwise empty; near the center-lower portion is a gray bell-shaped empty-state illustration with a small circular knob on top, a smiling face, and a darker lower tab; directly beneath it is the dark gray Chinese message &#x27;暂无内容!&#x27; meaning &#x27;No content yet!&#x27;; in the lower-right area an expanded floating action menu is visible, with a white rectangular label &#x27;照片&#x27; to the left of a gold circular camera button containing a white camera icon for adding a photo; below that is a white rectangular label &#x27;待办事项列表&#x27; to the left of a blue circular button containing a white checklist icon for creating a to-do list; below that is a white rectangular label &#x27;文本注释&#x27; to the left of a red circular button containing a white document/text icon for adding a text annotation; at the bottom of this expanded menu is a larger red circular button with a white X, used to close the floating action menu; the floating buttons and labels cast shadows over the gray background; there is no separate popup window or dialog, and the expanded action menu does not fully block the underlying screen; at the bottom is a blue Android navigation bar with a white left-pointing triangular Back icon on the left, a white circular Home icon in the center, and a white rounded-square Recent Apps icon on the right&quot;
+</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#6 <code>executor</code>
+        · 17.31s · 13262/474 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+# Introduction
+
+You are an expert in solving problems with python. You job is to complete given tasks by tranlating pesudo code (natural language-style step-by-step workflow description) to python code lines that can be executed reliably on the fly.
+
+You will be given:
+
+- **(1) The task description**, such as &amp;quot;read the math expressions in each line of data.txt&amp;quot;, &amp;quot;read the emails and add relevant events to calendar&amp;quot;, etc.
+- **(2) The current workflow context**, including the pesudo code of the workflow, the current position of workflow code (marked as &amp;quot;current step&amp;quot; in inline comment).
+- **(3) The current python context**, including the recent python code lines generated and executed.
+- **(4) The available variables and files** in the current context and their current values (or brief summary of values).
+
+You will be requested to run in two mode:
+
+**Mode 1: Code Generation**
+
+In this mode, you should output the **next lines of python code** to complete the current workflow step (marked as &amp;quot;current step&amp;quot; in inline comment) according to the task and context. The new python code lines should follow the principles below:
+
+- **(1) Correctness**: The code will be executed immediately after being generated, so it must be a valid line of python code (do not use undefined variables; do not perform infeasible operations on the current data).
+- **(2) Simplicity**: You are encouraged to break the workflow step into multiple python steps; Keep each python step simple and atomic. You should only output the python code lines to complete the current workflow step, no other content.
+- **(3) Data awareness**: You are provided with the data schema and values, so your code should be closely customized to the data, you can directly use the data values (or any values inferred from the data) in the python code. You don&amp;#x27;t have to worry about whether the generated code can be generalized or reused.
+- **(4) Sequential execution**: The control-flow structures (loops, if-else, etc.) in the workflow should be interpreted as sequential steps in python, i.e. you decide which branch to take based on the loop/if-else conditions.
+
+**Mode 2: Workflow Status Update**
+
+In this mode, you should decide how to update the workflow program counter (WPC) based on the execution output of your generated python code. The WPC operations include:
+
+- **hold**: stay in the current workflow step if it has not been completed.
+- **continue**: move to the next workflow step.
+- **break**: jump out of the current loop in the workflow.
+- **return**: jump out of the current function in the workflow.
+
+** Important tips
+
+- One Step at a Time: Only write the Python code for the single task marked with a comment like # &amp;lt;-- current step. Do not try to solve future steps.
+- No Complex Logic: Do not write full Python loops (for ...:) or conditionals (if ...:) yourself. The plan already contains the logic. You will be guided through loops and conditionals one piece at a time.
+- When you encounter the loop for t
+...[truncated 48891 chars; tail follows]...
+e icons, texts, should be mentioned in your response.)
+
+--- Thought ---
+(Your thoughts, which contains your understanding about the observation, and how to update belief state, next plan and action. Pay attention to detecting all possible anomalies or unexpected situations from the Observation! If a situation occurs that does not meet workflow expectations, you need to update the Belief State. Even if an error occurred in a previous step, you need to correct it immediately in the current situation, **pause the execution of the current workflow step, switch to attempting to fix the unexpected/abnormal situation**, and attempt to handle these unexpected and abnormal situations in the Plan.)
+
+--- Updated Belief State ---
+(The new Belief State, in natural language, as required above. It needs to be corrected based on environmental facts while inheriting the previous Belief State, and all previous details should be preserved as much as possible.)
+
+--- Judgement ---
+(Output a judgment on the current global situation. If suspicious errors or unexpected errors are raised in the Belief State, you should pause the execution of the workflow plan, switch to dealing with these suspicious issues, and make the correct choice in the Plan.)
+
+--- Plan ---
+(Description about what you want to do next single step. Since a problem in any step of the workflow will lead to task failure, please take responsibility and care about the global situation, not just the current step.)
+
+--- Action ---
+(In Code Generation Mode, you should output code as action, which is the actual script in Python syntax generated based on your understanding and the task requirements; Or wpc operations including `continue`, `hold`, `break`, `return` in Workflow Status Update Mode. In Workflow Status Update Mode, you can only output one of `hold`, `continue`, `break`, `return` as the Action.)
+
+# Your Turn!
+
+Now, please generate the python code lines based on the following task and context.
+
+Task: Create a text note titled Urgent with content &amp;quot;Fix login bug&amp;quot;. Open the note, add the tag &amp;quot;urgent&amp;quot; using the tag action (the toolbar action with content description 添加标签), and save it. Return to the notes list and search for &amp;quot;urgent&amp;quot;. Finish on the search results showing the Urgent note.
+
+Workflow context:
+```
+text  # &amp;lt;-- current step
+In the &amp;quot;Notes&amp;quot; App, create a new text note titled &amp;quot;Urgent&amp;quot; with content &amp;quot;Fix login bug&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, open the note titled &amp;quot;Urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, use the toolbar action with content description &amp;quot;添加标签&amp;quot; to add the tag &amp;quot;urgent&amp;quot; to the note.
+In the &amp;quot;Notes&amp;quot; App, save the edited note.
+In the &amp;quot;Notes&amp;quot; App, return to the notes list.
+In the &amp;quot;Notes&amp;quot; App, search for &amp;quot;urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, leave the search results displayed with the note titled &amp;quot;Urgent&amp;quot; visible.
+```
+
+Data &amp;amp; variables:
+
+global variables:
+llm: &amp;lt;FoundationModel&amp;gt;
+mobile: &amp;lt;MobileAPI(config=MobileAPIConfig(locator=&amp;#x27;ui_tars&amp;#x27;, device_serial_id=&amp;#x27;47261FDAS00DTQ&amp;#x27;, ll</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Observation ---
+The Notes app is open on an empty notes list. The blue header shows the hamburger menu, title “笔记”, search icon, sort icon, and overflow menu. The main area displays an empty-state illustration and the message “暂无内容!”. An expanded floating action menu is visible in the lower-right corner with options “照片”, “待办事项列表”, and “文本注释”. The “文本注释” option is a red circular button with a white document icon. A larger red circular button with a white X is below it. No note editor, title field, content field, or popup dialog is visible.
+
+--- Thought ---
+The previous click did not open the text-note editor; the environment is still showing the expanded creation menu. The current step requires creating a text note, so it is not complete. I should remain on this step and select the visible “文本注释” action to open the text-note editor.
+
+--- Updated Belief State ---
+- The Notes app is open on the empty notes list.
+- No notes currently appear in the list.
+- The floating action menu is expanded.
+- The visible red “文本注释” button is the control for creating a text note.
+- The previous operation did not produce a visible note editor.
+- The toolbar includes search, sorting, and overflow controls.
+- No popup or blocking dialog is visible.
+- The note must be created with title “Urgent” and content “Fix login bug”, then tagged “urgent”, saved, and searched.
+
+--- Judgement ---
+The current step is not complete because the text-note editor is not open. The workflow must pause until the “文本注释” action is selected.
+
+--- Plan ---
+Click the “文本注释” button to open the text-note editor.
+
+--- Action ---
+hold</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#7 <code>executor</code>
+        · 42.99s · 13412/402 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+# Introduction
+
+You are an expert in solving problems with python. You job is to complete given tasks by tranlating pesudo code (natural language-style step-by-step workflow description) to python code lines that can be executed reliably on the fly.
+
+You will be given:
+
+- **(1) The task description**, such as &amp;quot;read the math expressions in each line of data.txt&amp;quot;, &amp;quot;read the emails and add relevant events to calendar&amp;quot;, etc.
+- **(2) The current workflow context**, including the pesudo code of the workflow, the current position of workflow code (marked as &amp;quot;current step&amp;quot; in inline comment).
+- **(3) The current python context**, including the recent python code lines generated and executed.
+- **(4) The available variables and files** in the current context and their current values (or brief summary of values).
+
+You will be requested to run in two mode:
+
+**Mode 1: Code Generation**
+
+In this mode, you should output the **next lines of python code** to complete the current workflow step (marked as &amp;quot;current step&amp;quot; in inline comment) according to the task and context. The new python code lines should follow the principles below:
+
+- **(1) Correctness**: The code will be executed immediately after being generated, so it must be a valid line of python code (do not use undefined variables; do not perform infeasible operations on the current data).
+- **(2) Simplicity**: You are encouraged to break the workflow step into multiple python steps; Keep each python step simple and atomic. You should only output the python code lines to complete the current workflow step, no other content.
+- **(3) Data awareness**: You are provided with the data schema and values, so your code should be closely customized to the data, you can directly use the data values (or any values inferred from the data) in the python code. You don&amp;#x27;t have to worry about whether the generated code can be generalized or reused.
+- **(4) Sequential execution**: The control-flow structures (loops, if-else, etc.) in the workflow should be interpreted as sequential steps in python, i.e. you decide which branch to take based on the loop/if-else conditions.
+
+**Mode 2: Workflow Status Update**
+
+In this mode, you should decide how to update the workflow program counter (WPC) based on the execution output of your generated python code. The WPC operations include:
+
+- **hold**: stay in the current workflow step if it has not been completed.
+- **continue**: move to the next workflow step.
+- **break**: jump out of the current loop in the workflow.
+- **return**: jump out of the current function in the workflow.
+
+** Important tips
+
+- One Step at a Time: Only write the Python code for the single task marked with a comment like # &amp;lt;-- current step. Do not try to solve future steps.
+- No Complex Logic: Do not write full Python loops (for ...:) or conditionals (if ...:) yourself. The plan already contains the logic. You will be guided through loops and conditionals one piece at a time.
+- When you encounter the loop for t
+...[truncated 48891 chars; tail follows]...
+e icons, texts, should be mentioned in your response.)
+
+--- Thought ---
+(Your thoughts, which contains your understanding about the observation, and how to update belief state, next plan and action. Pay attention to detecting all possible anomalies or unexpected situations from the Observation! If a situation occurs that does not meet workflow expectations, you need to update the Belief State. Even if an error occurred in a previous step, you need to correct it immediately in the current situation, **pause the execution of the current workflow step, switch to attempting to fix the unexpected/abnormal situation**, and attempt to handle these unexpected and abnormal situations in the Plan.)
+
+--- Updated Belief State ---
+(The new Belief State, in natural language, as required above. It needs to be corrected based on environmental facts while inheriting the previous Belief State, and all previous details should be preserved as much as possible.)
+
+--- Judgement ---
+(Output a judgment on the current global situation. If suspicious errors or unexpected errors are raised in the Belief State, you should pause the execution of the workflow plan, switch to dealing with these suspicious issues, and make the correct choice in the Plan.)
+
+--- Plan ---
+(Description about what you want to do next single step. Since a problem in any step of the workflow will lead to task failure, please take responsibility and care about the global situation, not just the current step.)
+
+--- Action ---
+(In Code Generation Mode, you should output code as action, which is the actual script in Python syntax generated based on your understanding and the task requirements; Or wpc operations including `continue`, `hold`, `break`, `return` in Workflow Status Update Mode. In Workflow Status Update Mode, you can only output one of `hold`, `continue`, `break`, `return` as the Action.)
+
+# Your Turn!
+
+Now, please generate the python code lines based on the following task and context.
+
+Task: Create a text note titled Urgent with content &amp;quot;Fix login bug&amp;quot;. Open the note, add the tag &amp;quot;urgent&amp;quot; using the tag action (the toolbar action with content description 添加标签), and save it. Return to the notes list and search for &amp;quot;urgent&amp;quot;. Finish on the search results showing the Urgent note.
+
+Workflow context:
+```
+text  # &amp;lt;-- current step
+In the &amp;quot;Notes&amp;quot; App, create a new text note titled &amp;quot;Urgent&amp;quot; with content &amp;quot;Fix login bug&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, open the note titled &amp;quot;Urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, use the toolbar action with content description &amp;quot;添加标签&amp;quot; to add the tag &amp;quot;urgent&amp;quot; to the note.
+In the &amp;quot;Notes&amp;quot; App, save the edited note.
+In the &amp;quot;Notes&amp;quot; App, return to the notes list.
+In the &amp;quot;Notes&amp;quot; App, search for &amp;quot;urgent&amp;quot;.
+In the &amp;quot;Notes&amp;quot; App, leave the search results displayed with the note titled &amp;quot;Urgent&amp;quot; visible.
+```
+
+Data &amp;amp; variables:
+
+global variables:
+llm: &amp;lt;FoundationModel&amp;gt;
+mobile: &amp;lt;MobileAPI(config=MobileAPIConfig(locator=&amp;#x27;ui_tars&amp;#x27;, device_serial_id=&amp;#x27;47261FDAS00DTQ&amp;#x27;, ll</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>--- Observation ---
+The Notes app is displaying an empty notes list with the header title “笔记”. The expanded floating action menu is visible in the lower-right area. It contains buttons labeled “照片”, “待办事项列表”, and “文本注释”; the “文本注释” option has a red circular button with a white document icon. A larger red circular button with a white X is below them. No note editor, popup, or blocking dialog is visible.
+
+--- Thought ---
+The previous click did not open the text-note editor, and the current screen remains on the expanded creation menu. The visible “文本注释” action is the correct control for creating the required text note. I should click that action and remain on the current workflow step until the editor appears.
+
+--- Updated Belief State ---
+- The Notes app is open on the empty notes list.
+- No notes currently appear in the list.
+- The floating action menu is expanded.
+- The visible red “文本注释” button is the control for creating a text note.
+- The previous operation did not produce a visible note editor.
+- The toolbar includes search, sorting, and overflow controls.
+- No popup or blocking dialog is visible.
+- The note must be created with title “Urgent” and content “Fix login bug”, then tagged “urgent”, saved, and searched.
+
+--- Judgement ---
+The current workflow step is not complete because the text-note editor has not opened. There is no detected environmental anomaly blocking progress. The next action is to select the visible “文本注释” creation option.
+
+--- Plan ---
+Click the “文本注释” button.
+
+--- Action ---
+```python
+mobile.click(view_description=&quot;red circular 文本注释 button with document icon&quot;)
+```</pre></div>
+      </div>
+    </details>
+    
+    <details class="call">
+      <summary>#8 <code>ui_tars_grounding</code>
+        · 4.98s · 994/94 tok</summary>
+      <div class="call-grid">
+        <div><div class="call-label">模型请求（文本部分；截图以字节数代替）</div>
+          <pre>&lt;b&gt;[user]&lt;/b&gt;
+
+You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
+## Output Format
+```
+Thought: ...
+Action: ...
+```
+## Action Space
+
+click(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;)
+long_press(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;)
+type(content=&amp;#x27;&amp;#x27;) #If you want to submit your input, use &amp;quot;\n&amp;quot; at the end of `content`.
+scroll(point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;, direction=&amp;#x27;down or up or right or left&amp;#x27;)
+open_app(app_name=&amp;#x27;&amp;#x27;)
+drag(start_point=&amp;#x27;&amp;lt;point&amp;gt;x1 y1&amp;lt;/point&amp;gt;&amp;#x27;, end_point=&amp;#x27;&amp;lt;point&amp;gt;x2 y2&amp;lt;/point&amp;gt;&amp;#x27;)
+press_home()
+press_back()
+finished(content=&amp;#x27;xxx&amp;#x27;) # Use escape characters \&amp;#x27;, \&amp;quot;, and \n in content part to ensure we can parse the content in normal python string format.
+
+
+## Note
+- Coordinates in &amp;lt;point&amp;gt; MUST be normalized to a 0-1000 scale: x = round(pixel_x / image_width * 1000), y = round(pixel_y / image_height * 1000). Do NOT output raw pixel coordinates.
+- Use Chinese in `Thought` part.
+- Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
+
+## User Instruction
+Click on red circular 文本注释 button with document icon.
+
+
+&lt;b&gt;[user]&lt;/b&gt;
+
+[image omitted, 70374 bytes]</pre></div>
+        <div><div class="call-label">模型响应</div>
+          <pre>Thought: 目标是点击右下方红色圆形“文本注释”按钮（带文档图标），将执行该操作。  
+Action: click(point=&#x27;&lt;point&gt;889 812&lt;/point&gt;&#x27;)</pre></div>
+      </div>
+    </details>
+    
+    </details>
+    
+      
+    <details>
+      <summary>最终状态判定器请求与响应</summary>
+      <p><b>模型：</b><code>—</code>
+         <b>耗时：</b>—s
+         <b>token：</b>—/—</p>
+      <pre></pre>
+      <p><b>响应：</b></p>
+      <pre></pre>
+    </details>
+    
+      <p class="files">原始证据：
+        <code>runs/agentprog/omni_tag_search/final.png</code>,
+        <code>runs/agentprog/omni_tag_search/workflow.ap</code>,
+        <code>runs/agentprog/omni_tag_search/images/</code>,
+        <code>runs/agentprog/omni_tag_search/llm_calls.jsonl</code>,
+        <code>runs/agentprog/omni_tag_search/agent.log</code>,
+        <code>runs/agentprog/omni_tag_search/verifier_llm.jsonl</code>
+      </p>
+    </section>
+    
+
+<h2>6. AgentProg 架构（来自源码）</h2>
+<p>
+AgentProg 的核心是 <b>Semantic Task Program (STP)</b>：模型先把任务写成一段带自然语言步骤、
+条件和循环的程序（<code>workflow.ap</code>），执行器再把当前程序行翻译成 Python GUI 动作。
+每一步有两个模型阶段：
+</p>
+<ul>
+  <li><b>Code Generation：</b>给定当前程序行、变量、屏幕描述和 belief state，生成一段可执行 Python
+      （例如 <code>mobile.click(view_description=...)</code>、<code>time.sleep(3)</code>）。</li>
+  <li><b>Workflow Status Update：</b>根据执行结果决定程序计数器（WPC）是继续、跳过、跳出循环还是暂停修复。</li>
+</ul>
+<p>
+上下文管理由执行树完成：已完成的分支、循环迭代和函数调用细节会被裁剪，变量通过 STP 的显式声明持久化；
+belief state 维护“隐藏 UI 状态”的假设并在运行时校验。Grounding 使用 UI-TARS 风格的视觉定位：
+把当前截图和 “Click on ….” 指令交给定位模型，返回点击坐标，再由 <code>mobile.click</code> 执行。
+</p>
+
+<h2>7. 配置与最小改动</h2>
+<ul>
+  <li><b>Agent 代码未重写。</b>直接调用 <code>third_party/AgentProg</code> 的
+      <code>agentprog_pipeline</code>；STP、prompt、执行器、belief state、上下文管理均未改。</li>
+  <li><b>主模型：</b>通过 CLI 参数 <code>--workflow_model_args.*</code> 与
+      <code>--executor_model_args.*</code> 把默认的 <code>gemini/gemini-2.5-pro</code>
+      改为 <code>openai/auto/gpt-6.1-sol</code>，base URL 指向本地 magpie；
+      <code>completion_kwargs</code> 设为 <code>{"temperature":1,"stream":false}</code>，
+      去掉默认的 Gemini <code>extra_body.thinking</code>。未改源码。</li>
+  <li><b>UI-TARS grounding：</b><code>mobile_utils.py</code> 增加一个 <code>UITARS_MODEL</code>
+      环境变量覆盖（默认仍是 <code>doubao-seed-1-8-251228</code>），本地设为
+      <code>auto/gpt-6.1-sol</code>；<code>DOUBAO_BASE_URL</code>/<code>ARK_API_KEY</code>
+      指向 magpie。</li>
+  <li><b>接地 prompt 兼容：</b><code>ui_tars_utils.py</code> 的 API prompt 增加一行
+      “坐标必须归一化到 0–1000”。这是为了让通用 VLM 按 doubao API 的坐标约定输出；
+      不加这一行时本地 VLM 返回截图像素坐标，解析后会偏移约 2 倍。</li>
+  <li><b>测试 App 映射：</b><code>mobile_utils.py</code> 的 <code>_PATTERN_TO_ACTIVITY</code>
+      增加 Activity Diary、OmniNotes，并修正 Tasks.org 的 launcher activity；
+      只影响 <code>start_app</code>/<code>kill_app</code> 的包名解析。</li>
+  <li><b>运行器：</b><code>scripts/run_agentprog_tasks.py</code> 只做 App 重置/启动、pipeline 调用、
+      模型 I/O 记录、最终截图/UI 抓取和判定；没有实现 Agent 策略。</li>
+  <li><b>环境 setup：</b>每个任务前 <code>pm clear</code> + 启动；OmniNotes 的首次启动引导
+      （6 页）和 Android 13+ 通知权限由 runner 在启动后处理
+      （<code>dismiss_known_intro</code>、<code>pm grant POST_NOTIFICATIONS</code>），
+      属于测试环境准备，不计入任务步骤，也不改变任何任务目标。</li>
+</ul>
+
+<h2>8. 局限与诚实说明</h2>
+<ul>
+  <li>每个任务只跑 1 次；真机存在动画、通知、输入法差异，单次结果不等于统计成功率。</li>
+  <li>AgentProg 论文默认使用 Gemini-2.5-Pro 与 Volcengine Ark 的 UI-TARS-1.5；本报告改用本地
+      magpie 的 <code>auto/gpt-6.1-sol</code> 作为主模型和 grounding 模型，属于兼容性替换，
+      不能直接与论文数字对比。</li>
+  <li>UI-TARS API prompt 增加了一行坐标归一化说明；这是本地 VLM 与 doubao API 坐标约定不一致导致的
+      兼容性改动，不属于 AgentProg 原始 prompt。</li>
+  <li>AgentProg 的 text-augmented 截图路径会先用一个描述模型读取真实截图并生成详细画面描述；
+      后续 code generation / WPC 调用的 prompt 中，图片占位符没有注册成
+      <code>Prompt.images</code>，日志显示为本地图片路径，模型依赖上一步的详细文本描述。
+      UI-TARS grounding 始终使用真实截图。本报告未修改这一上游行为。</li>
+  <li>最终状态判定依赖外部 VLM（<code>auto/gpt-6.1-sol</code>），可能存在视觉误读；报告同时保留
+      确定性文本检查和原始截图，便于人工复核。</li>
+  <li>没有读取 App 的 SQLite/SharedPreferences 等隐藏状态，只按用户可见的最终界面判定。</li>
+  <li>AppAgent 的新规则分数是对旧最终截图的离线重判，不是重跑；旧严格结果仍保留在
+      <code>runs/appagent/</code>。</li>
+</ul>
+
+<h2>9. 复现</h2>
+<pre>cd E:/CodeE/vibe51/StarTrek
+# 1) 安装（Python 3.12）
+python -m venv .venv-agentprog
+.venv-agentprog/Scripts/python -m pip install -e third_party/AgentProg
+# 2) 配置网关
+#    third_party/AgentProg/.env
+#    GEMINI_BASE_URL=http://127.0.0.1:3425/v1
+#    GEMINI_API_KEY=magpie
+#    DOUBAO_BASE_URL=http://127.0.0.1:3425/v1
+#    ARK_API_KEY=magpie
+#    MODEL=openai/auto/gpt-6.1-sol
+#    UITARS_MODEL=auto/gpt-6.1-sol
+# 3) 跑一个任务
+.venv-agentprog/Scripts/python scripts/run_agentprog_tasks.py --tasks diary_officework_session
+# 4) 跑全部 8 个任务
+.venv-agentprog/Scripts/python scripts/run_agentprog_tasks.py --tasks all
+# 5) 生成报告
+python scripts/build_agentprog_report.py</pre>
+
+<h2>10. 文件清单</h2>
+<ul>
+  <li><code>benchmark/agent_tasks.yaml</code> — 8 个任务与最终状态检查</li>
+  <li><code>third_party/AgentProg/</code> — 开源 baseline（Tsinghua AIR，arXiv 2512.10371）</li>
+  <li><code>scripts/run_agentprog_tasks.py</code> — 薄运行器 + 模型 I/O 记录 + 最终状态判定</li>
+  <li><code>scripts/build_agentprog_report.py</code> — 本报告生成器</li>
+  <li><code>runs/agentprog/&lt;task&gt;/</code> — 最终截图、final UI、逐步截图、workflow.ap、
+      模型 I/O、AgentProg 日志、判定器日志</li>
+  <li><code>runs/appagent/</code> — 旧 baseline 的原始结果与重判结果</li>
+</ul>
+</main>
+</body>
+</html>

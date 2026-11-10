@@ -15,6 +15,7 @@ class FakeLLMClient:
     def __init__(self, responses: list[str | dict[str, Any]] | None = None) -> None:
         self.responses: list[str | dict[str, Any]] = list(responses or [])
         self.calls = 0
+        self.prompts: list[str] = []
 
     def complete(
         self,
@@ -24,6 +25,7 @@ class FakeLLMClient:
         temperature: float = 0.0,
     ) -> str:
         self.calls += 1
+        self.prompts.append(prompt)
         if not self.responses:
             raise AssertionError("FakeLLMClient has no responses left")
         response = self.responses.pop(0)

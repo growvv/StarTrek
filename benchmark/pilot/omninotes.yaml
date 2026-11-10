@@ -1,0 +1,10 @@
+app: OmniNotes
+cases:
+  - id: pilot-create
+    text: "Create a note titled Groceries with content Buy milk"
+  - id: pilot-search-after-create
+    text: "Create a note titled Groceries with content Buy milk, then search notes for Groceries"
+  - id: pilot-create-and-share
+    text: "Create a note titled Groceries with content Buy milk, then share it"
+  - id: pilot-create-and-archive
+    text: "Create a note titled Groceries with content Buy milk, then archive it"

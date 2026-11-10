@@ -41,8 +41,15 @@ def _fixture_env(tmp_path, sample_trace):
                 ]
             },
             CARD_MARKDOWN,
-            {"can_execute": True},
-            {"is_goal": True},
+            {
+                "cards": [
+                    {
+                        "name": "create_note",
+                        "can_execute": True,
+                        "is_goal": True,
+                    }
+                ]
+            },
             {"steps": [{"action": "click", "target": "text=Next"}]},
             "Notes list with a plus button",
             {"satisfied": True},

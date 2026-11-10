@@ -103,6 +103,7 @@ class EdgeBuilder:
             return []
         card_lines = "\n".join(
             f"- {name}: intent={card.intent!r}; "
+            f"inputs={card.inputs!r}; "
             f"preconditions={card.preconditions!r}; "
             f"postconditions={card.postconditions!r}; "
             f"outputs={card.effects_outputs!r}"
@@ -112,8 +113,10 @@ class EdgeBuilder:
             f"Function cards:\n{card_lines}\n\n"
             "Infer directed semantic edges between these user-level "
             "functions. Use type 'enables' when one function satisfies the "
-            "preconditions of another, or 'dataflow' when output of one is "
-            "input to another. Skip unrelated pairs."
+            "preconditions of another, or 'dataflow' when an output of one "
+            "can supply an input of another (for example a note title "
+            "created by one card and used by another). Skip unrelated "
+            "pairs."
         )
         try:
             data = self.llm.complete_json(prompt, _EDGE_SCHEMA)

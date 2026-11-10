@@ -49,6 +49,20 @@ SHARE_MARKDOWN = """# share_note
 """
 
 
+def _batch(
+    can_execute: bool, is_goal: bool, name: str = "create_note"
+) -> dict:
+    return {
+        "cards": [
+            {
+                "name": name,
+                "can_execute": can_execute,
+                "is_goal": is_goal,
+            }
+        ]
+    }
+
+
 def _card(name: str) -> FunctionCard:
     return FunctionCard(
         name=name,
@@ -226,8 +240,7 @@ def test_build_graph_persists_sequence_and_semantic_edges(
 
 def test_plan_wraps_goal_text(tmp_path, fake_llm, fake_device):
     fake_llm.responses = [
-        {"can_execute": True},
-        {"is_goal": True},
+        _batch(True, True),
         {"steps": [{"action": "click", "target": "text=Next"}]},
     ]
     pipeline = _pipeline(
@@ -244,8 +257,7 @@ def test_plan_wraps_goal_text(tmp_path, fake_llm, fake_device):
 
 def test_plan_uses_app_package(tmp_path, fake_llm, fake_device):
     fake_llm.responses = [
-        {"can_execute": True},
-        {"is_goal": True},
+        _batch(True, True),
         {"steps": [{"action": "click", "target": "text=Next"}]},
     ]
     pipeline = _pipeline(
@@ -267,8 +279,7 @@ def test_execute_goal_starts_target_package(
     tmp_path, fake_llm, fake_device
 ):
     fake_llm.responses = [
-        {"can_execute": True},
-        {"is_goal": True},
+        _batch(True, True),
         {"steps": [{"action": "click", "target": "text=Next"}]},
         "Notes list with a plus button",
         {"satisfied": True},
@@ -294,8 +305,7 @@ def test_run_goal_executes_and_applies_success_patch(
     tmp_path, fake_llm, fake_device
 ):
     fake_llm.responses = [
-        {"can_execute": True},
-        {"is_goal": True},
+        _batch(True, True),
         {"steps": [{"action": "click", "target": "text=Next"}]},
         "Notes list with a plus button",
         {"satisfied": True},
@@ -332,8 +342,7 @@ def test_run_goal_completes_missing_capability_and_retries(
             ]
         },
         CARD_MARKDOWN,
-        {"can_execute": True},
-        {"is_goal": True},
+        _batch(True, True),
         {"steps": [{"action": "click", "target": "text=Next"}]},
         "Notes list with a plus button",
         {"satisfied": True},

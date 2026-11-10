@@ -17,10 +17,24 @@ _SEGMENT_SCHEMA = (
     '"name": "create_note", "intent": "create a note"}]}'
 )
 _CARD_PROMPT = (
-    "Write one Markdown function card for this user-level episode. "
-    "Use exactly these headings: **Intent**, **Inputs**, **Preconditions**, "
-    "**Postconditions**, **Effects/Outputs**, **Steps**, **Evidence**. "
-    "The first line must be '# <function_name>'. Steps are numbered. "
+    "Write one reusable Markdown function card for this user-level episode. "
+    "Generalize trace-specific values: declare them as named inputs and "
+    "refer to them as {name} in Steps, Intent, and Postconditions. Do not "
+    "bake the single observed values into the card, and do not mention "
+    "unrelated existing data from the trace. "
+    "Use exactly these headings, each followed by a colon: **Intent**, "
+    "**Inputs**, **Preconditions**, **Postconditions**, **Effects/Outputs**, "
+    "**Steps**, **Evidence**. "
+    "Write Inputs as one bullet per parameter in the form "
+    "'- name (required|optional): description'. "
+    "The first line must be '# <function_name>' using a reusable "
+    "snake_case name. Steps are numbered and must be reusable actions, not "
+    "a transcript of this one run. Keep one physical UI action per step: if "
+    "the trace pressed Back twice, write two Back steps instead of "
+    "'repeat as needed'; if it pressed Enter or the keyboard Search key, "
+    "write that as its own step. Name the concrete resource id or visible label "
+    "for each control shown in the trace. Write Evidence exactly as "
+    "'traces <trace_id>; <success>/<attempt> successes' with no prose. "
     "Use the trace evidence. Return only the Markdown card."
 )
 

@@ -45,6 +45,54 @@ def test_failure_patch_rejects_new_card_with_existing_name(
     assert patch.reason == "invalid patch rejected"
 
 
+def test_failure_patch_rejects_intent_only_changes(
+    fake_llm, graph_store, failed_result
+):
+    fake_llm.responses = [
+        {
+            "card_updates": [
+                {
+                    "name": "create_note",
+                    "fields": {
+                        "Intent": "Create a note titled Trip and save it."
+                    },
+                }
+            ],
+            "reason": "reword the intent",
+        }
+    ]
+
+    patch = GraphUpdater(
+        fake_llm, graph_store, EdgeBuilder(fake_llm)
+    ).update(failed_result)
+
+    assert patch.card_updates == []
+    assert patch.reason == "invalid patch rejected"
+
+
+def test_failure_patch_prompt_includes_card_steps_and_actions(
+    fake_llm, graph_store, failed_result
+):
+    failed_result.step_results = [
+        {
+            "card": "create_note",
+            "action": "back",
+            "target": "",
+            "success": True,
+        }
+    ]
+    fake_llm.responses = [{"reason": "no change"}]
+
+    GraphUpdater(fake_llm, graph_store, EdgeBuilder(fake_llm)).update(
+        failed_result
+    )
+
+    prompt = fake_llm.prompts[0]
+    assert 'Tap "+"' in prompt
+    assert "Enter the title" in prompt
+    assert "action=back" in prompt
+
+
 def test_malformed_failure_patch_returns_empty(
     fake_llm, graph_store, failed_result
 ):

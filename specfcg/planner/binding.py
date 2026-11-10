@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import re
+
 from specfcg.llm.client import LLMClient, LLMParseError
 from specfcg.models import FunctionCard, Goal
 
+_PARAM_NAME_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_-]*)")
+
 
 def _param_name(declaration: str) -> str:
-    stripped = declaration.strip()
+    stripped = declaration.strip().lstrip("-*• ").strip().replace("`", "")
     if not stripped:
         return ""
+    match = _PARAM_NAME_RE.match(stripped)
+    if match:
+        return match.group(1)
     first = stripped.split()[0]
     return first.split("(")[0].strip()
 

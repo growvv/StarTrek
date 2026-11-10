@@ -33,6 +33,17 @@ def test_build_semantic_edges_from_llm(fake_llm, two_cards):
     assert edges[0].type == "enables"
 
 
+def test_infer_semantic_prompt_includes_card_inputs(fake_llm, two_cards):
+    fake_llm.responses = [{"edges": []}]
+
+    EdgeBuilder(fake_llm).infer_semantic(two_cards)
+
+    prompt = fake_llm.prompts[0]
+    assert "inputs=" in prompt
+    assert "title" in prompt
+    assert "dataflow" in prompt
+
+
 def test_build_skips_unknown_card_names(fake_llm, two_cards):
     fake_llm.responses = [
         {

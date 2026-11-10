@@ -1,7 +1,7 @@
 from dataclasses import replace
 
 from specfcg.models import Goal
-from specfcg.planner.binding import ParamBinder
+from specfcg.planner.binding import ParamBinder, _param_name
 
 
 def test_bind_uses_goal_values_and_prior_outputs(fake_llm, two_cards):
@@ -57,6 +57,12 @@ def test_bind_normalizes_input_descriptions(
     ]
     out = ParamBinder(fake_llm).bind(card, Goal("share"), "state", {})
     assert out == {"note": "Trip", "channel": "email"}
+
+
+def test_param_name_strips_markdown_and_description():
+    assert _param_name("`title`: the note title") == "title"
+    assert _param_name("`content` (optional): the note body") == "content"
+    assert _param_name("plain_name (text)") == "plain_name"
 
 
 def test_bind_optional_input_may_be_missing(fake_llm, sample_card):

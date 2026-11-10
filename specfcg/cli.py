@@ -17,7 +17,7 @@ from specfcg.completion.probe import DeviceProbe
 from specfcg.config import AppConfig, load_config
 from specfcg.executor.device import FakeDevice, Uiautomator2Device
 from specfcg.executor.executor import Executor
-from specfcg.executor.summarizer import StateSummarizer
+from specfcg.executor.summarizer import PlainStateSummarizer
 from specfcg.graph.store import GraphStore
 from specfcg.llm.cache import CachedLLMClient
 from specfcg.llm.client import LLMClient, OpenAICompatibleClient
@@ -79,9 +79,21 @@ class _OfflineLLM:
                     }
                 ]
             }
+        if "For each card decide" in prompt:
+            candidates = re.findall(r"^- (\w+):", prompt, re.MULTILINE)
+            return {
+                "cards": [
+                    {
+                        "name": name,
+                        "can_execute": True,
+                        "is_goal": True,
+                    }
+                    for name in candidates
+                ]
+            }
         if "Can this card execute" in prompt:
             return {"can_execute": True}
-        if "Does executing this card satisfy" in prompt:
+        if "fully satisfy the entire goal" in prompt:
             return {"is_goal": True}
         if "Bind every required input" in prompt:
             return {"bindings": {}}
@@ -135,7 +147,7 @@ def build_pipeline(
     planner = Planner(
         graph, llm, CardRetriever(llm), ParamBinder(llm), compiler
     )
-    summarizer = StateSummarizer(llm)
+    summarizer = PlainStateSummarizer()
     executor = Executor(device, llm, summarizer, graph)
     updater = GraphUpdater(llm, store, builder)
     completer = CapabilityCompleter(
@@ -276,3 +288,7 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.error(f"unknown command: {args.command}")
     return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

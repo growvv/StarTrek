@@ -17,6 +17,8 @@ class CachedLLMClient:
         self.inner = inner
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.hits = 0
+        self.misses = 0
 
     @staticmethod
     def _key(
@@ -57,7 +59,9 @@ class CachedLLMClient:
         key = self._key("complete", prompt, system, temperature)
         cached = self._read(key)
         if cached is not None:
+            self.hits += 1
             return str(cached)
+        self.misses += 1
         result = self.inner.complete(
             prompt, system=system, temperature=temperature
         )
@@ -74,7 +78,9 @@ class CachedLLMClient:
         key = self._key(f"complete_json:{schema_hint}", prompt, system, 0.0)
         cached = self._read(key)
         if cached is not None:
+            self.hits += 1
             return cached
+        self.misses += 1
         result = self.inner.complete_json(
             prompt, schema_hint, system=system
         )

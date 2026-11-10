@@ -388,6 +388,27 @@ execute probe (default: ProphetAgent/Droidbot explorer with the NL probe as goal
 
 LLM 只提供局部转移判断（能否执行、参数、是否推进），不负责全局枚举。
 
+#### 7.1.1 实现校准（真机实验反馈，2026-11-10）
+
+真机 5 卡图（OmniNotes）暴露了“静态入口 + 单卡目标判定”在多卡组合上的问题，
+实现按实验反馈做了以下调整（详见
+`docs/experiments/2026-11-10-real-device-pilot.md` F16–F26）：
+
+- 搜索种子不再限定“无入边”卡片；从当前状态下 `can_execute` 为真的任意候选卡开始，
+  避免语义边成环后 `entry_cards()` 为空。
+- `can_execute` 只约束路径首卡；后继卡由 `enables` / `sequence` 边授权执行。
+  仅有 `dataflow` 的边不授权执行（数据可供给 ≠ 前置条件满足）。
+- `is_goal` 接收整条路径：单卡用逐卡判定，多卡用一次“整个计划是否完整达成目标”的
+  判定；路径级缓存按 `(path, goal, state)` 隔离。
+- 规划开始时一次批量分类所有候选卡的 `can_execute` / `is_goal`，解析失败才回退逐卡调用。
+- 同一次批量调用让模型提出有序计划（每步带 `subgoal`）；校验卡片名、首卡可执行性和
+  `enables`/`sequence` 边后，只做一次计划级目标判定。允许同一卡片重复出现，用
+  `PlanStep.instance` 区分实例并逐实例检查 postcondition；失败才回退 BFS。
+- 执行前的状态摘要改为确定性的 `PlainStateSummarizer`，去掉一次冗余 LLM 调用。
+- 真机四卡任务 `create → search → open → share` 验证：11/11 动作成功、
+  11 次 LLM 调用（规划 6 + 执行 5），规划 688.8s、执行 105.7s；搜索框与笔记标题
+  同名时用复合选择器 `resourceId=...|text=...` 消除歧义。
+
 ### 7.2 覆盖准则（NL 版本）
 
 | 准则 | 定义 | 用途 |

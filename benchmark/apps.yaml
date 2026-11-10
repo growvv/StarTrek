@@ -8,17 +8,17 @@ apps:
     apk_path: third_party/apks/AmazeFileManager-3.8.5.apk
     version: "3.8.5"
   - name: OmniNotes
-    package: it.feio.android.omninotes
-    apk_path: third_party/apks/OmniNotes-6.1.0.apk
-    version: "6.1.0"
+    package: it.feio.android.omninotes.foss
+    apk_path: third_party/apks/it.feio.android.omninotes.foss_336.apk
+    version: "6.5.1"
   - name: NewPipe
     package: org.schabi.newpipe
     apk_path: third_party/apks/NewPipe-0.26.1.apk
     version: "0.26.1"
   - name: ActivityDiary
     package: de.rampro.activitydiary
-    apk_path: third_party/apks/ActivityDiary-1.5.1.apk
-    version: "1.5.1"
+    apk_path: third_party/apks/de.rampro.activitydiary_136.apk
+    version: "1.4.2"
   - name: AntennaPod
     package: de.danoeh.antennapod
     apk_path: third_party/apks/AntennaPod-3.3.2.apk

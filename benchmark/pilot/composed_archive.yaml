@@ -1,0 +1,4 @@
+app: OmniNotes
+cases:
+  - id: composed-create-and-archive
+    text: "Create a note titled Groceries with content Buy milk, then archive it"

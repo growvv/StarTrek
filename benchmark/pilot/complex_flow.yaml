@@ -1,0 +1,4 @@
+app: OmniNotes
+cases:
+  - id: complex-four-card-share
+    text: "Create a note titled Groceries with content Buy milk, then search for it, open the note, and share it"

@@ -102,6 +102,7 @@ class PlanStep:
     action: str
     target: str = ""
     args: str = ""
+    instance: int = 0
 
 
 @dataclass

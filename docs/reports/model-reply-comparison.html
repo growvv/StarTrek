@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>auto/ 模型回复对比 — AgentProg workflow 请求</title>
+<style>
+:root { --ink:#17202a; --muted:#65727f; --line:#e2e8ee; --bg:#f6f8fa;
+        --ok:#137a3f; --ok-bg:#e6f5ec; --fail:#b42318; --fail-bg:#fdecea;
+        --accent:#1f5fbf; --accent-bg:#eaf1fb; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+       line-height:1.65; }
+main { max-width:1240px; margin:0 auto; padding:32px 24px 80px; }
+h1 { font-size:30px; line-height:1.25; margin:0 0 8px; }
+h2 { font-size:21px; margin:34px 0 12px; padding-bottom:8px;
+     border-bottom:2px solid var(--line); }
+h3 { font-size:16px; margin:20px 0 8px; }
+p { margin:8px 0; }
+code, pre { font-family:"Cascadia Code",Consolas,monospace; }
+code { background:#eef2f6; padding:1px 5px; border-radius:4px; font-size:0.92em; }
+pre { background:#0f1720; color:#e6edf3; padding:14px 16px; border-radius:8px;
+      overflow:auto; font-size:12px; line-height:1.55; max-height:520px; }
+details { background:#fff; border:1px solid var(--line); border-radius:8px;
+          padding:10px 14px; margin:10px 0; }
+summary { cursor:pointer; font-weight:600; }
+.sub { color:var(--muted); font-size:14px; margin-bottom:24px; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+         gap:12px; margin:20px 0 8px; }
+.card { background:#fff; border:1px solid var(--line); border-radius:10px;
+        padding:14px 16px; }
+.card .n { font-size:26px; font-weight:700; }
+.card .l { color:var(--muted); font-size:13px; }
+.badge { display:inline-block; padding:2px 9px; border-radius:999px;
+         font-size:12px; font-weight:700; vertical-align:middle; }
+.badge.ok { color:var(--ok); background:var(--ok-bg); }
+.badge.fail { color:var(--fail); background:var(--fail-bg); }
+.badge.skip { color:var(--muted); background:#eef2f6; }
+.pill { display:inline-block; padding:1px 8px; border-radius:999px;
+        font-size:12px; font-weight:700; background:#eef2f6; color:var(--muted); }
+.pill.pass { background:var(--ok-bg); color:var(--ok); }
+.pill.fail { background:var(--fail-bg); color:var(--fail); }
+table { width:100%; border-collapse:collapse; background:#fff;
+        border:1px solid var(--line); border-radius:8px; overflow:hidden;
+        margin:12px 0 18px; font-size:13px; }
+th, td { padding:8px 10px; border-bottom:1px solid var(--line);
+         text-align:left; vertical-align:top; }
+th { background:#f0f4f8; font-size:12px; text-transform:uppercase;
+     letter-spacing:.03em; color:#40505f; }
+tr:last-child td { border-bottom:0; }
+table.mini { font-size:12px; }
+table.mini code { font-size:11px; word-break:break-all; }
+.task { background:#fff; border:1px solid var(--line); border-radius:12px;
+        padding:20px 22px; margin:22px 0; }
+.goal { background:var(--accent-bg); border-left:4px solid var(--accent);
+        padding:10px 14px; border-radius:6px; margin:12px 0 16px; }
+.meta { color:var(--muted); font-size:13px; }
+.final-grid { display:grid; grid-template-columns:minmax(260px,560px) 1fr;
+              gap:20px; align-items:start; }
+.check { background:#fbfcfd; border:1px solid var(--line); border-radius:10px;
+         padding:14px 16px; }
+.shot img, .final-shot { width:100%; height:auto; border-radius:8px;
+                         border:1px solid var(--line); }
+.cap { color:var(--muted); font-size:12px; margin-top:6px; }
+.steps-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+              gap:14px; }
+.step-card { border:1px solid var(--line); border-radius:10px; padding:10px;
+             background:#fbfcfd; }
+.step-no { font-weight:700; color:var(--accent); font-size:13px; margin-bottom:6px; }
+.step-shot { width:100%; height:auto; border-radius:7px; border:1px solid var(--line); }
+.start-shot { max-width:340px; margin:10px 0; }
+.compare-card { background:#fbfcfd; border:1px solid var(--line);
+                border-radius:10px; padding:14px 16px; margin:16px 0; }
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px;
+                max-width:620px; }
+.compare-shot { width:100%; border-radius:7px; border:1px solid var(--line); }
+.call { background:#fbfcfd; border:1px solid var(--line); border-radius:8px;
+        padding:8px 12px; margin:8px 0; }
+.call summary { font-size:12px; }
+.call-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+.call-label { font-size:11px; color:var(--muted); font-weight:700;
+              text-transform:uppercase; letter-spacing:.03em; }
+.call pre { max-height:360px; }
+@media (max-width:860px) { .call-grid { grid-template-columns:1fr; } }
+.files { color:var(--muted); font-size:12px; margin-top:16px; }
+.muted { color:var(--muted); }
+.missing { background:#f1f5f9; color:var(--muted); padding:20px;
+           border-radius:8px; text-align:center; }
+.warn { background:#fff7e6; border-left:4px solid #d97706;
+        padding:10px 14px; border-radius:6px; margin:12px 0; }
+.toc a { color:var(--accent); text-decoration:none; }
+.toc li { margin:3px 0; }
+@media (max-width:860px) { .final-grid, .compare-grid { grid-template-columns:1fr; } }
+
+.prompt-box { max-height: 420px; overflow:auto; background:#0f172a; color:#e2e8f0;
+  border-radius:10px; padding:16px 18px; font:12px/1.55 Consolas,monospace;
+  white-space:pre-wrap; word-break:break-word; }
+.reply { background:#fbfcfd; color:#101828; border:1px solid var(--line);
+  border-radius:10px; padding:14px 16px; font:13px/1.6 Consolas,monospace;
+  white-space:pre-wrap; word-break:break-word; margin:10px 0; }
+.model-card { background:#fff; border:1px solid var(--line); border-radius:12px;
+  padding:18px 20px; margin:20px 0; }
+.model-head { display:flex; flex-wrap:wrap; gap:10px 18px; align-items:baseline;
+  border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:12px; }
+.model-head h3 { margin:0; font-size:17px; }
+.metric { font-size:13px; color:var(--muted); }
+.metric b { color:var(--text); }
+.tag { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px;
+  background:#eef2f6; color:#334155; margin-right:6px; }
+.tag.good { background:#e7f6ec; color:#067647; }
+.tag.warn { background:#fff4e5; color:#b54708; }
+details summary { cursor:pointer; color:var(--accent); font-size:13px;
+  margin:8px 0; }
+.error-box { background:#fff7f6; border:1px solid #f3c0bb; border-radius:10px;
+  padding:14px 16px; color:#b42318; font:13px/1.6 Consolas,monospace; }
+.expected { background:#f0f7ff; border:1px solid #c8ddf5; border-radius:10px;
+  padding:12px 16px; font:13px/1.6 Consolas,monospace; white-space:pre-wrap; }
+.callout { background:#fff; border:1px solid var(--line); border-left:5px solid var(--accent);
+  border-radius:8px; padding:14px 18px; margin:16px 0; }
+.callout ul { margin:8px 0 0; padding-left:22px; }
+.callout li { margin:4px 0; }
+</style></head><body>
+<main>
+<h1>同一请求下 auto/ 模型回复对比</h1>
+<p class="muted">请求来自 AgentProg README 示例复现的第 1 次调用
+（workflow 生成，6045 字符）。16/18 个模型成功返回；
+最快 <code>auto/gpt-6-luna</code>
+（4.17s）。所有模型使用相同 messages、
+<code>max_tokens=4000</code>、默认 temperature、非流式；6 路并发。
+网关延迟波动很大（同一模型两轮实测可能差数倍），本节耗时只对应本轮回合，
+排序请以复现报告第 4 节的并发测速表为主。</p>
+
+<h2>评测基准：期望的 STP 形式</h2>
+<p>上游 README 示例任务为 <code>create a new contact named agent prog in contacts app.</code>。
+本次复现实际生成的 workflow 是（hy4free，上游 pipeline 用它跑通了点击流程）：</p>
+<div class="expected">Record "agent prog" as {contact_name}
+In the Contacts App, create a new contact named {contact_name}, and save the contact.</div>
+<p class="muted">DSL 也允许 <code>Set {contact_name} to "agent prog"</code> 这种变量声明。
+下面标注：是否有变量声明、是否显式指定 Contacts App、是否被 max_tokens 截断；
+不自动判定语义正确性，质量请看每个模型的原始正文自行判断。</p>
+
+<div class="callout">
+  <b>一眼观察（基于本轮原始回复）：</b>
+  16 个成功模型都正确理解了任务；除 hy4free 被 <code>max_tokens</code> 截断外，
+  其余回复都包含明确的保存步骤。
+  <ul>
+    <li><b>最短完整</b>：<code>auto/gpt-6-luna</code>（59 tokens，3 步）；<code>gpt-6-sol</code> /
+        <code>gpt-6.1-sol</code> 多一条验证步骤。</li>
+    <li><b>变量声明</b>：本轮只有 <code>auto/hy4free</code> 用了
+        <code>Set {contact_name} to "agent prog"</code>；其余把名称直接写进步骤。
+        两种写法 DSL 都允许。</li>
+    <li><b>需要留意</b>：<code>glm-5.2</code> 建议拆成 first name “agent” / last name “prog”；
+        <code>glm-5.3</code> 系增加了搜索/点击“+”等 UI 细节与验证步骤，执行路径更长。</li>
+    <li><b>网关失败</b>：<code>kimi-k3</code>（503）、<code>hy4std</code>（502，输出全耗在思考段）。</li>
+  </ul>
+</div>
+
+<h2>结果总览</h2>
+<table><thead><tr><th>#</th><th>模型</th><th>耗时</th><th>finish</th>
+  <th>输出 token</th><th>正文 chars</th><th>思考 chars</th></tr></thead>
+  <tbody><tr><td>1</td><td><a href="#m1"><code>auto/gpt-6-luna</code></a></td><td><b>4.17s</b></td><td>stop</td><td>59</td><td>230</td><td>0</td></tr><tr><td>2</td><td><a href="#m2"><code>auto/gpt-6-sol</code></a></td><td><b>4.52s</b></td><td>stop</td><td>135</td><td>343</td><td>0</td></tr><tr><td>3</td><td><a href="#m3"><code>auto/gpt-6-astra</code></a></td><td><b>4.53s</b></td><td>stop</td><td>103</td><td>268</td><td>0</td></tr><tr><td>4</td><td><a href="#m4"><code>auto/minimax-m3.1-flash</code></a></td><td><b>4.67s</b></td><td>stop</td><td>394</td><td>375</td><td>1504</td></tr><tr><td>5</td><td><a href="#m5"><code>auto/gpt-6.1-sol</code></a></td><td><b>4.89s</b></td><td>stop</td><td>144</td><td>349</td><td>0</td></tr><tr><td>6</td><td><a href="#m6"><code>auto/gpt-5.6-terra</code></a></td><td><b>5.12s</b></td><td>stop</td><td>74</td><td>306</td><td>0</td></tr><tr><td>7</td><td><a href="#m7"><code>auto/deepseek-v4.1-flash-max</code></a></td><td><b>5.55s</b></td><td>stop</td><td>686</td><td>453</td><td>2609</td></tr><tr><td>8</td><td><a href="#m8"><code>auto/deepseek-v4.1-flash</code></a></td><td><b>5.8s</b></td><td>stop</td><td>588</td><td>537</td><td>2178</td></tr><tr><td>9</td><td><a href="#m9"><code>auto/gpt-5.6-luna</code></a></td><td><b>6.01s</b></td><td>stop</td><td>123</td><td>292</td><td>0</td></tr><tr><td>10</td><td><a href="#m10"><code>auto/glm-5.3-flash</code></a></td><td><b>7.46s</b></td><td>stop</td><td>309</td><td>1213</td><td>57</td></tr><tr><td>11</td><td><a href="#m11"><code>auto/gpt-5.6-sol</code></a></td><td><b>7.88s</b></td><td>stop</td><td>190</td><td>363</td><td>0</td></tr><tr><td>12</td><td><a href="#m12"><code>auto/kimi-k3.1-pro</code></a></td><td><b>11.66s</b></td><td>stop</td><td>331</td><td>400</td><td>1115</td></tr><tr><td>13</td><td><a href="#m13"><code>auto/glm-5.3</code></a></td><td><b>13.87s</b></td><td>stop</td><td>261</td><td>1050</td><td>57</td></tr><tr><td>14</td><td><a href="#m14"><code>auto/hy3</code></a></td><td><b>31.33s</b></td><td>stop</td><td>1888</td><td>870</td><td>7427</td></tr><tr><td>15</td><td><a href="#m15"><code>auto/glm-5.2</code></a></td><td><b>44.74s</b></td><td>stop</td><td>280</td><td>907</td><td>249</td></tr><tr><td>16</td><td><a href="#m16"><code>auto/hy4free</code></a></td><td><b>45.18s</b></td><td>length</td><td>4000</td><td>1051</td><td>17030</td></tr><tr class='err'><td>—</td><td><code>auto/kimi-k3</code></td><td>—</td><td>失败</td><td colspan='3'></td></tr><tr class='err'><td>—</td><td><code>auto/hy4std</code></td><td>—</td><td>失败</td><td colspan='3'></td></tr></tbody></table>
+
+<div class="callout">
+  <b>为什么 GPT 系列的“思考 chars”都是 0？</b>
+  这是网关的默认行为，不是报告漏采。实测（<code>runs/gpt_reasoning_probe.json</code>）：
+  <ul>
+    <li>不传任何开关时，<code>gpt-6-sol</code>、<code>gpt-5.6-sol</code> 的返回里
+        连 <code>reasoning_content</code> 字段都没有，completion tokens 只覆盖正文。</li>
+    <li><code>gpt-6-sol</code> 传 <code>reasoning_effort=high</code> 后才出现
+        <code>reasoning_content</code>，但这段思考只有 24 字符；
+        <code>reasoning_effort=low</code>、<code>extra_body.reasoning</code>、
+        <code>extra_body.thinking</code> 都没有效果。</li>
+    <li><code>gpt-5.6-sol</code> 在上述所有开关下都没有返回思考内容。</li>
+    <li>对照：<code>deepseek-v4.1-flash</code>、<code>hy4free</code>、<code>hy3</code>、
+        <code>minimax</code> 默认就返回 1k–17k 字符的 reasoning。</li>
+  </ul>
+  结论：GPT 系列默认是“非思考”模式，且对这个简单任务即使开 high 也几乎不思考；
+  这不代表它不能推理，只代表本次请求没有触发/开启。
+</div>
+
+<h2>完整请求（原样，未修改）</h2>
+<details><summary>展开请求（6045 字符）</summary>
+<pre class="prompt-box">
+
+I will introduce you to a new programming language called **Task Program**. This is a natural language style domain-specific language (DSL) used to describe task execution flows. You need to master this language and complete the tasks I arrange.
+
+# Task Program Language Syntax
+
+## 1. Basic Syntax and Concepts
+
+The syntax of Task Program is similar to natural language, but following certain structures and concepts will help the system understand your intent more precisely.
+
+A Task Program consists of a series of statements, usually one per line, describing an operation or a step, using imperative sentences or clear declarative sentences.
+
+### Comments
+
+Start a line with the `#` symbol to indicate that the line is a comment. Comments are used to explain code, and the system will ignore them during execution.
+
+```
+# This is a comment, the system will not execute this sentence
+Tell user &quot;Hello, comments make code easier to understand&quot; # This is also an inline comment
+```
+
+### Variables
+
+In Task Program, variables are represented by words wrapped in curly braces.
+
+*   **Declaring (Recording) Variables**: Usually done using `record as {variable_name}` or similar natural language phrasing.
+
+    ```
+    Set variable {user_name} to &quot;John&quot;
+    Set {current_city} to &quot;Beijing&quot;
+    Create variable {visitor_count}, initial value is 0
+    ```
+*   **Using Variables**: Where stored information is needed, use `{variable_name}` to represent filling in the position with the variable&#x27;s value.
+
+    ```
+    Tell user &quot;Hello, {user_name}&quot;
+    Search in browser for &quot;{current_city} population&quot;, record as {population_count}
+    Tell user &quot;The population of {current_city} is {population_count}.&quot;
+    ```
+*   Variable names should use meaningful words to facilitate understanding.
+
+### Data Types
+
+When variables are stored and passed in the system, they are understood as different types of data for actual operations. Different types of variables are used for data processing in different scenarios, such as number types for statistics, text types for document operations, dialogue, etc.
+
+In Task Program, you do not need to specifically care about variable types; Task Program will automatically understand the type of each variable based on your code. Of course, you can also supplement the type description when defining variables to have more control over the entire process.
+
+#### Basic Data Types
+
+Task Program currently supports the following basic data types:
+
+*   **Text**: A sequence of characters enclosed in quotes, such as `&quot;Hello world!&quot;` or `&#x27;Hello, World!&#x27;`.
+*   **Number**: Integers or decimals, such as `10` or `3.14`.
+*   **Boolean**: `True` or `False` (or `Yes` / `No`), used to represent conditions or states.
+
+    ```
+    Judge if {age} is greater than 18, record as {is_adult} # {is_adult} will be True or False
+    If {is_adult} is true:
+        Tell user &quot;You are an adult.&quot;
+    ```
+*   **Image**: Represents image data. Can be obtained by reading files, etc.
+
+    ```
+  
+...[truncated 28893 chars; tail follows]...
+outine automation, etc.
+You should carefully understand the user&#x27;s requirement based on conversation, then write professional workflows in Task Program that can fulfill the user&#x27;s needs. You are encouraged to do your job precisely and thoughtfully, beyond the user&#x27;s expectations.
+
+# Your Work Procedure
+
+your goal is to generate a high-level workflow that summarizes the steps to complete the user-given task. The workflow should:
+
+1. Follow the syntax of Task Program (a natural-language-style domain-specific language designed to describe workflows).
+2. Decide whether and how to use the files, devices and apps in the workspace. Any non-existing file/device/app is not allowed in the workflow.
+   Try to make the workflow generalizable (i.e. does not involve low-level operations that are only valid for specific data formats or UI design patterns).
+
+# The Current Task
+
+create a new contact named agent prog in contacts app.
+
+# Output Instruction
+
+
+Note: 
+1. Current user&#x27;s language is English. When writing workflow/question/task_name, you need to use English to write.
+2. **Do not** ask the user questions within the code. The user requires the task to be fully automated and will not participate in any part of the workflow. Therefore, asking or informing the user is unnecessary; you should complete the task autonomously.
+3. Please set variable {answer} to as the final answer if the task requires you to answer a question.
+4. Note: You must declare in which APP to operate. For example: `In &quot;Contacts&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.` Otherwise, the workflow lacks accuracy, and the executor will not know which APP you need to use to complete the task.
+5. The mobile phone is configured via a virtual image, and its date and time differ from the real-world date and time!! The date referred to in the Current Task is based on the **date on the mobile phone**, not the real-world date! Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining the real-world date via Python&#x27;s datetime module! After obtaining &quot;today&#x27;s&quot; date on the mobile phone, you can use the datetime module to calculate other dates based on the mobile phone&#x27;s &quot;today&quot;.
+
+6. Remember to save! You must emphasize in the workflow that for tasks involving editing or creation, saving is mandatory at the end!
+
+Now, Respond with the following content:
+
+Your thought (starts with `--- Thought ---`), which contains your understanding about the task and plan of how to do the task in natural language.
+
+The workflow (starts with `--- Workflow ---`), which is the workflow steps in Task Program syntax generated based on your understanding.
+
+Example Format:
+--- Thought --- (This contains your understanding about the task and plan of how to do the task in natural language.)
+--- Workflow --- 
+```
+(Write the workflow steps in Task Program syntax generated based on your understanding.)
+```
+
+Please begin to write workflow!
+
+</pre></details>
+
+<h2>各模型回复（按耗时排序）</h2>
+<div class="model-card" id="m1"><div class="model-head"><h3>auto/gpt-6-luna</h3><span class="metric">耗时 <b>4.17s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>59</b> tokens</span><span class="metric">正文 <b>230</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---  
+Create a contact named “agent prog” in the Contacts app, then save the new contact.
+
+--- Workflow ---
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact&#x27;s name to &quot;agent prog&quot;.
+Save the contact.
+```</pre></div><div class="model-card" id="m2"><div class="model-head"><h3>auto/gpt-6-sol</h3><span class="metric">耗时 <b>4.52s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>135</b> tokens</span><span class="metric">正文 <b>343</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---  
+Create a new contact named “agent prog” in the Contacts app, then save the contact and verify that it was created successfully.
+
+--- Workflow ---
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact &quot;agent prog&quot; appears in the Contacts list.
+```</pre></div><div class="model-card" id="m3"><div class="model-head"><h3>auto/gpt-6-astra</h3><span class="metric">耗时 <b>4.53s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>103</b> tokens</span><span class="metric">正文 <b>268</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---  
+Create a new contact named “agent prog” in the Contacts app, then save the contact to ensure the creation is completed.
+
+--- Workflow ---
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact.
+```</pre></div><div class="model-card" id="m4"><div class="model-head"><h3>auto/minimax-m3.1-flash</h3><span class="metric">耗时 <b>4.67s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>394</b> tokens</span><span class="metric">正文 <b>375</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+Open the Contacts app, create a new contact, enter “agent prog” as the contact name, and save it. Then verify that the contact appears in the saved contact list.
+
+--- Workflow ---
+```
+In &quot;Contacts&quot; app, create a new contact.
+Set the contact&#x27;s name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that a contact named &quot;agent prog&quot; is saved in &quot;Contacts&quot; app.
+```</pre><details><summary>展开思考过程（1504 字符）</summary><pre class="reply">We need answer according format. Need create new contact named agent prog in Contacts app. Need likely workflow high level, no questions, declare app, save. Need perhaps contact only name. Syntax natural. We need ensure maybe avoid duplicate? Task simply create new contact. Could open Contacts app, add contact, input name, save. Need &quot;In Contacts App&quot;. Perhaps set answer? Task doesn&#x27;t require answer question. Could optionally record confirmation. Need only workflow. Thought starts exact. We should not overdo.
+
+Need understand truncated language maybe specific syntax for app/device operations, but examples enough. We can formulate:
+
+--- Thought ---
+Open Contacts app, create new contact, enter display name &quot;agent prog&quot;, save, verify saved. No need ask.
+
+--- Workflow ---
+```
+In &quot;Contacts&quot; app, create a new contact.
+Set the contact&#x27;s name to &quot;agent prog&quot;.
+Save the new contact.
+Verify in &quot;Contacts&quot; app that a contact named &quot;agent prog&quot; has been saved.
+```
+
+Should we mention if duplicate? User says create a new, so no duplicate check perhaps. Could record answer as name? Instruction says if task requires answer. Doesn&#x27;t. Maybe &quot;Record confirmation as {answer}&quot;? But final answer perhaps expected. They explicitly &quot;set variable {answer} to as final answer if task requires you to answer a question.&quot; Not question. Avoid unnecessary.
+
+Need ensure Task Program imperative. Could perhaps one line only. &quot;In Contacts App...&quot; Exact app likely &quot;Contacts&quot;. Save mandatory. Good.
+
+Let&#x27;s craft concise.</pre></details></div><div class="model-card" id="m5"><div class="model-head"><h3>auto/gpt-6.1-sol</h3><span class="metric">耗时 <b>4.89s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>144</b> tokens</span><span class="metric">正文 <b>349</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---  
+Create a new contact named “agent prog” in the Contacts app, then save the contact and verify that it was created successfully.
+
+--- Workflow ---
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact named &quot;agent prog&quot; appears in the contacts list.
+```</pre></div><div class="model-card" id="m6"><div class="model-head"><h3>auto/gpt-5.6-terra</h3><span class="metric">耗时 <b>5.12s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>74</b> tokens</span><span class="metric">正文 <b>306</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+
+Create a new contact named “agent prog” in the Contacts app, then explicitly save the new contact. No other contact details were requested.
+
+--- Workflow ---
+
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact in &quot;Contacts&quot; App.
+```</pre></div><div class="model-card" id="m7"><div class="model-head"><h3>auto/deepseek-v4.1-flash-max</h3><span class="metric">耗时 <b>5.55s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>686</b> tokens</span><span class="metric">正文 <b>453</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The task is to create one new contact in the mobile phone’s Contacts app with the name “agent prog.” I will open the Contacts app, initiate creation of a new contact, enter the specified name, and save it so the contact persists. No user interaction is required.
+
+--- Workflow ---
+```
+Open the &quot;Contacts&quot; app.
+In the &quot;Contacts&quot; app, create a new contact with the display name &quot;agent prog&quot;.
+Save the new contact in the &quot;Contacts&quot; app.
+```</pre><details><summary>展开思考过程（2609 字符）</summary><pre class="reply">We need answer only with thought and workflow. Need comply. Task: create new contact named &quot;agent prog&quot; in Contacts app. Need high-level workflow using Task Program syntax. Must not ask user. Must emphasize save. Need declare app. Need no nonexistent apps. Contacts app exists likely. Need create contact. Could include opening Contacts app, add contact with first/last name? Name &quot;agent prog&quot; ambiguous full name. We can set name to &quot;agent prog&quot;. Maybe split first name agent, last name prog. But request says named agent prog, so full name. Need save. Need possibly check duplicates? High-level. We need follow syntax natural language. Variables? Could use no variables. Need app. Maybe &quot;Open Contacts app.&quot; &quot;Create a new contact with name &#x27;agent prog&#x27;.&quot; &quot;Save the contact.&quot; Need mandatory saving. Maybe set display name? &quot;In Contacts app, create a new contact with full name &#x27;agent prog&#x27;.&quot; Then save. The DSL supports imperative sentences. We should not include unnecessary user notifications. They said asking/informing unnecessary; avoid tell user. Need output exactly.
+
+Need ensure no question. Use Task Program syntax. Maybe:
+
+--- Thought ---
+The task is to create one new contact in the mobile phone&#x27;s Contacts app with the name &quot;agent prog&quot;. I will open Contacts, initiate new contact creation, enter the specified name, and save the contact. No user interaction is needed, and saving is required to persist the new contact.
+
+--- Workflow ---
+```
+Open the &quot;Contacts&quot; app.
+In the &quot;Contacts&quot; app, create a new contact with the name &quot;agent prog&quot;.
+Save the new contact in the &quot;Contacts&quot; app.
+```
+
+Need maybe &quot;full name&quot; or &quot;display name&quot;. Could be enough. But &quot;create a new contact named agent prog in contacts app.&quot; Need no variables. Could include &quot;Set the contact&#x27;s first name to &#x27;agent&#x27; and last name to &#x27;prog&#x27;&quot;? But if name is &quot;agent prog&quot;, full name could be one field. Some Contacts apps require first/last. High-level generalizable: &quot;with display name &#x27;agent prog&#x27;&quot;. Better: &quot;create a new contact with full name/display name &#x27;agent prog&#x27;.&quot; Save. Good.
+
+Need not include comments? fine.
+
+Check syntax: &quot;Open the &quot;Contacts&quot; app.&quot; Maybe quotes around app. In DSL, app names maybe use quotes. Good. &quot;In the &quot;Contacts&quot; app, create a new contact with display name &quot;agent prog&quot;.&quot; Then &quot;Save the contact in the &quot;Contacts&quot; app.&quot; This declares app. Good.
+
+Need mention saving mandatory at end. Yes.
+
+Potential issue: &quot;agent prog&quot; is lowercase. Preserve exactly. Good.
+
+Need final answer only. Ensure thought starts with `--- Thought ---`, workflow with `--- Workflow ---` and code block. Use English. Good.</pre></details></div><div class="model-card" id="m8"><div class="model-head"><h3>auto/deepseek-v4.1-flash</h3><span class="metric">耗时 <b>5.8s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>588</b> tokens</span><span class="metric">正文 <b>537</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The task is to create a new contact with the name “agent prog” in the Contacts app. I will use the Contacts app on the mobile phone, create the contact, and explicitly save it. No user interaction or additional information is needed.
+
+--- Workflow ---
+```
+# Open the Contacts app and create the requested contact
+Open the &quot;Contacts&quot; app on the mobile phone.
+In the &quot;Contacts&quot; app, create a new contact with the name &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact &quot;agent prog&quot; appears in the Contacts app.
+```</pre><details><summary>展开思考过程（2178 字符）</summary><pre class="reply">We need answer with thought and workflow. Need create contact named agent prog in Contacts app. Need infer available apps? User says use files/devices/apps in workspace, non-existing not allowed. We only know Contacts app likely exists. Need write Task Program syntax high-level. Must not ask user. Need include app, save. Need maybe &quot;In Contacts App, create a new contact with name &#x27;agent prog&#x27; and save it.&quot; Need ensure no phone/email needed. Contact name. Maybe first open Contacts app. Task Program natural language. We should produce workflow in code block. Since no specific device/app info except contacts app. Need variable? Not needed. Need maybe &quot;Open &#x27;Contacts&#x27; app&quot; and &quot;Create new contact named &#x27;agent prog&#x27;&quot;. Save. Need mention if contact already exists? Task says create new contact named. Could avoid duplicates? Maybe not. High-level workflow generalizable.
+
+Need exact format:
+--- Thought ---
+I understand task...
+--- Workflow ---
+```
+# Create contact
+Open &quot;Contacts&quot; app.
+Create a new contact in Contacts App with name &quot;agent prog&quot;.
+Save the new contact.
+```
+Maybe syntax: &quot;In &quot;Contacts&quot; App, create a new contact named &quot;agent prog&quot; and save it.&quot; They emphasize declare app. Need imperative sentences.
+
+Could include &quot;If a contact with same name exists, update? no.&quot; Creating new could duplicate. But task says create a new contact. Just do.
+
+Need maybe &quot;Tell user&quot; unnecessary. No question.
+
+Need final answer only.
+
+Let&#x27;s craft with Task Program syntax. Ensure comment line. Mention saving mandatory. No low-level UI. Maybe &quot;Open Contacts app on the mobile phone.&quot; &quot;In the Contacts app, create a new contact with the name &#x27;agent prog&#x27;.&quot; &quot;Save the contact.&quot; This is enough.
+
+Could also &quot;Verify the contact appears in contacts list&quot; maybe optional. Task fully automated. But high-level workflow summary. We can include verification? Task asks create. Could verify. But &quot;workflow steps to complete task&quot; perhaps create and save. Maybe verify save? Good: &quot;Verify that the new contact &#x27;agent prog&#x27; is present in the Contacts app.&quot; This is okay. But might be extra. Workflow should be concise.
+
+Need use variable answer? Not required. No question.
+
+Let&#x27;s produce.</pre></details></div><div class="model-card" id="m9"><div class="model-head"><h3>auto/gpt-5.6-luna</h3><span class="metric">耗时 <b>6.01s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>123</b> tokens</span><span class="metric">正文 <b>292</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+
+Create a new contact in the mobile device’s Contacts app with the name “agent prog,” then save the contact to ensure the creation is completed.
+
+--- Workflow ---
+
+```text
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact.
+```</pre></div><div class="model-card" id="m10"><div class="model-head"><h3>auto/glm-5.3-flash</h3><span class="metric">耗时 <b>7.46s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>309</b> tokens</span><span class="metric">正文 <b>1213</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The user wants to create a new contact named &quot;agent prog&quot; in the Contacts app. This is a straightforward task:
+1. Open the Contacts app.
+2. Start creating a new contact.
+3. Enter the name &quot;agent prog&quot;.
+4. Save the contact.
+Since the task only requires a name and no other details (phone number, email, etc.), I will only fill in the name field. Saving is mandatory at the end since this involves creation. No user interaction is needed; the workflow is fully automated.
+
+--- Workflow ---
+```
+# Task: Create a new contact named &quot;agent prog&quot; in the Contacts app
+
+# Step 1: Open the Contacts app
+Open the &quot;Contacts&quot; App.
+
+# Step 2: Start creating a new contact
+In &quot;Contacts&quot; App, tap the button to add a new contact (e.g., the &quot;+&quot; or &quot;Add Contact&quot; button).
+
+# Step 3: Fill in the contact name
+In &quot;Contacts&quot; App, in the new contact creation form, set the name field to &quot;agent prog&quot;.
+
+# Step 4: Save the new contact
+In &quot;Contacts&quot; App, tap the &quot;Save&quot; button to save the new contact named &quot;agent prog&quot;. Saving is mandatory to complete the creation.
+
+# Step 5: Verify the contact was created
+In &quot;Contacts&quot; App, search for the contact &quot;agent prog&quot; to confirm it has been successfully created and saved.
+```</pre><details><summary>展开思考过程（57 字符）</summary><pre class="reply">Simple task: create contact &quot;agent prog&quot; in Contacts app.</pre></details></div><div class="model-card" id="m11"><div class="model-head"><h3>auto/gpt-5.6-sol</h3><span class="metric">耗时 <b>7.88s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>190</b> tokens</span><span class="metric">正文 <b>363</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---  
+Open the Contacts app, create a new contact with the name “agent prog,” and save the contact. Verify that the contact was saved successfully.
+
+--- Workflow ---
+```text
+Open the &quot;Contacts&quot; App.
+Create a new contact.
+Set the contact name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact &quot;agent prog&quot; appears in the contacts list.
+```</pre></div><div class="model-card" id="m12"><div class="model-head"><h3>auto/kimi-k3.1-pro</h3><span class="metric">耗时 <b>11.66s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>331</b> tokens</span><span class="metric">正文 <b>400</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The task is to create a new contact in the Contacts app with the exact name “agent prog.” The workflow will open the new-contact form, enter the name, and explicitly save the contact.
+
+--- Workflow ---
+```
+In &quot;Contacts&quot; App, start creating a new contact.
+Set the contact&#x27;s full name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact named &quot;agent prog&quot; has been saved.
+```</pre><details><summary>展开思考过程（1115 字符）</summary><pre class="reply">I need respond with thought and workflow Task Program for creating contact agent prog Contacts app, fully autonomous, declare app, save mandatory. Should infer full syntax truncated but simple. Should be precise likely mobile contacts app. Perhaps handle duplicates? User simply create new contact named agent prog. I should state open Contacts, add new contact, enter name agent prog, save. No need variables/answer. Avoid asking/informing user. Should be generalizable and not low-level specific UI. Could say In &quot;Contacts&quot; App, create a new contact and set full name to &quot;agent prog&quot;. Save. Confirm saved perhaps good. Should thought concise. Output exactly sections. No mention date irrelevant. Make sure name exact lowercase. Perhaps record result? No. Workflow:
+```
+In &quot;Contacts&quot; App, start creating a new contact.
+Set the contact&#x27;s full name to &quot;agent prog&quot;.
+Save the new contact.
+Verify that the contact &quot;agent prog&quot; appears in the contact list.
+```
+Save emphasized. Is verify after save okay. &quot;Do not duplicate if existing&quot; not needed and could violate create. No apps nonexistent? Contacts specified. Done.</pre></details></div><div class="model-card" id="m13"><div class="model-head"><h3>auto/glm-5.3</h3><span class="metric">耗时 <b>13.87s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>261</b> tokens</span><span class="metric">正文 <b>1050</b> 字符</span></div><div><span class="tag good">有变量声明</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The user wants to create a new contact named &quot;agent prog&quot; in the Contacts app on the mobile phone. This is a simple task involving: 1) Opening the Contacts app, 2) Creating a new contact, 3) Entering the name &quot;agent prog&quot;, 4) Saving the contact. Since this involves creating content, I must emphasize saving at the end. The workflow should be generalizable, not tied to specific UI details. No user interaction is needed since the name is fully specified.
+--- Workflow ---
+```
+# Task: Create a new contact named &quot;agent prog&quot; in the Contacts app
+
+Open the &quot;Contacts&quot; app on the mobile phone.
+
+# Create a new contact
+In &quot;Contacts&quot; App, tap the option to create a new contact.
+
+# Fill in the contact name
+In &quot;Contacts&quot; App, enter &quot;agent prog&quot; into the contact name field.
+
+# Save the contact (mandatory)
+In &quot;Contacts&quot; App, save the new contact to make sure &quot;agent prog&quot; is stored.
+
+# Verify the contact was created
+In &quot;Contacts&quot; App, search for &quot;agent prog&quot; to confirm the contact exists.
+Record the verification result as {answer}.
+```
+</pre><details><summary>展开思考过程（57 字符）</summary><pre class="reply">Simple task: create contact &quot;agent prog&quot; in Contacts app.</pre></details></div><div class="model-card" id="m14"><div class="model-head"><h3>auto/hy3</h3><span class="metric">耗时 <b>31.33s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>1888</b> tokens</span><span class="metric">正文 <b>870</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The task requires creating a new contact named &quot;agent prog&quot; using the device&#x27;s Contacts application. Based on the Task Program syntax guidelines, I must explicitly declare the target application (&quot;Contacts&quot; App) to ensure the executor knows where to perform the action. Since this is a creation task, I need to include steps for initiating the new contact, setting the name field to &quot;agent prog&quot;, and explicitly saving the contact at the end, as saving is mandatory for creation/editing tasks. The task does not reference any dates or times, so checking the mobile phone&#x27;s date is not necessary here. The workflow must be fully autonomous without any user prompts.
+
+--- Workflow --- 
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the name of the new contact to &quot;agent prog&quot;.
+Save the newly created contact in &quot;Contacts&quot; App to persist the changes.
+```</pre><details><summary>展开思考过程（7427 字符）</summary><pre class="reply">The user wants me to create a new contact named &quot;agent prog&quot; in the contacts app using the &quot;Task Program&quot; DSL.
+
+Let&#x27;s review the constraints and requirements:
+1. Language: English.
+2. Fully automated, no asking user.
+3. Declare variables if needed (not strictly needed here, but I can use them or just direct commands).
+4. Declare in which APP to operate: &quot;Contacts&quot; App.
+5. Mobile phone virtual image, date/time differences -&gt; not really relevant for creating a contact, but I should note it if date is needed. Here just creating a contact, so no date needed. But rule 5 says &quot;make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time... After obtaining today&#x27;s date...&quot;. Wait, rule 5 specifically says &quot;The date referred to in the Current Task is based on the date on the mobile phone... Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time...&quot;. But the current task is just &quot;create a new contact named agent prog in contacts app.&quot; There&#x27;s no date mentioned in the task. However, the instruction says &quot;The date referred to in the Current Task is based on the date on the mobile phone... Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining the real-world date via Python&#x27;s datetime module! After obtaining &quot;today&#x27;s&quot; date on the mobile phone, you can use the datetime module to calculate other dates based on the mobile phone&#x27;s &quot;today&quot;.&quot; This seems like a general instruction that might apply to tasks with dates. Since no date is involved, I don&#x27;t need to check the date, but if I were to, I would. Actually, to be safe, the instruction says &quot;Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time&quot; - but does it apply even if no date is needed? The prompt says &quot;The date referred to in the Current Task is based on the date on the mobile phone, not the real-world date! Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time...&quot;. Since the task doesn&#x27;t refer to any date, I might just skip it or not include it to keep the workflow clean. However, I will follow the specific instruction: &quot;you must declare in which APP to operate&quot; and &quot;Remember to save! You must emphasize in the workflow that for tasks involving editing or creation, saving is mandatory at the end!&quot;
+
+Task: create a new contact named agent prog in contacts app.
+Plan:
+- In &quot;Contacts&quot; App, create a new contact.
+- Set the name to &quot;agent prog&quot;.
+- Save the contact.
+
+Let&#x27;s write the workflow in Task Program syntax.
+Syntax examples:
+`In &quot;Contacts&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.`
+
+So:
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact&#x27;s name to &quot;agent prog&quot;.
+Save the new contact.
+```
+
+Wait, the instruction says: &quot;Please set variable {answer} to as the final answer if the task requires you to answer a question.&quot; This task doesn&#x27;t require answering a question, just creating a contact.
+
+Let&#x27;s refine the workflow:
+```
+In &quot;Contacts&quot; App, start creating a new contact.
+Set the new contact&#x27;s name to &quot;agent prog&quot;.
+Save the new contact.
+```
+
+Let&#x27;s make sure it follows the DSL style:
+```
+In &quot;Contacts&quot; App, add a new contact.
+Set the name of the new contact to &quot;agent prog&quot;.
+Save the contact in &quot;Contacts&quot; App.
+```
+
+Actually, the example given in the prompt is: `In &quot;Contacts&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.`
+
+Let&#x27;s use a similar style but explicit about saving as required:
+```
+In &quot;Contacts&quot; App, add a new contact named &quot;agent prog&quot;.
+Save the contact.
+```
+
+Or more detailed:
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the name of the contact to &quot;agent prog&quot;.
+Save the new contact in &quot;Contacts&quot; App.
+```
+
+Let&#x27;s check if there&#x27;s any variable needed. No.
+
+Let&#x27;s write the Thought and Workflow.
+
+Thought:
+The task is to create a new contact with the name &quot;agent prog&quot; in the contacts application. Since this is a creation task within a specific app, I need to specify the &quot;Contacts&quot; App, perform the creation action, set the name field appropriately, and ensure the contact is saved to persist the changes. No user interaction or date checking is required as the task does not involve any date-related logic, but I will ensure the saving step is explicit as per instructions.
+
+Workflow:
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the name of the new contact to &quot;agent prog&quot;.
+Save the new contact in &quot;Contacts&quot; App.
+```
+
+Wait, rule 5 says: &quot;Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining the real-world date via Python&#x27;s datetime module! After obtaining &quot;today&#x27;s&quot; date on the mobile phone, you can use the datetime module to calculate other dates based on the mobile phone&#x27;s &quot;today&quot;.&quot;
+
+Since the task does not involve any date, I don&#x27;t need to check the date. But to be absolutely safe with the automated grader (if any), sometimes they want you to include the date check regardless? No, the instruction says &quot;The date referred to in the Current Task is based on the date on the mobile phone... Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time...&quot;. It says &quot;The date referred to in the Current Task&quot;. If the current task doesn&#x27;t refer to a date, then it&#x27;s not referred to. So I will skip the date check to avoid unnecessary steps, as the instruction says &quot;Try to make the workflow generalizable... does not involve low-level operations&quot;.
+
+Let&#x27;s just write the clear workflow.
+
+--- Thought ---
+The user wants to create a new contact named &quot;agent prog&quot; in the Contacts app. This is a straightforward creation task. According to the instructions, I must explicitly state which app to use (Contacts App), perform the creation, set the name, and emphasize saving at the end. Since the task does not involve any date or time references, checking the mobile phone&#x27;s date is not necessary here. The workflow should be fully automated without asking the user.
+
+--- Workflow ---
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the name of the new contact to &quot;agent prog&quot;.
+Save the new contact in &quot;Contacts&quot; App.
+```
+
+Wait, let me look at the syntax examples again.
+&quot;Tell user ...&quot; is used for output.
+&quot;Set variable {user_name} to ...&quot; is for variables.
+&quot;In &quot;Contacts&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.&quot; is the example for contacts.
+
+Let&#x27;s use:
+```
+In &quot;Contacts&quot; App, add a new contact named &quot;agent prog&quot;.
+Save the contact.
+```
+Or combine:
+```
+In &quot;Contacts&quot; App, add a new contact named &quot;agent prog&quot; and save it.
+```
+But the instruction says: &quot;Remember to save! You must emphasize in the workflow that for tasks involving editing or creation, saving is mandatory at the end!&quot; So I should make saving a separate, emphasized step.
+
+```
+In &quot;Contacts&quot; App, create a new contact.
+Set the contact&#x27;s name to &quot;agent prog&quot;.
+Save the newly created contact to ensure the changes are persisted.
+```
+
+Looks good.
+
+Let me double check the instructions:
+- Use English: Yes.
+- Do not ask user: Yes.
+- Declare APP: Yes (&quot;Contacts&quot; App).
+- Emphasize saving: Yes.
+- Date emphasis: Not applicable as no date in task.
+
+Final check of the format:
+--- Thought --- (...)
+--- Workflow --- 
+```
+(...)
+```
+
+Okay, writing it out.</pre></details></div><div class="model-card" id="m15"><div class="model-head"><h3>auto/glm-5.2</h3><span class="metric">耗时 <b>44.74s</b></span><span class="metric">finish <b>stop</b></span><span class="metric">输出 <b>280</b> tokens</span><span class="metric">正文 <b>907</b> 字符</span></div><div><span class="tag">名称直接内联，无变量</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span></div><pre class="reply">--- Thought ---
+The task is to create a new contact named &quot;agent prog&quot; in the Contacts app on the mobile phone. This is a straightforward task that involves:
+1. Opening the Contacts app
+2. Creating a new contact
+3. Entering the name &quot;agent prog&quot;
+4. Saving the contact
+
+I need to make sure to declare the app explicitly and emphasize saving at the end.
+--- Workflow --- 
+```
+# Task: Create a new contact named &quot;agent prog&quot; in the Contacts app
+
+In &quot;Contacts&quot; App, open the app.
+
+In &quot;Contacts&quot; App, tap the &quot;Create new contact&quot; button (or the &quot;+&quot; icon).
+
+In &quot;Contacts&quot; App, set the contact&#x27;s first name to &quot;agent&quot; and last name to &quot;prog&quot;.
+# Alternatively, set the full name field to &quot;agent prog&quot; depending on the available fields.
+
+In &quot;Contacts&quot; App, tap the &quot;Save&quot; button to save the new contact.
+
+# Verify the contact was created
+In &quot;Contacts&quot; App, search for &quot;agent prog&quot; to confirm the contact exists.
+```
+</pre><details><summary>展开思考过程（249 字符）</summary><pre class="reply">The user wants me to create a new contact named &quot;agent prog&quot; in the Contacts app. This is a simple task - I need to open the Contacts app, create a new contact with the name &quot;agent prog&quot;, and save it.
+
+Let me write a workflow in Task Program syntax.</pre></details></div><div class="model-card" id="m16"><div class="model-head"><h3>auto/hy4free</h3><span class="metric">耗时 <b>45.18s</b></span><span class="metric">finish <b>length</b></span><span class="metric">输出 <b>4000</b> tokens</span><span class="metric">正文 <b>1051</b> 字符</span></div><div><span class="tag good">有变量声明</span><span class="tag good">显式指定 Contacts App</span><span class="tag">带 Markdown 代码块</span><span class="tag warn">被 max_tokens 截断</span></div><pre class="reply">--- Thought ---
+I understand the task as creating one new contact in the mobile phone&#x27;s Contacts app with the exact name &quot;agent prog&quot;. The workflow should use only the Contacts app, avoid any user questions or input, avoid adding unnecessary contact details, and finish with a mandatory save. This task has no date/time dependency; if date/time information were needed, the workflow would use the mobile phone&#x27;s date and time function to check today&#x27;s date and time rather than the real-world date or Python&#x27;s datetime module.
+
+--- Workflow ---
+```
+Set {contact_name} to &quot;agent prog&quot;
+# This task does not require checking today&#x27;s date and time; if date/time information were needed, use the mobile phone&#x27;s date and time function to check today&#x27;s date and time instead of Python&#x27;s datetime or the real-world date.
+
+In &quot;Contacts&quot; App, open the app and start creating a new contact record.
+In &quot;Contacts&quot; App, set the new contact&#x27;s name to exactly {contact_name}, and leave other optional fields unchanged.
+In &quot;Contacts&quot; App, review the new contact record</pre><details><summary>展开思考过程（17030 字符）</summary><pre class="reply">Need produce final answer with Thought and Workflow sections. Need understand instructions. Need generate high-level workflow in Task Program DSL. Need not ask questions. Need mention app. Need save. Need maybe not date/time relevant? Instruction says date/time emphasize use mobile phone date/time function; but current task create new contact named agent prog in contacts app no date needed. Need include perhaps checking mobile date/time? Need ensure workflow can fulfill. Need use files/devices/apps in workspace; only non-existing not allowed. We have &quot;Contacts&quot; app mentioned. Need not involve low-level UI specifics. Need Task Program syntax. Need declare in which APP operate, e.g. `In &quot;Contacts&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.` Need perhaps use &quot;In \&quot;Contacts\&quot; App, create a new contact named \&quot;agent prog\&quot;, and save it.&quot; Need maybe set variable {contact_name} to &quot;agent prog&quot;, create contact, set name, save. Need ensure no questions, no user informing. Need set {answer}? Task doesn&#x27;t require answering; but maybe final answer? Probably no need. Need output in English. Need include thought natural language. Need workflow code block. Need think about Task Program syntax from truncated doc. Need know details: natural language style, comments, variables, if, loops maybe etc. Need generate professional workflow. Need maybe include &quot;Open \&quot;Contacts\&quot; App.&quot; But note must declare in which APP to operate. Could write &quot;In \&quot;Contacts\&quot; App, open the app...&quot; Need maybe use &quot;Create a new contact, set full name to {contact_name}, and save it.&quot; Need emphasize saving mandatory at end. Need maybe avoid &quot;Tell user&quot; because no asking/informing unnecessary. Need perhaps include wait? Need check if contact exists? The task: create a new contact named agent prog in contacts app. Do we need avoid duplicates? Might check if existing contact and if exists? Usually create new contact regardless. Could maybe not need. Need high-level workflow should include &quot;Open Contacts app; create new contact; enter name; save; optionally verify saved.&quot; Need Task Program syntax maybe supports &quot;Search in Contacts App for...&quot;? Need generalizable. Need maybe use natural language syntax. Need mention &quot;Mobile phone&#x27;s date and time function&quot;? The task doesn&#x27;t need date. But instruction says &quot;The mobile phone is configured via a virtual image, and its date and time differ from the real-world... Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining the real-world date via Python&#x27;s datetime module! After obtaining &quot;today&#x27;s&quot; date...&quot; This is a general instruction included; for tasks involving date/time. &quot;please make sure to emphasize using mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining real-world date...&quot; Current task no date. Maybe need include a step &quot;Use the mobile phone&#x27;s date and time function only if any date/time information is required. This task does not require date/time, so do not use real-world date.&quot; But workflow should be high-level concise. Should we include date/time check anyway? Might be irrelevant and could introduce unnecessary operation. But user specifically says &quot;please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time&quot; regardless? Need parse carefully: Note 5: &quot;The mobile phone is configured via a virtual image, and its date and time differ from the real-world date and time!! The date referred to in the Current Task is based on the date on the mobile phone, not the real-world date! Therefore, please make sure to emphasize using the mobile phone&#x27;s date and time function to check today&#x27;s date and time, instead of obtaining the real-world date via Python&#x27;s datetime module! After obtaining &quot;today&#x27;s&quot; date on the mobile phone, you can use the datetime module to calculate other dates based on the mobile phone&#x27;s &quot;today&quot;.&quot; This is about date referred to in current task. Current task has no date. We shouldn&#x27;t include irrelevant step. But to be safe, maybe include thought: &quot;No date or time-dependent information is involved, so no date lookup is necessary; if any date/time were needed, the workflow would use the mobile phone&#x27;s date/time function rather than real-world datetime.&quot; However output workflow question/task_name? Need &quot;workflow/question/task_name use English&quot; maybe no task_name output. The &quot;Thought&quot; can mention. Need not put date check in workflow, unless strict &quot;emphasize&quot; means include a comment in workflow: &quot;# This task does not use dates; if a date were needed, use the mobile phone&#x27;s date and time function, not real-world datetime.&quot; But comments are not executed. Would that satisfy? Maybe. Need &quot;Do not ask user questions within code&quot; - no question. Need no &quot;Tell user&quot;. Need &quot;Remember to save emphasize mandatory at end&quot; - workflow should have final save step and maybe comment &quot;# Saving is mandatory for creation tasks.&quot; Need include &quot;Save the new contact.&quot; Need maybe &quot;Verify the contact was saved&quot; after save? But &quot;at the end save mandatory&quot; maybe final step should be save, not verify? &quot;Remember to save! You must emphasize in the workflow that for tasks involving editing or creation, saving is mandatory at the end!&quot; If we add verification after save, save not at end. Could phrase &quot;At the end, save...&quot; and include &quot;Then optionally verify&quot; maybe not. Better final executable step should be &quot;Save the new contact.&quot; Could include no verification after. But verification is helpful. Need maybe &quot;Verify that the new contact named {contact_name} is present; then save the new contact.&quot; Verification before saving may be awkward. Could include &quot;Review the contact form to ensure the name is {contact_name}; Save the new contact.&quot; Review before save. Need final step &quot;Save the new contact.&quot; Need maybe use &quot;In \&quot;Contacts\&quot; App, ...&quot; with saving. Need maybe &quot;Set variable {contact_name} to \&quot;agent prog\&quot;&quot; etc. Need exact name maybe lower-case with space. &quot;agent prog&quot;. Need maybe &quot;new contact named agent prog&quot; maybe contact name field &quot;agent prog&quot;; no other fields. Need not ask for missing info. Need not use files. Need use app. Need maybe &quot;Open the \&quot;Contacts\&quot; App.&quot; Need &quot;In \&quot;Contacts\&quot; App, create a new contact...&quot; Done.
+
+Need be careful about Task Program syntax. &quot;Set variable {contact_name} to \&quot;agent prog\&quot;&quot; maybe okay. &quot;Open \&quot;Contacts\&quot; App.&quot; &quot;In \&quot;Contacts\&quot; App, create a new contact record with name {contact_name}, and save it.&quot; Need &quot;In \&quot;Contacts\&quot; App&quot; phrase. Need &quot;Save the new contact and confirm the creation is committed.&quot; But need &quot;emphasize saving mandatory at end&quot; maybe &quot;Mandatory final save: In \&quot;Contacts\&quot; App, save the new contact.&quot; Need &quot;record as&quot;? No answer. Need maybe &quot;Set {contact_name} to \&quot;agent prog\&quot;&quot; accepted. Need &quot;Create a new contact in \&quot;Contacts\&quot; App...&quot; Need &quot;Enter {contact_name} into the contact&#x27;s name field.&quot; Need &quot;Save the new contact.&quot; Need &quot;At the end&quot; perhaps in comment. Need not ask. Need likely include comments? Fine.
+
+Need final answer with sections exactly. Need &quot;--- Thought ---&quot; on own line. Then natural language understanding plan. Need &quot;--- Workflow ---&quot; then code block. Need no extra.
+
+Need maybe include &quot;This task is not date/time-dependent; no mobile date/time lookup is needed. If it were, use phone&#x27;s date/time function...&quot; Since output instruction note 5 maybe need include in thought. But avoid overcomplication? &quot;I will create a fresh contact in the Contacts app using only the provided name, leaving other fields unchanged, and save at the end. No date/time information is required; if needed, the mobile phone&#x27;s date/time function would be the source, not real-world datetime.&quot; This emphasizes. Need &quot;professional workflows&quot; maybe &quot;I will declare Contacts app explicitly&quot;. Could mention &quot;No questions, no user input.&quot; Need &quot;any non-existing file/device/app not allowed&quot; - only Contacts app. Need maybe &quot;mobile phone&quot; or &quot;workspace&quot; maybe &quot;the mobile phone&#x27;s Contacts app&quot;. Need &quot;workspace&quot; not explicitly listed but task says contacts app. Need &quot;In \&quot;Contacts\&quot; App&quot; must be in workflow. Need maybe &quot;Use the mobile phone&#x27;s date/time function&quot; not in code. In thought okay maybe enough? Need &quot;workflow should not ask/inform user&quot;; no &quot;Tell user&quot;. Good.
+
+Need also consider &quot;Please set variable {answer} to as the final answer if the task requires you to answer a question.&quot; Task does not require answer. But maybe &quot;create a new contact&quot; maybe final answer should be success? It doesn&#x27;t require question. Could maybe set {answer} to &quot;Contact &#x27;agent prog&#x27; has been created and saved.&quot; But &quot;if task requires answer a question&quot; not necessary. Does setting answer hurt? Could be considered final answer variable. But maybe not needed. Need &quot;do not ask user questions within code.&quot; Setting {answer}? &quot;Set {answer} to \&quot;Created and saved contact named {contact_name}.\&quot;&quot; Could be okay but not necessary. However sometimes benchmark expects {answer} for tasks with final answer; here no. Need not.
+
+Need maybe avoid &quot;question/task_name&quot; phrase? Output only thought/workflow. Fine.
+
+Need maybe include &quot;If {contact_name} is empty...&quot; no need. Need no duplicates. Need &quot;generalizable: not low-level operations specific to UI design patterns.&quot; Need avoid &quot;tap plus icon&quot;, &quot;click save button in top right&quot;, &quot;fill first name/last name fields&quot; maybe specific. Need high-level &quot;create a new contact record&quot;, &quot;set name field&quot;. Good. Need &quot;Save&quot; mandatory. Need maybe &quot;Check that the contact name is exactly \&quot;agent prog\&quot;&quot; before save. Need not confirm after save.
+
+Need maybe include &quot;In \&quot;Contacts\&quot; App, create a new contact record named {contact_name}, then save it.&quot; This maybe too single-step but fine. Need &quot;workflow steps&quot; maybe several lines. Need include &quot;Open the Contacts app&quot; and &quot;declare app&quot; maybe &quot;In \&quot;Contacts\&quot; App,...&quot; repeated. Need &quot;You must declare in which APP to operate. For example: `In \&quot;Contacts\&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.`&quot; Maybe the first line &quot;In \&quot;Contacts\&quot; App, create a new contact named {contact_name}, and save it.&quot; There is no need to &quot;Open app&quot;. But &quot;Open the \&quot;Contacts\&quot; App&quot; also declares. To be safe: &quot;In \&quot;Contacts\&quot; App, open the Contacts app.&quot; But syntax maybe weird. Need &quot;In \&quot;Contacts\&quot; App, create ...&quot; Good. Need &quot;Open \&quot;Contacts\&quot; App.&quot; Maybe &quot;In \&quot;Contacts\&quot; App, ...&quot; We can write:
+
+Set {contact_name} to &quot;agent prog&quot;
+# This task does not require date or time information; if any date/time were needed, use the mobile phone&#x27;s date and time function instead of real-world datetime.
+In &quot;Contacts&quot; App, open the app and start creating a new contact record with the full name {contact_name}.
+In &quot;Contacts&quot; App, leave any optional fields unchanged unless the app requires a value to save; if required, use neutral/default values.
+In &quot;Contacts&quot; App, review the new contact record to ensure the displayed name is exactly {contact_name}.
+# Mandatory final save for this creation task.
+In &quot;Contacts&quot; App, save the new contact record.
+
+Need &quot;unless the app requires a value to save; if required, use neutral/default values.&quot; Is this generalizable and reliable? Maybe &quot;leaving optional fields unchanged&quot; good. But if app requires more fields, &quot;use neutral/default values&quot; could be too vague; maybe not needed. Need fully automated. Maybe no optional fields. Need avoid inventing extra fields.
+
+Need &quot;if required&quot; conditional in workflow. Need Task Program supports If; okay. But &quot;unless app requires&quot; maybe low-level? Could be okay. But need no questions. Need &quot;If app requires additional fields, fill them with default/empty values allowed by the app&quot; but maybe not necessary. Need maybe &quot;Set only the name field to {contact_name}; do not add other contact details.&quot; Good. Need &quot;If a field is required for saving, use an empty/default value.&quot; But maybe &quot;empty&quot; might not be allowed. Need &quot;neutral/default values&quot; okay.
+
+Need &quot;Save the new contact record.&quot; Need &quot;ending emphasized&quot;. Need &quot;At the end of the workflow, saving is mandatory: In \&quot;Contacts\&quot; App, save...&quot; Could be a comment. Need maybe &quot;At the end, save...&quot; Good. Need maybe &quot;and ensure the save completes.&quot; That is after save? Hmm &quot;save and ensure&quot; same line. Good. &quot;In \&quot;Contacts\&quot; App, save the new contact record and ensure the save completes.&quot; This is final step; &quot;ensure completes&quot; not necessarily after. Fine.
+
+Need maybe not include date/time comment in workflow because no date. It might be considered irrelevant but satisfies emphasis. Need &quot;mobile phone&#x27;s date and time function&quot; exactly. Need &quot;not Python datetime&quot; maybe. Good.
+
+Need maybe &quot;date/time function to check today&#x27;s date and time&quot; exactly. Need &quot;This task does not require checking today&#x27;s date and time; if the task did require it, use the mobile phone&#x27;s date and time function to check today&#x27;s date and time, not Python&#x27;s datetime/real-world date.&quot; Good. Need &quot;comment&quot; maybe code ignored. Will &quot;emphasize&quot; in workflow? It is a comment, still visible. If they expect executed step, no. Need thought mention also. Good.
+
+Need maybe &quot;No files, devices, or other apps are needed.&quot; Could mention in thought. Need &quot;files, devices, apps in workspace&quot;: deciding how to use; &quot;only the Contacts app is needed; no files/devices.&quot; Good.
+
+Need think if &quot;Contacts&quot; app is exact name? Task says &quot;contacts app&quot; lower case; instruction example uses &quot;Contacts&quot; App. Good.
+
+Need &quot;task_name&quot; maybe &quot;workflow/question/task_name use English&quot; - no task_name. Need maybe &quot;Your thought starts with --- Thought ---&quot; Need &quot;workflow starts with --- Workflow ---&quot;.
+
+Need final answer. Need keep concise but include required details. Need code block in workflow. Need no &quot;ask user questions&quot;. Need no &quot;Tell user&quot;.
+
+Need maybe &quot;Set variable {contact_name} to \&quot;agent prog\&quot;&quot; syntax. Need &quot;Create variable {contact_name}, initial value is \&quot;agent prog\&quot;&quot; maybe. Let&#x27;s choose set.
+
+Need &quot;In \&quot;Contacts\&quot; App, open the app...&quot; Actually &quot;In \&quot;Contacts\&quot; App, open the app&quot; weird but okay. Need example &quot;In \&quot;Contacts\&quot; App, add a new contact name &#x27;Alice&#x27;, and save it.&quot; Use exact. Maybe line:
+
+In &quot;Contacts&quot; App, add a new contact with name {contact_name}, leave all other fields unchanged, and save it.
+
+This one line sufficient. But need &quot;at the end save&quot; maybe final line. Need &quot;Save&quot; at end.
+
+Need &quot;Review&quot; before save. Good.
+
+Potential issue &quot;Open the app&quot; not &quot;In \&quot;Contacts\&quot; App&quot; maybe no need. Need &quot;In \&quot;Contacts\&quot; App, start creating a new contact record.&quot; Good.
+
+Need &quot;Set the contact name to exactly {contact_name}; do not add any other contact details.&quot; Good.
+
+Need &quot;At the end, save...&quot; Good.
+
+Potential issue &quot;review contact record to ensure displayed name exactly {contact_name}&quot; might require low-level. Fine.
+
+Potential issue &quot;Any non-existing file/device/app is not allowed&quot; no other app.
+
+Need maybe not &quot;Use the mobile phone&#x27;s Contacts app&quot; in thought. Good.
+
+Need maybe &quot;The task is fully automated and does not require user input or a final question answer.&quot; Good.
+
+Need final. Need no markdown outside sections? Use code block. Fine.
+
+Need ensure &quot;--- Thought ---&quot; and &quot;--- Workflow ---&quot; exactly. Need &quot;starts with&quot;. We&#x27;ll start final with &quot;--- Thought ---&quot;. Good. Need not include &quot;Your thought (starts with `--- Thought ---`), which contains...&quot; no. Need &quot;Please begin...&quot; okay.
+
+Need final content:
+
+--- Thought ---
+I understand the task as creating a single new contact in the mobile phone&#x27;s Contacts app with the exact name &quot;agent prog&quot;. The workflow should use only the Contacts app, avoid user questions or input, set no unnecessary fields, and finish with a mandatory save. This task has no date/time dependency; if a date/time were involved, the workflow would use the mobile phone&#x27;s date and time function to check today&#x27;s date and time rather than real-world date/Python datetime.
+
+--- Workflow ---
+```
+Set {contact_name} to &quot;agent prog&quot;
+# This task does not require checking today&#x27;s date and time; if date/time information were needed, use the mobile phone&#x27;s date and time function to check today&#x27;s date and time instead of Python&#x27;s datetime or the real-world date.
+In &quot;Contacts&quot; App, open the app and start creating a new contact record.
+In &quot;Contacts&quot; App, set the new contact&#x27;s name to exactly {contact_name}, and leave other optional fields unchanged.
+In &quot;Contacts&quot; App, review the new contact record to ensure the name is exactly {contact_name}.
+# Saving is mandatory at the end for this creation task.
+In &quot;Contacts&quot; App, save the new contact record and ensure the save completes.
+```
+
+Need check &quot;In \&quot;Contacts\&quot; App, open the app...&quot; maybe not wrong. Need &quot;app&quot; repeated. Fine.
+
+Need maybe &quot;tell user&quot; absent. &quot;ensure save completes&quot; no user. Good.
+
+Need &quot;The workflow should not ask or inform the user; complete autonomously.&quot; We don&#x27;t.
+
+Need &quot;Use English&quot; yes.
+
+Need &quot;high-level workflow&quot; yes.
+
+Need &quot;You must declare in which APP to operate&quot; yes.
+
+Need &quot;Please set variable {answer} to final answer if task requires answer question.&quot; No. Need maybe no {answer}. Good.
+
+Let&#x27;s final.</pre></details></div><div class="model-card" id="m17"><div class="model-head"><h3>auto/kimi-k3</h3><span class="tag warn">请求失败</span></div><div class="error-box">InternalServerError(&#x27;Error code: 503 - lab: Service temporarily unavailable&#x27;)</div></div><div class="model-card" id="m18"><div class="model-head"><h3>auto/hy4std</h3><span class="tag warn">请求失败</span></div><div class="error-box">InternalServerError(&#x27;Error code: 502 - WorkBuddy: an empty reply (the model answered nothing; try again) — cut at its length, the whole output spent on reasoning&#x27;)</div></div>
+
+<p class="muted">说明：耗时包含网关排队与模型生成时间；思考过程默认折叠。
+高输出 token 不一定代表质量好，可能是重复或冗长。回复内容原样展示，
+HTML 特殊字符已转义。</p>
+</main></body></html>

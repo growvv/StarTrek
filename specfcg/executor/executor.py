@@ -39,11 +39,23 @@ class Executor:
         self.graph = graph
 
     @staticmethod
-    def _groups(steps: list[PlanStep]) -> list[tuple[str, list[PlanStep]]]:
+    def _step_line(step: PlanStep) -> str:
+        line = f"- {step.action} {step.target}".rstrip()
+        if step.args:
+            line += f" args={step.args}"
+        return line
+
+    @staticmethod
+    def _groups(
+        steps: list[PlanStep],
+    ) -> list[tuple[str, list[PlanStep]]]:
         groups: list[tuple[str, list[PlanStep]]] = []
+        keys: list[tuple[str, int]] = []
         for step in steps:
-            if not groups or groups[-1][0] != step.card:
+            key = (step.card, step.instance)
+            if not groups or keys[-1] != key:
                 groups.append((step.card, [step]))
+                keys.append(key)
             else:
                 groups[-1][1].append(step)
         return groups
@@ -124,9 +136,13 @@ class Executor:
             card = self.graph.cards.get(card_name)
             if card is None:
                 continue
+            executed = "\n".join(
+                self._step_line(step) for step in steps
+            )
             prompt = (
                 f"Card: {card.name}\nIntent: {card.intent}\n"
                 f"Postconditions: {card.postconditions}\n"
+                f"Executed steps:\n{executed}\n\n"
                 f"Observed UI after the last step:\n{state[:4000]}\n\n"
                 "Are the postconditions satisfied?"
             )
@@ -151,9 +167,13 @@ class Executor:
                     error=str(check.get("reason", "")),
                 )
 
+        executed_plan = "\n".join(
+            self._step_line(step) for step in plan.steps
+        )
         goal_prompt = (
             f"Goal: {plan.goal.description}\n"
             f"Assertions: {plan.assertions}\n"
+            f"Executed plan:\n{executed_plan}\n\n"
             f"Final UI state:\n{state[:4000]}\n\n"
             "Is the goal achieved?"
         )

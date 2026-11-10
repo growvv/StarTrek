@@ -14,6 +14,18 @@ _PROMPT = (
 )
 
 
+class PlainStateSummarizer:
+    """Deterministic fallback: keep the compact UI dump, make no LLM call.
+
+    The summary is only used as trace metadata, so paying a 1-4 minute
+    reasoning-model call for it is waste.
+    """
+
+    @staticmethod
+    def summarize(ui_dump: str) -> str:
+        return ui_dump[:2000]
+
+
 class StateSummarizer:
     def __init__(self, llm: LLMClient) -> None:
         self.llm = llm
