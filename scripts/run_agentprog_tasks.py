@@ -656,6 +656,18 @@ def main(argv: list[str] | None = None) -> int:
         if result_path.exists():
             result = json.loads(result_path.read_text(encoding="utf-8"))
         else:
+            # The child was killed mid-run, so it never wrote result.json. The
+            # agent still left evidence behind: recover the call count and the
+            # screenshots it captured before scoring the final screen, so a
+            # timed-out task is not reported as "0 calls, no images".
+            calls_path = out_dir / "llm_calls.jsonl"
+            calls = 0
+            if calls_path.exists():
+                calls = sum(
+                    1 for line in calls_path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                )
+            images = sorted(str(p) for p in (out_dir / "images").glob("*.png"))
             result = {
                 "id": task.id,
                 "app": task.app,
@@ -666,8 +678,8 @@ def main(argv: list[str] | None = None) -> int:
                 "max_steps": task.max_steps,
                 "agent": "AgentProg",
                 "error": "timed out" if timed_out else f"child exited with {returncode}",
-                "model_calls": 0,
-                "images": [],
+                "model_calls": calls,
+                "images": images,
             }
             result.update(evaluate_task(task, args.serial, out_dir, args.model, args.fallback))
             result_path.write_text(

@@ -144,11 +144,15 @@ summary { cursor:pointer; color:var(--accent,var(--violet)); font-size:.82rem;
 .reply { background:#f8fafc; border:1px solid var(--line); border-radius:10px;
   padding:12px 14px; font:12px/1.55 var(--mono); color:#243b53; white-space:pre-wrap;
   word-break:break-word; margin-top:10px; }
-.timeline { display:grid; gap:18px; margin-top:18px; }
-.action-card { display:grid; grid-template-columns:minmax(200px,300px) 1fr;
-  gap:22px; align-items:start; background:#fff; border:1px solid var(--line);
-  border-radius:16px; box-shadow:var(--shadow); padding:18px; }
+.timeline { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px; margin-top:18px; }
+.action-card { display:grid; grid-template-columns:190px minmax(0,1fr);
+  gap:16px; align-items:center; background:#fff; border:1px solid var(--line);
+  border-radius:16px; box-shadow:var(--shadow); padding:14px; }
 .action-card img { width:100%; border-radius:10px; border:1px solid var(--line); }
+.action-card .action-meta { align-self:center; }
+.action-card .action-meta h4 { font-size:.92rem; line-height:1.35; }
+.action-card .action-meta p { font-size:.8rem; }
 .action-meta h4 { margin:0 0 8px; font-size:1rem; }
 .action-meta .kind { display:inline-block; font-family:var(--mono); font-size:.7rem;
   font-weight:700; color:var(--violet); background:#f2ecff; border-radius:999px;
@@ -180,6 +184,7 @@ td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
 .footer { padding:46px 0 60px; color:var(--quiet); font-size:.8rem; text-align:center; }
 .footer a { color:var(--muted); }
 @media (max-width:900px) {
+  .timeline { grid-template-columns:1fr; }
   .section-head,.grid.two,.grid.three,.bilingual,.action-card,.stats,.pipeline {
     grid-template-columns:1fr; }
   .step:not(:last-child)::after { display:none; }
@@ -628,10 +633,19 @@ def result_rows() -> tuple[str, str, dict[str, Any]]:
         )
     for task in tasks:
         success = bool(task.get("success"))
-        pill = ('<span class="pill ok">PASS</span>' if success
-                else '<span class="pill bad">FAIL</span>')
-        if task.get("error"):
+        timed_out = bool(task.get("timed_out")) or task.get("error") == "timed out"
+        if success:
+            pill = '<span class="pill ok">PASS</span>'
+        elif task.get("error"):
             pill = '<span class="pill wait">ERROR</span>'
+        else:
+            pill = '<span class="pill bad">FAIL</span>'
+        if timed_out:
+            pill += ' <span class="pill wait" title="子进程到达单任务时限后被终止；最终屏幕仍被评分">timeout</span>'
+        reason = truncate(task.get("reason", ""), 260)
+        if timed_out:
+            reason = ("单任务时限到点，子进程被终止；下表数值与截图取自终止前的运行产物。"
+                      + reason)
         rows.append(
             "<tr>"
             f"<td><code>{esc(task.get('id'))}</code><br><span class=\"mini\">{esc(task.get('app_name', task.get('app', '')))}</span></td>"
@@ -640,7 +654,7 @@ def result_rows() -> tuple[str, str, dict[str, Any]]:
             f"<td class=\"num\">{len(task.get('images') or []) or '—'}</td>"
             f"<td class=\"num\">{fmt_seconds(task.get('agent_seconds'))}</td>"
             f"<td>{pill}</td>"
-            f"<td>{esc(truncate(task.get('reason', ''), 260))}</td>"
+            f"<td>{esc(reason)}</td>"
             "</tr>"
         )
     if not rows:
