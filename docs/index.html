@@ -106,8 +106,21 @@ pre code{background:none;padding:0;font-size:inherit}
 .field b{color:var(--quiet);font-family:var(--mono);font-size:.72rem;
   letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
 .field span{color:#334155;white-space:pre-wrap}
-.graph{background:#fff;border:1px solid var(--line);border-radius:16px;
-  box-shadow:var(--shadow);padding:18px;margin-top:16px}
+.patch-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.patch-diff > div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.patch-diff b{display:block;font-family:var(--mono);font-size:.7rem;color:var(--quiet);
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.patch-diff p{margin:0;font-size:.82rem;color:#334155;line-height:1.55}
+.graph-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
+.graph-wrap summary{padding:14px 18px;cursor:pointer;display:flex;gap:14px;
+  align-items:baseline;flex-wrap:wrap;list-style:none}
+.graph-wrap summary::-webkit-details-marker{display:none}
+.graph-wrap summary::before{content:"▸";color:var(--violet);font-weight:700}
+.graph-wrap[open] summary::before{content:"▾"}
+.graph-wrap summary b{font-family:var(--mono);font-size:.8rem}
+.graph-wrap[open] summary{border-bottom:1px dashed #e8eef5}
+.graph{padding:6px 18px 14px}
 .edge{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;
   padding:8px 0;border-bottom:1px dashed #e8eef5;font-size:.82rem}
 .edge:last-child{border-bottom:none}
@@ -127,7 +140,7 @@ th{background:#f4f8fc;color:#334155;font-family:var(--mono);font-size:.7rem;
 tr:last-child td{border-bottom:none}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-family:var(--mono);
-  font-size:.68rem;font-weight:700}
+  font-size:.68rem;font-weight:700;white-space:nowrap}
 .pill.ok{background:#e7f6ec;color:#067647}
 .pill.bad{background:#fff7f6;color:#b42318}
 .pill.wait{background:#fff4e5;color:#b54708}
@@ -176,6 +189,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 .demo-note{background:#fbfdff;border:1px solid var(--line);border-radius:12px;
   padding:14px 16px;font-size:.84rem;color:#334155;margin-top:14px}
 @media (max-width:1000px){
+  .patch-diff{grid-template-columns:minmax(0,1fr)}
   .section-head,.grid.two,.grid.three,.stats,.pipeline,.shot-strip,.demo-shell{
     grid-template-columns:1fr}
   .step:not(:last-child)::after{display:none}
@@ -213,10 +227,10 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 </div></header>
 
 <div class="stats">
-  <div class="stat"><b>5</b><span>从真实轨迹归纳的 function card</span></div>
-  <div class="stat"><b>15</b><span>enables / dataflow / sequence 边</span></div>
+  <div class="stat"><b>10</b><span>从真实轨迹归纳的 function card</span></div>
+  <div class="stat"><b>56</b><span>enables / dataflow / sequence 边</span></div>
   <div class="stat"><b>3/3</b><span>真机组合目标通过（最后一轮）</span></div>
-  <div class="stat"><b>200</b><span>离线单元测试全部通过</span></div>
+  <div class="stat"><b>204</b><span>离线单元测试全部通过</span></div>
 </div>
 
 <section class="section" id="why"><div class="wrap">
@@ -254,10 +268,10 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
   <code>omninotes-create-note-2</code> 归纳出来的，未做人工改写。</p>
   <div class="card-doc">
     <h3><code>create_note</code></h3>
-    <div class="field"><b>Intent</b><span>Create a text note titled {note_title} with content {note_content}.</span></div><div class="field"><b>Inputs</b><span>note_title (required): Title text to store for the new note., note_content (required): Body text to store for the new note.</span></div><div class="field"><b>Preconditions</b><span>- The Omni Notes app is open on the notes list screen. - The expandable floating action menu is available. - A text-note editor is not already active.</span></div><div class="field"><b>Postconditions</b><span>- A saved note with title {note_title} and content {note_content} is present. - The app is back on the notes list screen, where the note card for {note_title} and {note_content} is visible.</span></div><div class="field"><b>Effects / Outputs</b><span>- A new text note record is created and persisted. - The note editor is closed, leaving the list view active.</span></div><div class="field"><b>Evidence</b><span>traces omninotes-create-note-2; 1/1 successes</span></div><div class="field"><b>Steps</b><span><ol style="margin:0;padding-left:18px"><li>1. Click the expandable floating action menu button `it.feio.android.omninotes.foss:id/fab_expand_menu_button`.</li><li>2. Click the text-note creation action `it.feio.android.omninotes.foss:id/fab_note` to open a blank note editor.</li><li>3. Enter {note_title} into the title field `it.feio.android.omninotes.foss:id/detail_title`.</li><li>4. Enter {note_content} into the content field `it.feio.android.omninotes.foss:id/detail_content`.</li><li>5. Press the system Back key once to dismiss the on-screen keyboard or clear EditText focus while remaining on the note editor.</li><li>6. Press the system Back key a second time to exit the note editor, commit/save the note, and return to the notes list screen.</li></ol></span></div>
+    <div class="field"><b>Intent</b><span>Create and save a text note titled {note_title} with content {note_content}.</span></div><div class="field"><b>Inputs</b><span>note_title (required): Text to use as the new note title., note_content (required): Text to use as the new note content.</span></div><div class="field"><b>Preconditions</b><span>The notes list screen labeled `笔记` is open with `it.feio.android.omninotes.foss:id/list` visible, and the floating action menu is collapsed with `it.feio.android.omninotes.foss:id/fab_expand_menu_button` available.</span></div><div class="field"><b>Postconditions</b><span>The notes list screen labeled `笔记` is shown, and a saved note card in `it.feio.android.omninotes.foss:id/list` has `it.feio.android.omninotes.foss:id/note_title` set to {note_title} and `it.feio.android.omninotes.foss:id/note_content` set to {note_content}.</span></div><div class="field"><b>Effects / Outputs</b><span>A new text note is persisted and appears as a note card; the editor and keyboard are dismissed, and the app returns to the notes list labeled `笔记`.</span></div><div class="field"><b>Evidence</b><span>traces omninotes-create-note-2; 1/1 successes</span></div><div class="field"><b>Steps</b><span><ol style="margin:0;padding-left:18px"><li>1. Click `it.feio.android.omninotes.foss:id/fab_expand_menu_button` to expand the floating action menu.</li><li>2. Click the `文本注释` action button `it.feio.android.omninotes.foss:id/fab_note` to open the text note editor.</li><li>3. Input {note_title} into the title field `it.feio.android.omninotes.foss:id/detail_title` with visible label `标题`.</li><li>4. Input {note_content} into the content field `it.feio.android.omninotes.foss:id/detail_content` with visible label `内容`.</li><li>5. Press the system `Back` key once to dismiss the on-screen keyboard.</li><li>6. Press the system `Back` key once to save the note and return from `it.feio.android.omninotes.foss:id/detail_root` to the notes list labeled `笔记`.</li></ol></span></div>
   </div>
 
-  <h3 style="margin:26px 0 6px">卡片连成图：5 个节点，15 条边</h3>
+  <h3 style="margin:26px 0 6px">卡片连成图：10 个节点，56 条边</h3>
   <p class="lead" style="font-size:.95rem">图不是一次画出来的。每采一条轨迹，就多一张卡片、多几条边；
   下面是这个 App 的建图过程回放。</p>
   <div class="cta" style="margin:16px 0 20px">
@@ -265,7 +279,11 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
       <p>每一帧对应一次真实的 <code>apply_patch</code>：归纳卡片、加顺序边、补语义边。</p></div>
     <a class="button" href="graph/">播放建图过程 →</a>
   </div>
-  <div class="graph"><div class="edge"><span class="from">open_note_by_title</span><span class="type sequence">sequence</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div></div>
+  <details class="graph-wrap">
+    <summary><b>展开全部 56 条边</b>
+      <span class="mini">enables 30 · sequence 2 · dataflow 24</span></summary>
+    <div class="graph"><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">create_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type dataflow">dataflow</span><span class="to">create_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type sequence">sequence</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">sort_list_by_criterion</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">sort_list_by_criterion</span></div><div class="edge"><span class="from">sort_list_by_criterion</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">sort_list_by_criterion</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">pin_note</span></div><div class="edge"><span class="from">pin_note</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">pin_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">pin_note</span><span class="type enables">enables</span><span class="to">sort_list_by_criterion</span></div><div class="edge"><span class="from">pin_note</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">pin_note</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">pin_note</span></div><div class="edge"><span class="from">sort_list_by_criterion</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">sort_list_by_criterion</span><span class="type enables">enables</span><span class="to">pin_note</span></div><div class="edge"><span class="from">sort_list_by_criterion</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">enable_todo_checklist</span></div><div class="edge"><span class="from">pin_note</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type enables">enables</span><span class="to">sort_list_by_criterion</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type dataflow">dataflow</span><span class="to">pin_note</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">enable_todo_checklist</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type dataflow">dataflow</span><span class="to">enable_todo_checklist</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">sort_list_by_criterion</span></div><div class="edge"><span class="from">delete_note_from_detail_screen</span><span class="type sequence">sequence</span><span class="to">return_to_previous_app</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">delete_note_from_detail_screen</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">delete_note_from_detail_screen</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">enable_todo_checklist</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">pin_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">enable_todo_checklist</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">pin_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">delete_note_from_detail_screen</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">pin_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">delete_note_from_detail_screen</span></div></div>
+  </details>
   <p class="mini" style="margin-top:10px">边只用于授权执行（enables / sequence）；dataflow 只负责参数供给，
   避免“数据上能接、但 UI 上还进不去”的短路径被误选。</p>
 
@@ -350,11 +368,15 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
     <tr><td>第 2 轮</td><td><span class="pill ok">PASS</span></td>
       <td>—</td><td>9 个动作全部成功，最终列表里出现 Groceries / Buy milk，归档后列表为空。</td></tr>
   </tbody></table>
+  <div class="patch-diff">
+    <div><b>改前 · Intent</b><p>Create a text note titled {note_title} with content {note_content}.</p></div>
+    <div><b>改后 · Intent</b><p>Create a note titled &#x27;Groceries&#x27; with content &#x27;Buy milk&#x27;. Open the note editor, enter the title and content, then commit/save the note (tap Save/checkmark if present; otherwise use system Back) and navigate back/up to the notes list. Finish only when the editor is closed and a saved note card showing &#x27;Groceries&#x27; and &#x27;Buy milk&#x27; is visible on the notes list; do not stop on the detail/edit screen.</p></div>
+  </div>
   <div class="note" style="margin-top:14px"><b>为什么这件事重要：</b>失败没有被“重试一次”掩盖，
   而是变成了对图的一次有依据的修改。修补记录在
   <a href="evidence/refine_1.json">evidence/refine_1.json</a>，
-  改前卡片保留在 <a href="evidence/create_note_before_refine.md">evidence/create_note_before_refine.md</a>，
-  改后卡片见 <a href="evidence/cards/create_note.md">evidence/cards/create_note.md</a>，可以直接对比。</div>
+  改前卡片完整保留在 <a href="evidence/create_note_before_refine.md">evidence/create_note_before_refine.md</a>；
+  上面的“改后”直接取自该补丁的 <code>card_updates[0].fields.Intent</code>。</div>
   <p class="mini" style="margin-top:12px">所有原始结果行：
   <a href="evidence/pilot_composed_archive.jsonl">pilot_composed_archive.jsonl</a>（失败的第 1 轮）、
   <a href="evidence/pilot_composed_archive_2.jsonl">pilot_composed_archive_2.jsonl</a>（通过的第 2 轮）、
@@ -387,7 +409,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \
     --goal "Create a note titled Groceries with content Buy milk, then share it"</code></pre>
   <div class="grid two">
     <div class="card"><h3>没有设备也能跑</h3>
-      <p><code>python -m pytest -q</code> 当前 200 passed。加 <code>--fake-llm --fake-device</code>
+      <p><code>python -m pytest -q</code> 当前 204 passed。加 <code>--fake-llm --fake-device</code>
       可以在没有网关和设备的情况下跑通 <code>mine → build-graph → plan</code> 全链路，
       适合先验证配置和卡片格式。</p></div>
     <div class="card"><h3>产物都在磁盘上</h3>

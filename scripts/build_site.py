@@ -27,8 +27,14 @@ DEMO = SITE / "demo"
 ASSETS = SITE / "assets"
 EVIDENCE = SITE / "evidence"
 REAL = ROOT / "runs" / "real"
-CARDS = REAL / "work" / "cards"
-EDGES = REAL / "work" / "graph" / "edges.jsonl"
+# The demo graph is a superset of the pilot graph: it is rebuilt from every
+# trace we recorded, in the order an explorer would collect them, and it is the
+# one the construction animation replays. Publishing it keeps the homepage
+# counts equal to the last frame of that animation.
+GRAPH_ROOT = REAL / "demo_graph"
+CARDS = GRAPH_ROOT / "cards"
+EDGES = GRAPH_ROOT / "graph" / "edges.jsonl"
+JOURNAL = GRAPH_ROOT / "graph" / "journal.jsonl"
 
 GITHUB = "https://github.com/growvv/StarTrek"
 PAGES = "https://growvv.github.io/StarTrek/"
@@ -203,8 +209,21 @@ pre code{background:none;padding:0;font-size:inherit}
 .field b{color:var(--quiet);font-family:var(--mono);font-size:.72rem;
   letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
 .field span{color:#334155;white-space:pre-wrap}
-.graph{background:#fff;border:1px solid var(--line);border-radius:16px;
-  box-shadow:var(--shadow);padding:18px;margin-top:16px}
+.patch-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.patch-diff > div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.patch-diff b{display:block;font-family:var(--mono);font-size:.7rem;color:var(--quiet);
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.patch-diff p{margin:0;font-size:.82rem;color:#334155;line-height:1.55}
+.graph-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
+.graph-wrap summary{padding:14px 18px;cursor:pointer;display:flex;gap:14px;
+  align-items:baseline;flex-wrap:wrap;list-style:none}
+.graph-wrap summary::-webkit-details-marker{display:none}
+.graph-wrap summary::before{content:"▸";color:var(--violet);font-weight:700}
+.graph-wrap[open] summary::before{content:"▾"}
+.graph-wrap summary b{font-family:var(--mono);font-size:.8rem}
+.graph-wrap[open] summary{border-bottom:1px dashed #e8eef5}
+.graph{padding:6px 18px 14px}
 .edge{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;
   padding:8px 0;border-bottom:1px dashed #e8eef5;font-size:.82rem}
 .edge:last-child{border-bottom:none}
@@ -224,7 +243,7 @@ th{background:#f4f8fc;color:#334155;font-family:var(--mono);font-size:.7rem;
 tr:last-child td{border-bottom:none}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-family:var(--mono);
-  font-size:.68rem;font-weight:700}
+  font-size:.68rem;font-weight:700;white-space:nowrap}
 .pill.ok{background:#e7f6ec;color:#067647}
 .pill.bad{background:#fff7f6;color:#b42318}
 .pill.wait{background:#fff4e5;color:#b54708}
@@ -273,6 +292,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 .demo-note{background:#fbfdff;border:1px solid var(--line);border-radius:12px;
   padding:14px 16px;font-size:.84rem;color:#334155;margin-top:14px}
 @media (max-width:1000px){
+  .patch-diff{grid-template-columns:minmax(0,1fr)}
   .section-head,.grid.two,.grid.three,.stats,.pipeline,.shot-strip,.demo-shell{
     grid-template-columns:1fr}
   .step:not(:last-child)::after{display:none}
@@ -479,8 +499,28 @@ def build_index() -> None:
 
     passes = sum(1 for r in pilots if r.get("success"))
     total = len(pilots)
+    refine = {}
+    refine_path = REAL / "refine_1.json"
+    if refine_path.exists():
+        refine = json.loads(refine_path.read_text(encoding="utf-8"))
+    before_intent = ""
+    before_path = REAL / "create_note_before_refine.md"
+    if before_path.exists():
+        for line in before_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("**Intent**"):
+                before_intent = line.split(":", 1)[-1].strip()
+                break
+    after_intent = ""
+    for update in refine.get("card_updates") or []:
+        if update.get("name") == "create_note":
+            after_intent = (update.get("fields") or {}).get("Intent", "")
+            break
+
     n_cards = len(cards)
     n_edges = len(edges)
+    n_enables = sum(1 for e in edges if e.get("type") == "enables")
+    n_sequence = sum(1 for e in edges if e.get("type") == "sequence")
+    n_dataflow = sum(1 for e in edges if e.get("type") == "dataflow")
 
     page = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -520,7 +560,7 @@ def build_index() -> None:
   <div class="stat"><b>{n_cards}</b><span>从真实轨迹归纳的 function card</span></div>
   <div class="stat"><b>{n_edges}</b><span>enables / dataflow / sequence 边</span></div>
   <div class="stat"><b>{passes}/{total or '—'}</b><span>真机组合目标通过（最后一轮）</span></div>
-  <div class="stat"><b>200</b><span>离线单元测试全部通过</span></div>
+  <div class="stat"><b>204</b><span>离线单元测试全部通过</span></div>
 </div>
 
 <section class="section" id="why"><div class="wrap">
@@ -569,7 +609,11 @@ def build_index() -> None:
       <p>每一帧对应一次真实的 <code>apply_patch</code>：归纳卡片、加顺序边、补语义边。</p></div>
     <a class="button" href="graph/">播放建图过程 →</a>
   </div>
-  <div class="graph">{edge_rows}</div>
+  <details class="graph-wrap">
+    <summary><b>展开全部 {n_edges} 条边</b>
+      <span class="mini">enables {n_enables} · sequence {n_sequence} · dataflow {n_dataflow}</span></summary>
+    <div class="graph">{edge_rows}</div>
+  </details>
   <p class="mini" style="margin-top:10px">边只用于授权执行（enables / sequence）；dataflow 只负责参数供给，
   避免“数据上能接、但 UI 上还进不去”的短路径被误选。</p>
 
@@ -654,11 +698,15 @@ def build_index() -> None:
     <tr><td>第 2 轮</td><td><span class="pill ok">PASS</span></td>
       <td>—</td><td>9 个动作全部成功，最终列表里出现 Groceries / Buy milk，归档后列表为空。</td></tr>
   </tbody></table>
+  <div class="patch-diff">
+    <div><b>改前 · Intent</b><p>{esc(before_intent)}</p></div>
+    <div><b>改后 · Intent</b><p>{esc(after_intent)}</p></div>
+  </div>
   <div class="note" style="margin-top:14px"><b>为什么这件事重要：</b>失败没有被“重试一次”掩盖，
   而是变成了对图的一次有依据的修改。修补记录在
   <a href="evidence/refine_1.json">evidence/refine_1.json</a>，
-  改前卡片保留在 <a href="evidence/create_note_before_refine.md">evidence/create_note_before_refine.md</a>，
-  改后卡片见 <a href="evidence/cards/create_note.md">evidence/cards/create_note.md</a>，可以直接对比。</div>
+  改前卡片完整保留在 <a href="evidence/create_note_before_refine.md">evidence/create_note_before_refine.md</a>；
+  上面的“改后”直接取自该补丁的 <code>card_updates[0].fields.Intent</code>。</div>
   <p class="mini" style="margin-top:12px">所有原始结果行：
   <a href="evidence/pilot_composed_archive.jsonl">pilot_composed_archive.jsonl</a>（失败的第 1 轮）、
   <a href="evidence/pilot_composed_archive_2.jsonl">pilot_composed_archive_2.jsonl</a>（通过的第 2 轮）、
@@ -691,7 +739,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
     --goal "Create a note titled Groceries with content Buy milk, then share it"</code></pre>
   <div class="grid two">
     <div class="card"><h3>没有设备也能跑</h3>
-      <p><code>python -m pytest -q</code> 当前 200 passed。加 <code>--fake-llm --fake-device</code>
+      <p><code>python -m pytest -q</code> 当前 204 passed。加 <code>--fake-llm --fake-device</code>
       可以在没有网关和设备的情况下跑通 <code>mine → build-graph → plan</code> 全链路，
       适合先验证配置和卡片格式。</p></div>
     <div class="card"><h3>产物都在磁盘上</h3>
@@ -749,6 +797,8 @@ def publish_evidence() -> None:
         shutil.copy2(path, cards_out / path.name)
     if EDGES.exists():
         shutil.copy2(EDGES, EVIDENCE / "edges.jsonl")
+    if JOURNAL.exists():
+        shutil.copy2(JOURNAL, EVIDENCE / "journal.jsonl")
     for name in (
         "refine_1.json",
         "create_note_before_refine.md",
@@ -767,6 +817,7 @@ def publish_evidence() -> None:
         "| File | What it shows |\n|---|---|\n"
         "| `cards/*.md` | Function cards mined from real device traces |\n"
         "| `edges.jsonl` | Function Contract Graph edges |\n"
+        "| `journal.jsonl` | One line per graph mutation, in build order — the data the construction animation replays |\n"
         "| `pilot_*.jsonl` | One row per real-device pilot case |\n"
         "| `pilot_composed_archive.jsonl` | The failing first attempt (postcondition_failure) |\n"
         "| `refine_1.json` | The graph patch proposed after that failure |\n"

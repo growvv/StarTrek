@@ -65,7 +65,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \
 没有设备也能跑：
 
 ```bash
-python -m pytest -q                                     # 200 passed
+python -m pytest -q                                     # 204 passed
 python -m specfcg.cli plan --config config/llm.local.yaml \
     --fake-llm --fake-device --goal "Create a note titled Trip"
 ```
@@ -101,6 +101,7 @@ scripts/        采集、跑批、报告与站点生成脚本
 docs/
   index.html    GitHub Pages 主页
   demo/         交互演示（10 步真实截图）
+  graph/        建图动画（逐帧回放 journal.jsonl 的真实补丁）
   evidence/     页面引用的原始结果（runs/ 不入库，这里是对外副本）
   reports/      实验报告
   experiments/  真机实验记录
@@ -113,6 +114,7 @@ docs/
 - [真机实验记录（F1–F26）](docs/experiments/2026-11-10-real-device-pilot.md)
 - [AgentProg 复现与讲解](https://growvv.github.io/StarTrek/reports/agentprog-explained.html)（页面在 Pages 上可直接看）
 - [交互演示](https://growvv.github.io/StarTrek/demo/)
+- [建图动画](https://growvv.github.io/StarTrek/graph/)：一条轨迹一条轨迹，看图怎么长出来
 
 ## 引用
 

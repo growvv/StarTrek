@@ -1,15 +1,15 @@
 # create_note
 
-**Intent**: Create a text note titled {note_title} with content {note_content}.
-**Inputs**: note_title (required): Title text to store for the new note., note_content (required): Body text to store for the new note.
-**Preconditions**: - The Omni Notes app is open on the notes list screen. - The expandable floating action menu is available. - A text-note editor is not already active.
-**Postconditions**: - A saved note with title {note_title} and content {note_content} is present. - The app is back on the notes list screen, where the note card for {note_title} and {note_content} is visible.
-**Effects/Outputs**: - A new text note record is created and persisted. - The note editor is closed, leaving the list view active.
+**Intent**: Create and save a text note titled {note_title} with content {note_content}.
+**Inputs**: note_title (required): Text to use as the new note title., note_content (required): Text to use as the new note content.
+**Preconditions**: The notes list screen labeled `笔记` is open with `it.feio.android.omninotes.foss:id/list` visible, and the floating action menu is collapsed with `it.feio.android.omninotes.foss:id/fab_expand_menu_button` available.
+**Postconditions**: The notes list screen labeled `笔记` is shown, and a saved note card in `it.feio.android.omninotes.foss:id/list` has `it.feio.android.omninotes.foss:id/note_title` set to {note_title} and `it.feio.android.omninotes.foss:id/note_content` set to {note_content}.
+**Effects/Outputs**: A new text note is persisted and appears as a note card; the editor and keyboard are dismissed, and the app returns to the notes list labeled `笔记`.
 **Steps**:
-1. Click the expandable floating action menu button `it.feio.android.omninotes.foss:id/fab_expand_menu_button`.
-2. Click the text-note creation action `it.feio.android.omninotes.foss:id/fab_note` to open a blank note editor.
-3. Enter {note_title} into the title field `it.feio.android.omninotes.foss:id/detail_title`.
-4. Enter {note_content} into the content field `it.feio.android.omninotes.foss:id/detail_content`.
-5. Press the system Back key once to dismiss the on-screen keyboard or clear EditText focus while remaining on the note editor.
-6. Press the system Back key a second time to exit the note editor, commit/save the note, and return to the notes list screen.
+1. Click `it.feio.android.omninotes.foss:id/fab_expand_menu_button` to expand the floating action menu.
+2. Click the `文本注释` action button `it.feio.android.omninotes.foss:id/fab_note` to open the text note editor.
+3. Input {note_title} into the title field `it.feio.android.omninotes.foss:id/detail_title` with visible label `标题`.
+4. Input {note_content} into the content field `it.feio.android.omninotes.foss:id/detail_content` with visible label `内容`.
+5. Press the system `Back` key once to dismiss the on-screen keyboard.
+6. Press the system `Back` key once to save the note and return from `it.feio.android.omninotes.foss:id/detail_root` to the notes list labeled `笔记`.
 **Evidence**: traces omninotes-create-note-2; 1/1 successes

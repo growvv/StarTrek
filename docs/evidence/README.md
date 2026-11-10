@@ -7,6 +7,7 @@ the project page. `runs/` is git-ignored; this folder is the public copy.
 |---|---|
 | `cards/*.md` | Function cards mined from real device traces |
 | `edges.jsonl` | Function Contract Graph edges |
+| `journal.jsonl` | One line per graph mutation, in build order — the data the construction animation replays |
 | `pilot_*.jsonl` | One row per real-device pilot case |
 | `pilot_composed_archive.jsonl` | The failing first attempt (postcondition_failure) |
 | `refine_1.json` | The graph patch proposed after that failure |
