@@ -654,7 +654,7 @@ cp config/llm.example.yaml config/llm.local.yaml   # 填 base_url / api_key_env 
 
 # 1. 采集一条真实轨迹（也可以直接用手写的 actions JSON）
 python scripts/collect_trace.py --app it.feio.android.omninotes.foss \\
-    --actions runs/real/actions_create_note.json --trace-id create-note-1 \\
+    --actions examples/actions_create_note.json --trace-id create-note-1 \\
     --out traces/create-note-1.json
 
 # 2. 归纳卡片，再把卡片连成图

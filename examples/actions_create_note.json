@@ -1,0 +1,8 @@
+[
+  {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/fab_expand_menu_button", "wait": 1.2},
+  {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/fab_note", "wait": 1.5},
+  {"action": "input", "target": "resourceId=it.feio.android.omninotes.foss:id/detail_title", "args": "Meeting", "wait": 0.8},
+  {"action": "input", "target": "resourceId=it.feio.android.omninotes.foss:id/detail_content", "args": "Discuss roadmap", "wait": 0.8},
+  {"action": "back", "wait": 0.8},
+  {"action": "back", "wait": 1.5}
+]
