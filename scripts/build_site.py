@@ -361,11 +361,11 @@ def build_demo_page() -> None:
 <title>SpecFCG 演示 — 一次真实执行</title>
 <style>{CSS}</style></head><body>
 <nav class="site-nav"><div class="nav-inner">
-  <a class="brand" href="index.html">Spec<span>FCG</span></a>
+  <a class="brand" href="../index.html">Spec<span>FCG</span></a>
   <div class="nav-links">
-    <a href="index.html#why">背景</a><a href="index.html#method">方法</a>
-    <a href="index.html#demo">演示</a><a href="index.html#results">效果</a>
-    <a href="index.html#usage">使用</a><a href="index.html#cite">引用</a>
+    <a href="../index.html#why">背景</a><a href="../index.html#method">方法</a>
+    <a href="../index.html#demo">演示</a><a href="../index.html#results">效果</a>
+    <a href="../index.html#usage">使用</a><a href="../index.html#cite">引用</a>
   </div>
 </div></nav>
 
@@ -376,8 +376,8 @@ def build_demo_page() -> None:
   open the note, and share it</code>。下面是 Pixel 9 Pro XL 上的真实截图，逐步对应
   Planner 选出的卡片路径与 Executor 编译出的动作。</p>
   <div class="hero-actions">
-    <a class="button primary" href="index.html">← 返回项目主页</a>
-    <a class="button accent" href="index.html#results">看完整结果</a>
+    <a class="button primary" href="../index.html">← 返回项目主页</a>
+    <a class="button accent" href="../index.html#results">看完整结果</a>
   </div>
 </div></header>
 
@@ -483,8 +483,8 @@ def build_index() -> None:
 <nav class="site-nav"><div class="nav-inner">
   <a class="brand" href="#">Spec<span>FCG</span></a>
   <div class="nav-links">
-    <a href="#why">背景</a><a href="#method">方法</a><a href="#demo">演示</a>
-    <a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
+    <a href="#why">背景</a><a href="#method">方法</a><a href="#innovations">核心点</a>
+    <a href="#demo">演示</a><a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
   </div>
 </div></nav>
 
