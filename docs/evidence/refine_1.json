@@ -1,0 +1,15 @@
+{
+  "new_cards": [],
+  "card_updates": [
+    {
+      "name": "create_note",
+      "fields": {
+        "Intent": "Create a note titled 'Groceries' with content 'Buy milk'. Open the note editor, enter the title and content, then commit/save the note (tap Save/checkmark if present; otherwise use system Back) and navigate back/up to the notes list. Finish only when the editor is closed and a saved note card showing 'Groceries' and 'Buy milk' is visible on the notes list; do not stop on the detail/edit screen."
+      }
+    }
+  ],
+  "edge_updates": [],
+  "split": [],
+  "merge": [],
+  "reason": "The failure is that the single create_note card left the app in the editor and omitted save/return/list verification. Updating its Intent to require saving, returning to the notes list, and verifying the saved card is the smallest patch; no new card or edge is needed."
+}

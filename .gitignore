@@ -1,4 +1,6 @@
 /.venv/
+/.venv-agentprog/
+/.venv-mobileuse/
 __pycache__/
 /.pytest_cache/
 /.cache/
@@ -8,3 +10,6 @@ __pycache__/
 /.tmp/
 /papers/
 /.superpowers/
+/screenshot_*.png
+/config/llm.local.yaml
+/config/llm.yaml
