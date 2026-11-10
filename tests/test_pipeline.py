@@ -402,3 +402,22 @@ def test_device_probe_with_no_probe_plan_returns_none(fake_llm, fake_device):
     assert probe.run(capability, "note open") is None
     assert fake_llm.calls == 0
     assert fake_device.calls == []
+
+
+def test_journal_reason_names_the_trace_and_what_it_added(
+    tmp_path, fake_llm, fake_device, sample_trace
+):
+    fake_llm.responses = [
+        {"episodes": [{"start": 0, "end": 1, "name": "create_note"}]},
+        CARD_MARKDOWN,
+    ]
+    pipeline = _pipeline(tmp_path, fake_llm, fake_device)
+
+    pipeline.mine_trace(sample_trace)
+    pipeline.build_graph([])
+
+    reasons = [entry["reason"] for entry in pipeline.store.journal()]
+    assert reasons == [
+        "mined trace t1 -> create_note",
+        "semantic edges over 1 card",
+    ]

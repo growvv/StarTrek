@@ -193,8 +193,9 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 <nav class="site-nav"><div class="nav-inner">
   <a class="brand" href="#">Spec<span>FCG</span></a>
   <div class="nav-links">
-    <a href="#why">背景</a><a href="#method">方法</a><a href="#innovations">核心点</a>
-    <a href="#demo">演示</a><a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
+    <a href="#why">背景</a><a href="#method">方法</a><a href="graph/">建图动画</a>
+    <a href="#innovations">核心点</a><a href="#demo">演示</a>
+    <a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
   </div>
 </div></nav>
 
@@ -257,6 +258,13 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
   </div>
 
   <h3 style="margin:26px 0 6px">卡片连成图：5 个节点，15 条边</h3>
+  <p class="lead" style="font-size:.95rem">图不是一次画出来的。每采一条轨迹，就多一张卡片、多几条边；
+  下面是这个 App 的建图过程回放。</p>
+  <div class="cta" style="margin:16px 0 20px">
+    <div><h3>▶ 建图动画：一步一步看它长出来</h3>
+      <p>每一帧对应一次真实的 <code>apply_patch</code>：归纳卡片、加顺序边、补语义边。</p></div>
+    <a class="button" href="graph/">播放建图过程 →</a>
+  </div>
   <div class="graph"><div class="edge"><span class="from">open_note_by_title</span><span class="type sequence">sequence</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">archive_note</span></div><div class="edge"><span class="from">create_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">create_note</span><span class="type dataflow">dataflow</span><span class="to">search_notes_by_keyword</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">invoke_share_chooser_for_note</span></div><div class="edge"><span class="from">open_note_by_title</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">search_notes_by_keyword</span><span class="type enables">enables</span><span class="to">archive_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">create_note</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">open_note_by_title</span></div><div class="edge"><span class="from">archive_note</span><span class="type enables">enables</span><span class="to">search_notes_by_keyword</span></div></div>
   <p class="mini" style="margin-top:10px">边只用于授权执行（enables / sequence）；dataflow 只负责参数供给，
   避免“数据上能接、但 UI 上还进不去”的短路径被误选。</p>

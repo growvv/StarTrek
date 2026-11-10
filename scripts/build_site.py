@@ -372,8 +372,8 @@ def build_demo_page() -> None:
   <a class="brand" href="../index.html">Spec<span>FCG</span></a>
   <div class="nav-links">
     <a href="../index.html#why">背景</a><a href="../index.html#method">方法</a>
-    <a href="../index.html#demo">演示</a><a href="../index.html#results">效果</a>
-    <a href="../index.html#usage">使用</a><a href="../index.html#cite">引用</a>
+    <a href="../graph/">建图动画</a><a href="../index.html#demo">演示</a>
+    <a href="../index.html#results">效果</a><a href="../index.html#usage">使用</a>
   </div>
 </div></nav>
 
@@ -497,8 +497,9 @@ def build_index() -> None:
 <nav class="site-nav"><div class="nav-inner">
   <a class="brand" href="#">Spec<span>FCG</span></a>
   <div class="nav-links">
-    <a href="#why">背景</a><a href="#method">方法</a><a href="#innovations">核心点</a>
-    <a href="#demo">演示</a><a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
+    <a href="#why">背景</a><a href="#method">方法</a><a href="graph/">建图动画</a>
+    <a href="#innovations">核心点</a><a href="#demo">演示</a>
+    <a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
   </div>
 </div></nav>
 
@@ -561,6 +562,13 @@ def build_index() -> None:
   </div>
 
   <h3 style="margin:26px 0 6px">卡片连成图：{n_cards} 个节点，{n_edges} 条边</h3>
+  <p class="lead" style="font-size:.95rem">图不是一次画出来的。每采一条轨迹，就多一张卡片、多几条边；
+  下面是这个 App 的建图过程回放。</p>
+  <div class="cta" style="margin:16px 0 20px">
+    <div><h3>▶ 建图动画：一步一步看它长出来</h3>
+      <p>每一帧对应一次真实的 <code>apply_patch</code>：归纳卡片、加顺序边、补语义边。</p></div>
+    <a class="button" href="graph/">播放建图过程 →</a>
+  </div>
   <div class="graph">{edge_rows}</div>
   <p class="mini" style="margin-top:10px">边只用于授权执行（enables / sequence）；dataflow 只负责参数供给，
   避免“数据上能接、但 UI 上还进不去”的短路径被误选。</p>

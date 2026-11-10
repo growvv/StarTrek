@@ -95,22 +95,25 @@ class Pipeline:
         for card in patch.new_cards:
             cards[card.name] = card
         edges = self.builder.sequence_edges(cards, patch.segments)
+        names = ", ".join(card.name for card in patch.new_cards) or "no new card"
         self._apply_patch(
             GraphPatch(
                 new_cards=patch.new_cards,
                 card_updates=patch.updates,
                 edge_updates=[_edge_update(edge) for edge in edges],
-                reason=f"mined trace {trace.trace_id}",
+                reason=f"mined trace {trace.trace_id} -> {names}",
             )
         )
         return patch
 
     def build_graph(self, segments: list[dict[str, Any]]) -> list[Edge]:
-        edges = self.builder.build(self.card_store.all(), segments)
+        cards = self.card_store.all()
+        edges = self.builder.build(cards, segments)
         self._apply_patch(
             GraphPatch(
                 edge_updates=[_edge_update(edge) for edge in edges],
-                reason="rebuilt graph",
+                reason=f"semantic edges over {len(cards)} card"
+                f"{'s' if len(cards) != 1 else ''}",
             )
         )
         return edges

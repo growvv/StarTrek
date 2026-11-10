@@ -64,9 +64,67 @@ class GraphStore:
         self.cards = cards
         self.graph_dir = self.root / "graph"
         self.edges_path = self.graph_dir / "edges.jsonl"
+        self.journal_path = self.graph_dir / "journal.jsonl"
 
     def load(self) -> Graph:
         return Graph(cards=self.cards.all(), edges=self.edges())
+
+    def journal(self) -> list[dict[str, Any]]:
+        """Every graph mutation, in the order it was applied.
+
+        The page animates graph construction, so each patch has to leave a
+        replayable record: what it added, what it changed, and what the graph
+        looked like afterwards. Without this the only trace of construction is
+        a final snapshot, which cannot show *how* the graph grew.
+        """
+        if not self.journal_path.exists():
+            return []
+        entries: list[dict[str, Any]] = []
+        for line in self.journal_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError as exc:
+                logger.warning("skipping malformed journal line: %s", exc)
+                continue
+            if isinstance(entry, dict):
+                entries.append(entry)
+        return entries
+
+    def _append_journal(
+        self, patch: GraphPatch, before_cards: set[str], before_edges: set[tuple[str, str, str]]
+    ) -> None:
+        graph = self.load()
+        after_cards = set(graph.cards)
+        after_edges = {
+            (edge.from_card, edge.to_card, edge.type) for edge in graph.edges
+        }
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "reason": patch.reason,
+            "cards_added": len(after_cards - before_cards),
+            "cards_removed": len(before_cards - after_cards),
+            "cards_updated": len(patch.card_updates),
+            "edges_added": len(after_edges - before_edges),
+            "edges_removed": len(before_edges - after_edges),
+            "cards_total": len(after_cards),
+            "edges_total": len(after_edges),
+            "new_cards": sorted(after_cards - before_cards),
+            "new_edges": [
+                {"from": edge.from_card, "to": edge.to_card, "type": edge.type}
+                for edge in graph.edges
+                if (edge.from_card, edge.to_card, edge.type) not in before_edges
+            ],
+            "edge_list": [
+                {"from": edge.from_card, "to": edge.to_card, "type": edge.type}
+                for edge in graph.edges
+            ],
+        }
+        self.graph_dir.mkdir(parents=True, exist_ok=True)
+        with self.journal_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
     def edges(self) -> list[Edge]:
         if not self.edges_path.exists():
@@ -216,6 +274,10 @@ class GraphStore:
         return edges
 
     def apply_patch(self, patch: GraphPatch) -> None:
+        before_cards = set(self.cards.all())
+        before_edges = {
+            (edge.from_card, edge.to_card, edge.type) for edge in self.edges()
+        }
         for card in patch.new_cards:
             self.cards.save(card)
         for update in patch.card_updates:
@@ -261,6 +323,7 @@ class GraphStore:
             edges = self._rewrite_merged_edges(edges, str(keep), str(drop))
 
         self._save_edges(edges)
+        self._append_journal(patch, before_cards, before_edges)
 
     @staticmethod
     def _merge_cards(keep: FunctionCard, drop: FunctionCard) -> None:

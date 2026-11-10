@@ -1,0 +1,11 @@
+{
+  "trace_id": "omninotes-checklist-1",
+  "goal": "Turn a note into a to-do checklist",
+  "prep": "one_note",
+  "actions": [
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/note_title", "wait": 2.0},
+    {"action": "click", "target": "desc=更多选项", "wait": 1.5},
+    {"action": "click", "target": "text=启用待办事项列表", "wait": 2.0},
+    {"action": "back", "wait": 1.5}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "trace_id": "omninotes-sort-1",
+  "goal": "Sort the notes list by title",
+  "prep": "two_notes",
+  "actions": [
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/menu_sort", "wait": 1.5},
+    {"action": "click", "target": "text=标题", "wait": 2.0}
+  ]
+}

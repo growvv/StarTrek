@@ -1,0 +1,18 @@
+{
+  "trace_id": "omninotes-composed-1",
+  "goal": "Create a note titled Groceries, search for it, open it, and share it",
+  "prep": "none",
+  "actions": [
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/fab_expand_menu_button", "wait": 1.0},
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/fab_note", "wait": 1.5},
+    {"action": "input", "target": "resourceId=it.feio.android.omninotes.foss:id/detail_title", "args": "Groceries", "wait": 0.6},
+    {"action": "input", "target": "resourceId=it.feio.android.omninotes.foss:id/detail_content", "args": "Buy milk", "wait": 0.6},
+    {"action": "back", "wait": 0.8},
+    {"action": "back", "wait": 1.5},
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/menu_search", "wait": 1.5},
+    {"action": "input", "target": "resourceId=it.feio.android.omninotes.foss:id/search_src_text", "args": "Groceries", "wait": 1.0},
+    {"action": "press", "target": "", "args": "enter", "wait": 2.0},
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/note_title", "wait": 2.0},
+    {"action": "click", "target": "resourceId=it.feio.android.omninotes.foss:id/menu_share", "wait": 2.5}
+  ]
+}
