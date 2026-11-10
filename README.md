@@ -111,7 +111,8 @@ docs/
 
 - [设计文档](docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md)
 - [真机实验记录（F1–F26）](docs/experiments/2026-11-10-real-device-pilot.md)
-- [AgentProg 复现与讲解](docs/reports/agentprog-explained.html)
+- [AgentProg 复现与讲解](https://growvv.github.io/StarTrek/reports/agentprog-explained.html)（页面在 Pages 上可直接看）
+- [交互演示](https://growvv.github.io/StarTrek/demo/)
 
 ## 引用
 
