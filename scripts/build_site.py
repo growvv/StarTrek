@@ -779,6 +779,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
 
 <footer class="footer"><div class="wrap">
   SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 仓库 <a href="{GITHUB}">{GITHUB}</a>
+  · <a href="{GITHUB}/blob/main/LICENSE">MIT License</a>
 </div></footer>
 </body></html>"""
     (SITE / "index.html").write_text(page, encoding="utf-8")

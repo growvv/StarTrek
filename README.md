@@ -116,6 +116,10 @@ docs/
 - [交互演示](https://growvv.github.io/StarTrek/demo/)
 - [建图动画](https://growvv.github.io/StarTrek/graph/)：一条轨迹一条轨迹，看图怎么长出来
 
+## 许可证
+
+[MIT](LICENSE)
+
 ## 引用
 
 ```bibtex
