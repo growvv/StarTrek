@@ -94,8 +94,11 @@ def layout(
         if name in stack:  # cycle: break it rather than recurse forever
             return 0
         upstream = parents[name]
+        # Sort the parents: an unsorted set makes the depth of a cyclic graph
+        # depend on Python's hash seed, so the published layout would change
+        # from build to build.  Sorting pins the cycle-breaking order.
         value = 0 if not upstream else 1 + max(
-            resolve(parent, stack | {name}) for parent in upstream
+            resolve(parent, stack | {name}) for parent in sorted(upstream)
         )
         depth[name] = value
         return value
@@ -434,15 +437,15 @@ html,body{max-width:100%;overflow-x:hidden}
 .row .why{font-size:.84rem}
 .row .delta{font-family:var(--mono);font-size:.7rem;color:var(--muted);white-space:nowrap}
 .row .delta b{color:#067647}
-@keyframes pop{{
-  from{{transform:scale(.4);opacity:0}}
-  60%{{transform:scale(1.12)}}
-  to{{transform:scale(1);opacity:1}}
-}}
-@keyframes dash{{
-  from{{stroke-dashoffset:26}}
-  to{{stroke-dashoffset:0}}
-}}
+@keyframes pop{
+  from{transform:scale(.4);opacity:0}
+  60%{transform:scale(1.12)}
+  to{transform:scale(1);opacity:1}
+}
+@keyframes dash{
+  from{stroke-dashoffset:26}
+  to{stroke-dashoffset:0}
+}
 .legend{display:flex;gap:16px;flex-wrap:wrap;margin:16px 0 0;font-size:.76rem;
   color:var(--muted);font-family:var(--mono)}
 .legend i{display:inline-block;width:22px;height:0;border-top:3px solid;margin-right:6px;
@@ -454,6 +457,53 @@ html,body{max-width:100%;overflow-x:hidden}
 .note b{color:#8a5a00}
 .grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:22px}
 .grid-two > *{min-width:0}
+
+/* motion layer — same vocabulary as the homepage: AOS scroll reveal,
+   load/reading bars, and a breathing play button that invites the click. */
+.loadbar{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,#246bfe,var(--violet) 55%,var(--teal));
+  box-shadow:0 0 14px rgba(122,72,207,.45);
+  transition:width .32s ease,opacity .5s ease}
+.loadbar.done{opacity:0}
+.scrollbar{position:absolute;left:0;right:0;bottom:-1px;height:2px;width:0;
+  background:linear-gradient(90deg,#246bfe,var(--violet),var(--teal));
+  transition:width .1s linear}
+.hero{position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:-20% 0 auto;height:150%;z-index:0;pointer-events:none}
+.hero-glow i{position:absolute;display:block;border-radius:50%;
+  filter:blur(52px);opacity:.5;animation:drift 16s ease-in-out infinite alternate}
+.hero-glow i:nth-child(1){width:420px;height:420px;left:8%;top:-160px;background:#cfe0ff}
+.hero-glow i:nth-child(2){width:360px;height:360px;right:9%;top:-40px;background:#e8ddff;
+  animation-delay:-6s}
+.hero-glow i:nth-child(3){width:300px;height:300px;left:46%;top:90px;background:#d5f5f1;
+  animation-delay:-11s}
+.hero .wrap{position:relative;z-index:1}
+@keyframes drift{
+  from{transform:translate3d(0,0,0) scale(1)}
+  to{transform:translate3d(42px,28px,0) scale(1.13)}
+}
+@keyframes bump{
+  0%{transform:scale(1)}
+  40%{transform:scale(1.16);color:var(--violet)}
+  100%{transform:scale(1)}
+}
+@keyframes breathe{
+  0%,100%{box-shadow:0 0 0 0 rgba(122,72,207,.30)}
+  50%{box-shadow:0 0 0 7px rgba(122,72,207,0)}
+}
+[data-aos="fade-up"]{transform:translate3d(0,36px,0)}
+.metric b.bump{animation:bump .45s ease}
+.controls button.primary{animation:breathe 2.6s ease-in-out infinite}
+.controls button{transition:background .15s ease,transform .15s ease}
+.controls button:active{transform:scale(.97)}
+.row{transition:background .18s ease,transform .18s ease}
+.row:hover{transform:translateX(2px)}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;
+    animation-iteration-count:1!important;transition-duration:.001ms!important}
+  [data-aos]{opacity:1!important;transform:none!important}
+}
 @media (max-width:900px){
   .stage{grid-template-columns:minmax(0,1fr)}
   .grid-two{grid-template-columns:minmax(0,1fr)}
@@ -525,22 +575,27 @@ def build_page(
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>图是怎么长出来的 — SpecFCG</title>
-<style>{CSS}</style></head><body>
+<link rel="stylesheet" href="../assets/vendor/aos.css">
+<noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
+<style>{CSS}</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
+<div class="loadbar" id="pageload"></div>
 <nav class="nav"><div class="nav-in">
   <a class="brand" href="../index.html">Spec<span>FCG</span></a>
   <div><a href="../index.html">主页</a><a href="../index.html#results">效果</a>
     <a href="../demo/">执行演示</a></div>
-</div></nav>
+</div><div class="scrollbar" id="scrollbar"></div></nav>
 
-<header class="hero"><div class="wrap">
-  <p class="kicker">Graph Construction · Replay</p>
-  <h1>图不是画出来的，是一条轨迹一条轨迹长出来的</h1>
-  <p class="sub">下面每一帧都对应一次真实的 <code>apply_patch</code>：归纳出一张卡片、从轨迹里读出顺序边、
+<header class="hero">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="wrap">
+  <p class="kicker" data-aos="fade-up">Graph Construction · Replay</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">图不是画出来的，是一条轨迹一条轨迹长出来的</h1>
+  <p class="sub" data-aos="fade-up" data-aos-delay="140">下面每一帧都对应一次真实的 <code>apply_patch</code>：归纳出一张卡片、从轨迹里读出顺序边、
   或让 LLM 补一条语义边。数据来自 <code>{esc(root_label)}/graph/journal.jsonl</code>，未做人工编排。</p>
 </div></header>
 
 <div class="wrap">
-  <div class="stage">
+  <div class="stage" data-aos="fade-up" data-aos-delay="120">
     <div class="canvas">
       <span class="counter" id="counter">1 / {len(frames_data)}</span>
       <svg id="graph" viewBox="0 0 {width} {height}" role="img" aria-label="Function Contract Graph 构建动画"></svg>
@@ -759,6 +814,15 @@ function draw(frame) {{
   }}
 }}
 
+function setMetric(id, value) {{
+  const node = document.getElementById(id);
+  if (node.textContent === String(value)) return;
+  node.textContent = value;
+  node.classList.remove('bump');
+  void node.offsetWidth;
+  node.classList.add('bump');
+}}
+
 function show(index) {{
   current = Math.max(0, Math.min(DATA.frames.length - 1, index));
   const frame = DATA.frames[current];
@@ -772,9 +836,9 @@ function show(index) {{
   if (frame.edges_added) parts.push('本帧 +' + frame.edges_added + ' 条边');
   if (frame.paths) parts.push('此刻图上可规划 ' + frame.paths + ' 条多卡路径');
   document.getElementById('why').textContent = parts.length ? parts.join('；') + '。' : '这一帧没有改变图结构。';
-  document.getElementById('m-cards').textContent = frame.cards_total;
-  document.getElementById('m-edges').textContent = frame.edges_total;
-  document.getElementById('m-paths').textContent = frame.paths || 0;
+  setMetric('m-cards', frame.cards_total);
+  setMetric('m-edges', frame.edges_total);
+  setMetric('m-paths', frame.paths || 0);
   const list = document.getElementById('paths-list');
   while (list.firstChild) list.removeChild(list.firstChild);
   const examples = (frame.examples || []).slice(0, 4);
@@ -839,6 +903,8 @@ document.addEventListener('keydown', (e) => {{
 const start = Number((location.hash.match(/frame=([0-9]+)/) || [])[1]);
 show(Number.isFinite(start) && start > 0 ? start - 1 : 0);
 </script>
+<script src="../assets/vendor/aos.js"></script>
+<script src="../assets/vendor/motion.js"></script>
 </body></html>"""
 
 

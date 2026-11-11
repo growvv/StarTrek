@@ -26,6 +26,8 @@ SITE = ROOT / "docs"
 DEMO = SITE / "demo"
 ASSETS = SITE / "assets"
 EVIDENCE = SITE / "evidence"
+VENDOR_SRC = ROOT / "scripts" / "site_vendor"
+VENDOR_OUT = ASSETS / "vendor"
 REAL = ROOT / "runs" / "real"
 # The demo graph is a superset of the pilot graph: it is rebuilt from every
 # trace we recorded, in the order an explorer would collect them, and it is the
@@ -170,6 +172,7 @@ h1{max-width:1080px;margin:0 auto;font-family:var(--display);
 .stat span{color:var(--muted);font-size:.8rem}
 .section{padding:82px 0}
 .section.alt{background:rgba(238,246,249,.72)}
+section[id]{scroll-margin-top:84px}
 .wrap{width:min(1180px,calc(100% - 40px));margin:0 auto}
 .section-head{display:grid;grid-template-columns:minmax(0,.9fr) minmax(320px,.72fr);
   gap:52px;align-items:end;margin-bottom:28px}
@@ -265,6 +268,79 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 .cta .button{background:#fff;border-color:#fff;color:var(--ink)}
 .footer{padding:46px 0 60px;color:var(--quiet);font-size:.8rem;text-align:center}
 .footer a{color:var(--muted)}
+
+/* ---- motion layer ----
+   The vocabulary is borrowed rather than invented: AOS (scroll reveal) and
+   CountUp (stat counters), both MIT, plus the usual landing-page plumbing —
+   a load bar, a reading-progress bar, staggered groups, image skeletons. */
+.loadbar{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,var(--blue),var(--violet) 55%,var(--teal));
+  box-shadow:0 0 14px rgba(122,72,207,.45);
+  transition:width .32s ease,opacity .5s ease}
+.loadbar.done{opacity:0}
+.scrollbar{position:absolute;left:0;right:0;bottom:-1px;height:2px;width:0;
+  background:linear-gradient(90deg,var(--blue),var(--violet),var(--teal));
+  transition:width .1s linear}
+.hero{position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:-10% 0 auto;height:125%;z-index:0;pointer-events:none}
+.hero-glow i{position:absolute;display:block;border-radius:50%;
+  filter:blur(52px);opacity:.55;animation:drift 16s ease-in-out infinite alternate}
+.hero-glow i:nth-child(1){width:460px;height:460px;left:4%;top:-150px;background:#cfe0ff}
+.hero-glow i:nth-child(2){width:380px;height:380px;right:6%;top:-80px;background:#e8ddff;
+  animation-delay:-6s}
+.hero-glow i:nth-child(3){width:320px;height:320px;left:44%;top:110px;background:#d5f5f1;
+  animation-delay:-11s}
+.hero-inner,.scroll-cue{position:relative;z-index:1}
+.scroll-cue{display:inline-flex;align-items:center;gap:8px;margin-top:22px;
+  color:var(--quiet);font-family:var(--mono);font-size:.7rem}
+.scroll-cue span{display:inline-block;animation:bob 1.9s ease-in-out infinite}
+@keyframes drift{
+  from{transform:translate3d(0,0,0) scale(1)}
+  to{transform:translate3d(46px,30px,0) scale(1.14)}
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+@keyframes sweep{from{left:-60%}to{left:130%}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.16);color:var(--violet)}
+  100%{transform:scale(1)}}
+
+/* AOS ships a 100px travel; 36px reads calmer on a paper-like page. */
+[data-aos="fade-up"]{transform:translate3d(0,36px,0)}
+/* Nav underline + button shine: the standard product-page micro-interactions. */
+.nav-links a{position:relative}
+.nav-links a::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:2px;
+  border-radius:2px;background:currentColor;transform:scaleX(0);transform-origin:left;
+  transition:transform .22s ease}
+.nav-links a:hover::after{transform:scaleX(1)}
+.button{position:relative;overflow:hidden}
+.button.primary::after{content:"";position:absolute;top:0;bottom:0;width:45%;left:-60%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.34),transparent);
+  transform:skewX(-18deg);pointer-events:none}
+.button.primary:hover::after{animation:sweep .8s ease}
+.card,.stat,.step,.shot-strip figure{transition:transform .26s cubic-bezier(.2,.7,.2,1),
+  box-shadow .26s ease,border-color .26s ease}
+[data-aos].card:hover,[data-aos].stat:hover,[data-aos].step:hover,
+[data-aos].shot-strip figure:hover{transform:translateY(-4px);
+  box-shadow:0 22px 48px rgba(42,65,100,.16);
+  transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease}
+.shot-strip figure{position:relative}
+/* Reserve the phone aspect ratio before the JPEG lands, so the strip never
+   collapses and then jumps, and the shimmer covers exactly the image. */
+.shot-strip figure::after{content:"";position:absolute;left:8px;right:8px;top:8px;
+  aspect-ratio:540/1202;border-radius:8px;pointer-events:none;
+  background:linear-gradient(100deg,#e9eff7 20%,#fafcff 47%,#e9eff7 74%);
+  background-size:220% 100%;animation:shimmer 1.15s linear infinite;
+  transition:opacity .45s ease}
+.shot-strip figure.loaded::after{opacity:0}
+.shot-strip img{width:100%;aspect-ratio:540/1202;opacity:0;transition:opacity .5s ease}
+.shot-strip img.loaded{opacity:1}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;
+    animation-iteration-count:1!important;transition-duration:.001ms!important;
+    scroll-behavior:auto!important}
+  [data-aos]{opacity:1!important;transform:none!important}
+}
 /* demo page */
 .demo-shell{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:26px;
   align-items:start;margin-top:18px}
@@ -291,6 +367,25 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 .controls button:hover{background:#f4f8fc}
 .demo-note{background:#fbfdff;border:1px solid var(--line);border-radius:12px;
   padding:14px 16px;font-size:.84rem;color:#334155;margin-top:14px}
+/* demo motion: screenshot shimmer, sliding step accent, snappy buttons */
+.phone{position:relative}
+.phone::after{content:"";position:absolute;left:12px;right:12px;top:12px;
+  aspect-ratio:540/1202;border-radius:18px;pointer-events:none;
+  background:linear-gradient(100deg,#e9eff7 20%,#fafcff 47%,#e9eff7 74%);
+  background-size:220% 100%;animation:shimmer 1.15s linear infinite;
+  transition:opacity .45s ease}
+.phone.loaded::after{opacity:0}
+.phone img{aspect-ratio:540/1202;opacity:0;transition:opacity .5s ease}
+.phone img.loaded{opacity:1}
+.step-item{position:relative;overflow:hidden;
+  transition:border-color .15s ease,box-shadow .15s ease,transform .18s ease}
+.step-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--violet);transform:scaleY(0);transform-origin:top;
+  transition:transform .25s ease}
+.step-item:hover{transform:translateX(2px)}
+.step-item.active::before{transform:scaleY(1)}
+.controls button{transition:background .15s ease,transform .15s ease}
+.controls button:active{transform:scale(.97)}
 @media (max-width:1000px){
   .patch-diff{grid-template-columns:minmax(0,1fr)}
   .section-head,.grid.two,.grid.three,.stats,.pipeline,.shot-strip,.demo-shell{
@@ -310,17 +405,43 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 
 DEMO_JS = """
 const steps = __STEPS__;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let current = 0;
+const phone = document.querySelector('.phone');
 const img = document.getElementById('phone-img');
 const counter = document.getElementById('phone-counter');
 const list = document.getElementById('step-list');
 const note = document.getElementById('step-note');
-function render() {
-  const step = steps[current];
+
+// Swap the screenshot through a shimmer: the old frame fades out, the new one
+// fades in only once it has decoded, so a slow image never flashes white.
+function setImage(step) {
+  phone.classList.remove('loaded');
+  img.classList.remove('loaded');
+  img.onload = img.onerror = () => {
+    img.classList.add('loaded');
+    phone.classList.add('loaded');
+  };
   img.src = step.image;
   img.alt = step.title;
-  counter.textContent = (current + 1) + ' / ' + steps.length;
-  note.textContent = step.note;
+  if (img.complete && img.naturalWidth) img.onload();
+}
+
+function pulse(node, text) {
+  node.textContent = text;
+  if (!reduce && node.animate) {
+    node.animate(
+      [{opacity: .2, transform: 'translateY(4px)'}, {opacity: 1, transform: 'none'}],
+      {duration: 240, easing: 'ease-out'}
+    );
+  }
+}
+
+function render() {
+  const step = steps[current];
+  setImage(step);
+  pulse(counter, (current + 1) + ' / ' + steps.length);
+  pulse(note, step.note);
   [...list.children].forEach((el, i) => {
     el.classList.toggle('active', i === current);
   });
@@ -339,6 +460,8 @@ document.addEventListener('keydown', (e) => {
 steps.forEach((step, index) => {
   const el = document.createElement('div');
   el.className = 'step-item';
+  el.setAttribute('data-aos', 'fade-up');
+  el.setAttribute('data-aos-delay', String((index % 5) * 45));
   el.innerHTML = '<div class="idx">' + (index + 1) + '</div>' +
     '<div><b>' + step.title + '</b><span>' + step.action + '</span></div>';
   el.addEventListener('click', () => jump(index));
@@ -387,7 +510,10 @@ def build_demo_page() -> None:
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SpecFCG 演示 — 一次真实执行</title>
-<style>{CSS}</style></head><body>
+<link rel="stylesheet" href="../assets/vendor/aos.css">
+<noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
+<style>{CSS}</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
+<div class="loadbar" id="pageload"></div>
 <nav class="site-nav"><div class="nav-inner">
   <a class="brand" href="../index.html">Spec<span>FCG</span></a>
   <div class="nav-links">
@@ -395,15 +521,17 @@ def build_demo_page() -> None:
     <a href="../graph/">建图动画</a><a href="../index.html#demo">演示</a>
     <a href="../index.html#results">效果</a><a href="../index.html#usage">使用</a>
   </div>
-</div></nav>
+</div><div class="scrollbar" id="scrollbar"></div></nav>
 
-<header class="hero" style="padding-top:96px"><div class="hero-inner">
-  <p class="eyebrow">Interactive Demo</p>
-  <h1>一次真实执行：创建 → 搜索 → 打开 → 分享 → 归档</h1>
-  <p class="hero-sub">目标：<code>Create a note titled Groceries with content Buy milk, then search for it,
+<header class="hero" style="padding-top:96px">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+  <p class="eyebrow" data-aos="fade-up">Interactive Demo</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">一次真实执行：创建 → 搜索 → 打开 → 分享 → 归档</h1>
+  <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">目标：<code>Create a note titled Groceries with content Buy milk, then search for it,
   open the note, and share it</code>。下面是 Pixel 9 Pro XL 上的真实截图，逐步对应
   Planner 选出的卡片路径与 Executor 编译出的动作。</p>
-  <div class="hero-actions">
+  <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
     <a class="button primary" href="../index.html">← 返回项目主页</a>
     <a class="button accent" href="../index.html#results">看完整结果</a>
   </div>
@@ -432,6 +560,8 @@ def build_demo_page() -> None:
   </div>
 </div></section>
 <script>{js}</script>
+<script src="../assets/vendor/aos.js"></script>
+<script src="../assets/vendor/motion.js"></script>
 </body></html>"""
     DEMO.mkdir(parents=True, exist_ok=True)
     (DEMO / "index.html").write_text(page, encoding="utf-8")
@@ -533,7 +663,10 @@ def build_index() -> None:
 <meta property="og:url" content="https://growvv.github.io/StarTrek/">
 <meta name="twitter:card" content="summary_large_image">
 <title>SpecFCG — 函数契约图驱动的移动 GUI 测试生成</title>
-<style>{CSS}</style></head><body>
+<link rel="stylesheet" href="assets/vendor/aos.css">
+<noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
+<style>{CSS}</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
+<div class="loadbar" id="pageload"></div>
 <nav class="site-nav"><div class="nav-inner">
   <a class="brand" href="#">Spec<span>FCG</span></a>
   <div class="nav-links">
@@ -541,26 +674,30 @@ def build_index() -> None:
     <a href="#innovations">核心点</a><a href="#demo">演示</a>
     <a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
   </div>
-</div></nav>
+</div><div class="scrollbar" id="scrollbar"></div></nav>
 
-<header class="hero"><div class="hero-inner">
-  <p class="eyebrow">SpecFCG · Function Contract Graph</p>
-  <h1>把手机 App 的测试写成“函数契约图”，再让图搜索生成可执行测试</h1>
-  <p class="hero-sub">从真实执行轨迹里归纳用户级 function card（意图、参数、前后置条件、步骤、证据），
+<header class="hero">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+  <p class="eyebrow" data-aos="fade-up">SpecFCG · Function Contract Graph</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">把手机 App 的测试写成“函数契约图”，再让图搜索生成可执行测试</h1>
+  <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">从真实执行轨迹里归纳用户级 function card（意图、参数、前后置条件、步骤、证据），
   组织成可组合的 Function Contract Graph，用目标驱动的图遍历合成测试计划，
   执行结果再反过来修补卡片与边。</p>
-  <div class="hero-actions">
+  <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
     <a class="button primary" href="{GITHUB}" target="_blank" rel="noopener">GitHub 仓库</a>
     <a class="button accent" href="demo/index.html">交互演示（10 步真实截图）</a>
     <a class="button teal" href="{GITHUB}/blob/main/docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md" target="_blank" rel="noopener">设计文档</a>
   </div>
+  <div class="scroll-cue" data-aos="fade-up" data-aos-delay="300">
+    <span>↓</span>往下看：图是怎么一条轨迹一条轨迹长出来的</div>
 </div></header>
 
 <div class="stats">
-  <div class="stat"><b>{n_cards}</b><span>从真实轨迹归纳的 function card</span></div>
-  <div class="stat"><b>{n_edges}</b><span>enables / dataflow / sequence 边</span></div>
-  <div class="stat"><b>{passes}/{total or '—'}</b><span>真机组合目标通过（最后一轮）</span></div>
-  <div class="stat"><b>204</b><span>离线单元测试全部通过</span></div>
+  <div class="stat"><b data-count-to="{n_cards}">{n_cards}</b><span>从真实轨迹归纳的 function card</span></div>
+  <div class="stat"><b data-count-to="{n_edges}">{n_edges}</b><span>enables / dataflow / sequence 边</span></div>
+  <div class="stat"><b data-count-to="{passes}" data-count-suffix="/{total or '—'}">{passes}/{total or '—'}</b><span>真机组合目标通过（最后一轮）</span></div>
+  <div class="stat"><b data-count-to="204">204</b><span>离线单元测试全部通过</span></div>
 </div>
 
 <section class="section" id="why"><div class="wrap">
@@ -779,8 +916,13 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
 
 <footer class="footer"><div class="wrap">
   SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 仓库 <a href="{GITHUB}">{GITHUB}</a>
-  · <a href="{GITHUB}/blob/main/LICENSE">MIT License</a>
+  · <a href="{GITHUB}/blob/main/LICENSE">MIT License</a><br>
+  动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
+  · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
 </div></footer>
+<script src="assets/vendor/aos.js"></script>
+<script src="assets/vendor/countup.umd.js"></script>
+<script src="assets/vendor/motion.js"></script>
 </body></html>"""
     (SITE / "index.html").write_text(page, encoding="utf-8")
 
@@ -827,8 +969,24 @@ def publish_evidence() -> None:
     )
 
 
+def publish_vendor() -> None:
+    """Publish the third-party motion assets the pages load.
+
+    AOS (scroll reveal) and CountUp.js (stat counters) are copied verbatim
+    from their MIT-licensed distributions; ``motion.js`` is the small glue
+    file that wires them up.  Keeping the source copies under ``scripts/``
+    means a fresh checkout can rebuild ``docs/`` without network access.
+    """
+    VENDOR_OUT.mkdir(parents=True, exist_ok=True)
+    for name in ("aos.css", "aos.js", "countup.umd.js", "motion.js", "README.md"):
+        src = VENDOR_SRC / name
+        if src.exists():
+            shutil.copy2(src, VENDOR_OUT / name)
+
+
 def main() -> int:
     ASSETS.mkdir(parents=True, exist_ok=True)
+    publish_vendor()
     publish_evidence()
     build_index()
     build_demo_page()
