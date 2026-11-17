@@ -38,3 +38,34 @@ def test_recorder_collects_steps():
     assert trace.trace_id == "t1"
     assert trace.app == "omninotes"
     assert trace.steps == [Step(action="click", target="text=+")]
+
+
+def test_digest_ignores_recording_metadata(sample_trace):
+    """The digest identifies the evidence, not the recording session.
+
+    Device, clock and other metadata say when a trace was captured; they do
+    not change the function it demonstrates, so they must not make the same
+    evidence look new.
+    """
+    from dataclasses import replace
+
+    from specfcg.traces.recorder import trace_digest
+
+    other = replace(
+        sample_trace, metadata={"device": "another", "when": "later"}
+    )
+
+    assert trace_digest(sample_trace) == trace_digest(other)
+
+
+def test_digest_changes_when_the_steps_change(sample_trace):
+    from dataclasses import replace
+
+    from specfcg.traces.recorder import trace_digest
+
+    other = replace(
+        sample_trace,
+        steps=sample_trace.steps + [Step(action="click", target="text=Share")],
+    )
+
+    assert trace_digest(sample_trace) != trace_digest(other)

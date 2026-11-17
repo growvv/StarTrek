@@ -26,6 +26,7 @@ from specfcg.models import (
     Trace,
 )
 from specfcg.planner.planner import Planner
+from specfcg.traces.recorder import trace_digest
 
 logger = logging.getLogger(__name__)
 
@@ -76,13 +77,17 @@ class Pipeline:
         return self.graph
 
     def _apply_patch(
-        self, patch: GraphPatch, *, backup: bool = False
+        self,
+        patch: GraphPatch,
+        *,
+        backup: bool = False,
+        origin: dict[str, Any] | None = None,
     ) -> None:
         version = None
         if backup:
             version = self.store.backup()
         try:
-            self.store.apply_patch(patch)
+            self.store.apply_patch(patch, origin=origin)
         except Exception:
             if version is not None:
                 self.store.restore(version)
@@ -90,6 +95,13 @@ class Pipeline:
         self._reload_graph()
 
     def mine_trace(self, trace: Trace) -> CardPatch:
+        digest = trace_digest(trace)
+        if self.store.applied(digest):
+            logger.info(
+                "trace %s is already in the graph; nothing to mine",
+                trace.trace_id,
+            )
+            return CardPatch()
         patch = self.miner.mine(trace)
         cards = self.card_store.all()
         for card in patch.new_cards:
@@ -102,7 +114,12 @@ class Pipeline:
                 card_updates=patch.updates,
                 edge_updates=[_edge_update(edge) for edge in edges],
                 reason=f"mined trace {trace.trace_id} -> {names}",
-            )
+            ),
+            origin={
+                "kind": "trace",
+                "id": trace.trace_id,
+                "digest": digest,
+            },
         )
         return patch
 
@@ -123,6 +140,21 @@ class Pipeline:
     ) -> TestPlan | None:
         return self.planner.plan(
             Goal(description=goal_text, app=app), state
+        )
+
+    def plan_path(
+        self, goal_text: str, path: list[str], state: str = "", app: str = ""
+    ) -> TestPlan | None:
+        """Compile one specific card path, without searching for another.
+
+        A probe predicts the path it expects the graph to take; executing
+        that path is what makes the prediction testable.  Searching again
+        would measure a different path than the one whose confidence was
+        reported.
+        """
+        goal = Goal(description=goal_text, app=app)
+        return self.planner.compile_path(
+            goal, list(path), [goal_text] * len(path), state
         )
 
     def execute_goal(

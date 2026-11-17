@@ -177,15 +177,30 @@ class Planner:
         )
         if not lines:
             return set(), []
+        wanted = set(candidates)
+        edges = "\n".join(
+            f"- {edge.from_card} -> {edge.to_card} ({edge.type})"
+            for edge in self.graph.edges
+            if edge.from_card in wanted
+            and edge.to_card in wanted
+            and edge.type in {"enables", "sequence"}
+        )
         prompt = (
             f"Goal: {goal.description}\nCurrent state:\n{state[:4000]}\n\n"
             f"Cards:\n{lines}\n\n"
+            f"Execution edges among these cards (predecessor -> successor):\n"
+            f"{edges or '- none'}\n\n"
             "For each card decide:\n"
             "- can_execute: can the card run in this state?\n"
             "- is_goal: does executing this card, on its own, fully "
             "satisfy the goal?\n\n"
             "Also propose an ordered execution plan that fully achieves "
-            "the goal from the current state, using only these cards. "
+            "the goal from the current state, using only these cards and "
+            "following the execution edges: each step must be enabled by "
+            "an earlier step, or be executable in the current state "
+            "itself. Several steps can be independent of one another when "
+            "the current screen already satisfies them; keep every step "
+            "the goal needs, in an order that works. "
             'Each plan item is {"card": "<name>", "subgoal": "<what that '
             'step must accomplish>"}. You may use a card more than once '
             "when the goal needs several instances; give each occurrence "
@@ -252,17 +267,51 @@ class Planner:
         for previous, current in zip(cards, cards[1:]):
             if previous == current:
                 continue
-            if not any(
+            if any(
                 edge.from_card == previous
                 and edge.to_card == current
                 and edge.type in {"enables", "sequence"}
                 for edge in self.graph.edges
             ):
-                return False
+                continue
+            # A step whose preconditions the current screen already
+            # satisfies needs no predecessor: both cards are executable
+            # from where the plan starts.  Demanding an edge would reject
+            # routes the state itself makes valid.
+            if self._can_execute(current, state):
+                continue
+            return False
         return True
 
+    def _with_connectors(self, candidates: list[str]) -> list[str]:
+        """Close the candidate set under execution predecessors.
+
+        Retrieval keeps cards that resemble the goal.  A step that must
+        happen *between* two goal-shaped cards -- returning to the notes
+        list before searching, opening the drawer before a menu item --
+        rarely resembles the goal text, so pure relevance ranking drops it
+        and the planner then rejects every route the graph knows.  One hop
+        of predecessors restores the bridges; the graph, not the keyword
+        score, decides what is reachable.
+        """
+        wanted = set(candidates)
+        result = list(candidates)
+        for edge in self.graph.edges:
+            if edge.type not in {"enables", "sequence"}:
+                continue
+            if (
+                edge.to_card in wanted
+                and edge.from_card in self.graph.cards
+                and edge.from_card not in wanted
+            ):
+                wanted.add(edge.from_card)
+                result.append(edge.from_card)
+        return result
+
     def plan(self, goal: Goal, state: str) -> TestPlan | None:
-        candidates = self.retriever.retrieve(goal, self.graph.cards)
+        candidates = self._with_connectors(
+            self.retriever.retrieve(goal, self.graph.cards)
+        )
         if not candidates:
             return None
         classified, proposals = self._prefetch(candidates, goal, state)
@@ -295,16 +344,14 @@ class Planner:
         if classified and self._valid_proposal(
             proposals, allowed, state
         ):
-            proposed_path = [
-                proposal.card for proposal in proposals
-            ]
-            if self._plan_completes_goal(
-                tuple(proposed_path), goal, state
-            ):
-                path = proposed_path
-                subgoals = [
-                    proposal.subgoal for proposal in proposals
-                ]
+            # The batch proposed this plan over the graph's own edges; it
+            # already knows the goal and every contract it is composing.
+            # Asking the same model to certify its own plan is not
+            # independent evidence, and it rejects valid compositions while
+            # accepting invalid ones.  Execution and the benchmark oracle
+            # are the verification.
+            path = [proposal.card for proposal in proposals]
+            subgoals = [proposal.subgoal for proposal in proposals]
 
         if path is None:
             path = search(
@@ -320,6 +367,22 @@ class Planner:
                 return None
             subgoals = [goal.description] * len(path)
 
+        return self.compile_path(goal, path, subgoals, state)
+
+    def compile_path(
+        self,
+        goal: Goal,
+        path: list[str],
+        subgoals: list[str],
+        state: str,
+    ) -> TestPlan | None:
+        """Compile a chosen card path into steps.
+
+        A plan is a path plus the bindings and steps for each card on it.
+        Choosing the path is the search; turning it into steps is the same
+        work whoever chose it, so a probe that predicted a path can execute
+        exactly that path instead of re-searching for one.
+        """
         prior_outputs: dict[str, str] = {}
         steps = []
         assertions = [goal.description]

@@ -131,6 +131,188 @@ def test_batch_classification_falls_back_per_card_on_malformed_output(
     assert plan.path == ["create_note", "share_note"]
 
 
+def test_plan_prompt_states_the_rule_the_validator_applies(fake_llm):
+    """A step the current screen already enables needs no predecessor.  The
+    prompt must say so: otherwise the model drops the second independent
+    step and the goal is left with a partial plan."""
+    graph = Graph(
+        cards={
+            "start": FunctionCard(
+                name="start", intent="start", inputs=[], preconditions="",
+                postconditions="", effects_outputs="", steps=["click text=Go"],
+            ),
+            "open": FunctionCard(
+                name="open", intent="open", inputs=[], preconditions="",
+                postconditions="", effects_outputs="", steps=["click text=Go"],
+            ),
+        },
+        edges=[],
+    )
+    fake_llm.responses = [
+        {
+            "cards": [
+                {"name": "start", "can_execute": False, "is_goal": False},
+                {"name": "open", "can_execute": False, "is_goal": False},
+            ]
+        }
+    ]
+
+    _planner(graph, fake_llm).plan(Goal("start then open"), "home")
+
+    assert "executable in the current state" in fake_llm.prompts[0]
+
+
+def test_plan_accepts_a_step_the_current_state_already_enables(fake_llm):
+    """A step is reachable when the screen already satisfies its
+    preconditions; it does not need an edge from an earlier step.
+
+    Two cards can both be executable from the same screen (start recording
+    an activity, open the drawer).  Demanding an execution edge between them
+    rejects the plan the state itself makes valid, and the goal is left with
+    no plan even though both steps run.
+    """
+
+    def card(name: str) -> FunctionCard:
+        return FunctionCard(
+            name=name, intent=f"do {name}", inputs=[], preconditions="",
+            postconditions="", effects_outputs="", steps=["click text=Go"],
+        )
+
+    graph = Graph(
+        cards={name: card(name) for name in ("start", "search")},
+        edges=[],
+    )
+    fake_llm.responses = [
+        {
+            "cards": [
+                {"name": "start", "can_execute": True, "is_goal": False},
+                {"name": "search", "can_execute": True, "is_goal": False},
+            ],
+            "plan": [
+                {"card": "start", "subgoal": "start recording"},
+                {"card": "search", "subgoal": "search for it"},
+            ],
+        },
+    ]
+
+    plan = _planner(graph, fake_llm).plan(
+        Goal("start recording, then search for it"), "home"
+    )
+
+    assert plan is not None and plan.path == ["start", "search"]
+
+
+def test_planning_expands_candidates_with_graph_connectors(fake_llm):
+    """Retrieval picks goal-shaped cards; the graph supplies the bridges.
+
+    A step that must happen between two goal-shaped cards (returning to the
+    list before searching) rarely resembles the goal text, so keyword
+    retrieval drops it.  Dropping a bridge makes the graph's own routes
+    unplannable; the candidate set is closed under execution predecessors.
+    """
+
+    def card(name: str) -> FunctionCard:
+        return FunctionCard(
+            name=name, intent=f"do {name}", inputs=[], preconditions="",
+            postconditions="", effects_outputs="", steps=["click text=Go"],
+        )
+
+    graph = Graph(
+        cards={name: card(name) for name in ("start", "bridge", "target")},
+        edges=[
+            Edge(from_card="start", to_card="bridge", type="enables"),
+            Edge(from_card="bridge", to_card="target", type="enables"),
+        ],
+    )
+    planner = _planner(graph, fake_llm)
+    planner.retriever = type(
+        "R", (), {"retrieve": lambda self, goal, cards: ["start", "target"]}
+    )()
+    fake_llm.responses = [
+        {
+            "cards": [
+                {"name": "start", "can_execute": True, "is_goal": False},
+            ],
+            "plan": [
+                {"card": "start", "subgoal": "start"},
+                {"card": "bridge", "subgoal": "bridge"},
+                {"card": "target", "subgoal": "target"},
+            ],
+        },
+    ]
+
+    plan = planner.plan(Goal("start then bridge then target"), "screen")
+
+    assert plan is not None and plan.path == ["start", "bridge", "target"]
+    # The batch prompt must show the bridge card and the edges through it,
+    # or the model cannot propose the route the graph already knows.
+    assert "- bridge:" in fake_llm.prompts[0]
+    assert "- bridge -> target (enables)" in fake_llm.prompts[0]
+
+
+def test_proposal_is_planned_over_the_graph_edges(fake_llm, sample_graph):
+    """The batch prompt carries the execution edges, so its plan is a graph
+    plan rather than free-form model improvisation."""
+    fake_llm.responses = [
+        {
+            "cards": [
+                {"name": "create_note", "can_execute": True, "is_goal": False},
+                {"name": "share_note", "can_execute": False, "is_goal": True},
+            ],
+            "plan": [
+                {"card": "create_note", "subgoal": "create the note"},
+                {"card": "share_note", "subgoal": "share it"},
+            ],
+        },
+        {"bindings": {"title": "Trip"}},
+        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
+        {"bindings": {}},
+        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
+    ]
+
+    plan = _planner(sample_graph, fake_llm).plan(
+        Goal("create and share a note"), "start"
+    )
+
+    assert plan is not None and plan.path == ["create_note", "share_note"]
+    assert "create_note -> share_note" in fake_llm.prompts[0]
+
+
+def test_batch_proposal_is_not_certified_again_by_the_same_model(
+    fake_llm, sample_graph,
+):
+    """One model is not independent evidence about its own plan.
+
+    The batch already proposed an ordered plan over the graph; asking the
+    same model a second time whether that plan reaches the goal rejects
+    valid compositions (and accepts invalid ones like an extra pin step).
+    Execution and the benchmark oracle are the verification.
+    """
+    fake_llm.responses = [
+        {
+            "cards": [
+                {"name": "create_note", "can_execute": True, "is_goal": False},
+                {"name": "share_note", "can_execute": False, "is_goal": True},
+            ],
+            "plan": [
+                {"card": "create_note", "subgoal": "create the note"},
+                {"card": "share_note", "subgoal": "share it"},
+            ],
+        },
+        {"bindings": {"title": "Trip"}},
+        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
+        {"bindings": {}},
+        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
+    ]
+
+    plan = _planner(sample_graph, fake_llm).plan(
+        Goal("create and share a note"), "start"
+    )
+
+    assert plan is not None and plan.path == ["create_note", "share_note"]
+    assert fake_llm.calls == 5  # batch + 2 binds + 2 compiles, no extra check
+
+
 def test_plan_returns_none_when_no_path(fake_llm, sample_graph):
     fake_llm.responses = [
         {
@@ -354,7 +536,9 @@ def test_llm_proposed_plan_avoids_combinatorial_goal_checks(fake_llm):
 
     assert plan is not None
     assert plan.path == ["A", "B", "C"]
-    assert len(fake_llm.prompts) == 2
+    # One call: the batch that proposed the plan over the graph's edges.
+    # No second certification by the same model, and no per-path checks.
+    assert len(fake_llm.prompts) == 1
     assert "propose an ordered execution plan" in fake_llm.prompts[0]
 
 
@@ -554,5 +738,56 @@ def test_plan_rejects_multi_card_path_that_does_not_complete_goal(
 
     assert (
         _planner(_cyclic_graph(), fake_llm).plan(Goal("do B"), "start")
+        is None
+    )
+
+
+def test_compile_path_plans_exactly_the_path_it_is_given(fake_llm):
+    """A probe predicted a path; executing it must not re-search.
+
+    The calibration metric compares a path's predicted confidence against
+    whether that path reached the function.  If the runner searched again,
+    the executed path would be a different one, and the comparison would say
+    nothing about the estimate.
+    """
+    fake_llm.responses = [
+        {"bindings": {"note_title": "Groceries", "note_content": "Buy milk"}},
+        {"bindings": {"note_title": "Groceries"}},
+    ]
+    planner = _planner(_omninotes_graph(), fake_llm)
+
+    plan = planner.compile_path(
+        Goal("Create a note and share it"),
+        ["create_note", "invoke_share_chooser_for_note"],
+        ["Create a note", "Share it"],
+        "OmniNotes notes list",
+    )
+
+    assert plan is not None
+    assert plan.path == ["create_note", "invoke_share_chooser_for_note"]
+    assert [step.card for step in plan.steps] == [
+        "create_note",
+        "invoke_share_chooser_for_note",
+    ]
+
+
+def test_compile_path_returns_none_for_a_card_the_graph_does_not_have(
+    fake_llm,
+):
+    """A predicted path may end at a card that does not exist yet.
+
+    An uncovered function's route stops at a gateway card; the function
+    itself has no card, so there is nothing to compile.  That is a no-plan,
+    not a crash.
+    """
+    planner = _planner(_omninotes_graph(), fake_llm)
+
+    assert (
+        planner.compile_path(
+            Goal("Open settings"),
+            ["open_navigation_drawer"],
+            ["Open settings"],
+            "notes list",
+        )
         is None
     )

@@ -195,3 +195,49 @@ def test_empty_hypotheses_returns_none(
         ).complete(Goal("x"), "state")
         is None
     )
+
+
+def test_hypotheses_probe_may_walk_onto_later_screens(
+    fake_llm, graph_store, card_miner, edge_builder, fake_probe
+):
+    """The probe executes step by step and grounds each step on the screen
+    it runs on, so a later step may name a control that only appears after
+    an earlier one.  The prompt must say so, or the model confines itself to
+    controls already visible and proposes one-step probes."""
+    fake_llm.responses = [{"gap": "need checklist"}, {"capabilities": []}]
+
+    _completer(
+        fake_llm, graph_store, card_miner, edge_builder, fake_probe
+    )._hypothesize(
+        "need checklist",
+        Goal("create a checklist note"),
+        2,
+        "FloatingActionButton text='文本注释'",
+    )
+
+    prompt = fake_llm.prompts[-1]
+    assert "first step" in prompt.lower()
+    assert "later step" in prompt.lower()
+
+
+def test_hypotheses_are_grounded_in_the_observed_screen(
+    fake_llm, graph_store, card_miner, edge_builder, fake_probe
+):
+    """The hypothesis step must see the screen it is proposing a probe for.
+
+    Without the state the model invents English labels ("Take a note…") for
+    an app whose build shows Chinese ones (文本注释), and every probe fails on
+    a selector that does not exist.
+    """
+    fake_llm.responses = [{"gap": "need checklist"}, {"capabilities": []}]
+
+    _completer(
+        fake_llm, graph_store, card_miner, edge_builder, fake_probe
+    )._hypothesize(
+        "need checklist",
+        Goal("create a checklist note"),
+        2,
+        "ImageButton desc='抽屉打开'\nFloatingActionButton text='文本注释'",
+    )
+
+    assert "文本注释" in fake_llm.prompts[-1]

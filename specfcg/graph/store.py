@@ -93,8 +93,24 @@ class GraphStore:
                 entries.append(entry)
         return entries
 
+    def applied(self, digest: str) -> bool:
+        """Whether this evidence has already been applied to the graph.
+
+        The journal is the record of what the graph was built from, so it is
+        also where to ask.  A patch that names its origin leaves the digest
+        behind; every other patch leaves nothing to match against.
+        """
+        return any(
+            (entry.get("origin") or {}).get("digest") == digest
+            for entry in self.journal()
+        )
+
     def _append_journal(
-        self, patch: GraphPatch, before_cards: set[str], before_edges: set[tuple[str, str, str]]
+        self,
+        patch: GraphPatch,
+        before_cards: set[str],
+        before_edges: set[tuple[str, str, str]],
+        origin: dict[str, Any] | None,
     ) -> None:
         graph = self.load()
         after_cards = set(graph.cards)
@@ -122,6 +138,8 @@ class GraphStore:
                 for edge in graph.edges
             ],
         }
+        if origin is not None:
+            entry["origin"] = origin
         self.graph_dir.mkdir(parents=True, exist_ok=True)
         with self.journal_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -273,7 +291,9 @@ class GraphStore:
             )
         return edges
 
-    def apply_patch(self, patch: GraphPatch) -> None:
+    def apply_patch(
+        self, patch: GraphPatch, *, origin: dict[str, Any] | None = None
+    ) -> None:
         before_cards = set(self.cards.all())
         before_edges = {
             (edge.from_card, edge.to_card, edge.type) for edge in self.edges()
@@ -323,7 +343,7 @@ class GraphStore:
             edges = self._rewrite_merged_edges(edges, str(keep), str(drop))
 
         self._save_edges(edges)
-        self._append_journal(patch, before_cards, before_edges)
+        self._append_journal(patch, before_cards, before_edges, origin)
 
     @staticmethod
     def _merge_cards(keep: FunctionCard, drop: FunctionCard) -> None:

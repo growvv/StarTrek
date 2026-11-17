@@ -144,3 +144,81 @@ Trace: t1; 1/1 successes
     assert card.evidence == ["t1"]
     assert card.success_count == 1
     assert card.attempt_count == 1
+
+
+def test_parse_inputs_does_not_split_a_description_at_its_commas():
+    """One declaration is one input, however its description is punctuated.
+
+    The card writer emits 'name (required): description, with a comma' on a
+    single line.  Splitting that line at every comma invents a required
+    input called 'including' (Amaze create_new_empty_file) or 'used' (a
+    parent-folder description), and the binder then demands a value the card
+    never had -- which turns a valid plan into no_plan.
+    """
+    card = parse_card(
+        """# create_new_empty_file
+
+**Intent**: Create a file named {file_name}.
+**Inputs**: file_name (required): Name to assign to the new empty file, including any desired extension.
+**Preconditions**: On a folder listing.
+**Postconditions**: The file exists.
+**Effects/Outputs**: A new file.
+**Steps**:
+1. Tap the create button
+**Evidence**: traces t1; 1/1 successes
+"""
+    )
+
+    assert card.inputs == [
+        "file_name (required): Name to assign to the new empty file, "
+        "including any desired extension."
+    ]
+
+
+def test_parse_inputs_splits_a_plain_list_of_names():
+    """Without a description, commas do separate inputs."""
+    card = parse_card(
+        """# switch_activity
+
+**Intent**: Switch activity.
+**Inputs**: current_activity (required), target_activity (required)
+**Preconditions**: On the diary.
+**Postconditions**: Switched.
+**Effects/Outputs**: None.
+**Steps**:
+1. Tap the target card
+**Evidence**: traces t1; 1/1 successes
+"""
+    )
+
+    assert card.inputs == [
+        "current_activity (required)",
+        "target_activity (required)",
+    ]
+
+
+def test_parse_card_accepts_a_colon_inside_the_bold_heading():
+    """``**Intent:** ...`` is the same heading as ``**Intent**: ...``.
+
+    A model that writes the colon inside the bold markers produces a card
+    whose every section is unreadable, so the whole card silently degrades to
+    the fallback -- a card with no intent, no preconditions, and steps copied
+    from one trace.
+    """
+    card = parse_card(
+        """# create_note
+
+**Intent:** Create a note.
+**Inputs:** none
+**Preconditions:** On the notes list.
+**Postconditions:** A note exists.
+**Effects/Outputs:** A note card.
+**Steps:**
+1. Tap the plus button
+**Evidence:** traces t1; 1/1 successes
+"""
+    )
+
+    assert card.intent == "Create a note."
+    assert card.steps == ["Tap the plus button"]
+    assert card.evidence == ["t1"]

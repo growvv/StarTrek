@@ -304,9 +304,10 @@ def test_execute_goal_starts_target_package(
 def test_run_goal_executes_and_applies_success_patch(
     tmp_path, fake_llm, fake_device
 ):
+    # The card names its target ('Tap "Next"'), so it compiles without an
+    # LLM round trip; the queue starts at the post-plan summarize call.
     fake_llm.responses = [
         _batch(True, True),
-        {"steps": [{"action": "click", "target": "text=Next"}]},
         "Notes list with a plus button",
         {"satisfied": True},
         {"achieved": True},
@@ -395,6 +396,59 @@ def test_device_probe_compiles_and_executes(fake_llm, fake_device):
     assert fake_device.calls == [("click", "text=Attach", "")]
 
 
+def test_device_probe_grounds_each_step_in_the_screen_it_runs_on(
+    fake_llm, fake_device
+):
+    """A probe is a walk, not a script written in advance.
+
+    A capability's later steps act on screens that do not exist yet ("open
+    the dialog", then "tap OK" inside it).  Compiling all of them against
+    the starting screen names controls that are not there, and aborting on
+    the first miss discards the walk before the screen it needed appears.
+    Each step is compiled against the screen it will actually run on.
+    """
+    fake_device.states = ["home", "menu open", "dialog open"]
+    fake_llm.responses = [
+        {"steps": [{"action": "click", "target": "text=Menu"}]},
+        {"steps": [{"action": "click", "target": "text=New"}]},
+    ]
+    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
+    capability = MissingCapability(
+        name="create_type",
+        intent="create a type",
+        probe=["Tap Menu", "Tap New"],
+    )
+
+    trace = probe.run(capability, "home")
+
+    assert trace is not None
+    assert [step.target for step in trace.steps] == ["text=Menu", "text=New"]
+    # The second step's prompt sees the screen the first step produced.
+    assert "menu open" in fake_llm.prompts[1]
+
+
+def test_device_probe_keeps_what_it_learned_before_a_miss(
+    fake_llm, fake_device
+):
+    """A miss ends the walk, not the evidence: the steps that ran are a
+    trace of real behavior and are returned."""
+    fake_device.states = ["home"]
+    fake_device.action_results = [True, False]
+    fake_llm.responses = [
+        {"steps": [{"action": "click", "target": "text=Menu"}]},
+        {"steps": [{"action": "click", "target": "text=Missing"}]},
+    ]
+    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
+
+    trace = probe.run(
+        MissingCapability(name="x", probe=["Tap Menu", "Tap Missing"]),
+        "home",
+    )
+
+    assert trace is not None
+    assert [step.success for step in trace.steps] == [True, False]
+
+
 def test_device_probe_with_no_probe_plan_returns_none(fake_llm, fake_device):
     probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
     capability = MissingCapability(name="attach_photo", probe=[])
@@ -420,4 +474,62 @@ def test_journal_reason_names_the_trace_and_what_it_added(
     assert reasons == [
         "mined trace t1 -> create_note",
         "semantic edges over 1 card",
+    ]
+
+
+def test_mining_the_same_trace_twice_adds_its_function_once(
+    tmp_path, fake_llm, fake_device, sample_trace
+):
+    """A trace is evidence, and the same evidence is applied once.
+
+    The recorded omninotes graph mined omni-merge twice, eighteen minutes
+    apart, and ended up holding merge_notes and merge_two_notes -- one
+    function written under two names.
+    """
+    fake_llm.responses = [
+        {"episodes": [{"start": 0, "end": 1, "name": "create_note"}]},
+        CARD_MARKDOWN,
+        {"episodes": [{"start": 0, "end": 1, "name": "create_note_again"}]},
+        CARD_MARKDOWN.replace("# create_note", "# create_note_again"),
+    ]
+    pipeline = _pipeline(tmp_path, fake_llm, fake_device)
+
+    first = pipeline.mine_trace(sample_trace)
+    used = fake_llm.calls
+    again = pipeline.mine_trace(sample_trace)
+
+    assert first.new_cards
+    assert again.new_cards == []
+    assert fake_llm.calls == used
+    assert sorted(pipeline.store.load().cards) == ["create_note"]
+
+
+def test_a_trace_whose_steps_changed_is_mined_again(
+    tmp_path, fake_llm, fake_device, sample_trace
+):
+    """Re-collected evidence is new evidence, not a repeat."""
+    from dataclasses import replace
+
+    from specfcg.models import Step
+
+    fake_llm.responses = [
+        {"episodes": [{"start": 0, "end": 1, "name": "create_note"}]},
+        CARD_MARKDOWN,
+        {"episodes": [{"start": 0, "end": 1, "name": "create_note_again"}]},
+        CARD_MARKDOWN.replace("# create_note", "# create_note_again"),
+    ]
+    pipeline = _pipeline(tmp_path, fake_llm, fake_device)
+    pipeline.mine_trace(sample_trace)
+    used = fake_llm.calls
+
+    changed = replace(
+        sample_trace,
+        steps=sample_trace.steps + [Step(action="click", target="text=Share")],
+    )
+    pipeline.mine_trace(changed)
+
+    assert fake_llm.calls > used
+    assert sorted(pipeline.store.load().cards) == [
+        "create_note",
+        "create_note_again",
     ]

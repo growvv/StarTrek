@@ -17,7 +17,8 @@ def _format_node(node: ET.Element) -> str | None:
     description = node.get("content-desc", "")
     hint = node.get("hint", "")
     clickable = node.get("clickable") == "true"
-    if not (text or description or hint or clickable):
+    scrollable = node.get("scrollable") == "true"
+    if not (text or description or hint or clickable or scrollable):
         return None
 
     parts: list[str] = []
@@ -31,6 +32,12 @@ def _format_node(node: ET.Element) -> str | None:
         parts.append(f"hint={hint!r}")
     if clickable:
         parts.append("clickable=true")
+    # A scrollable container means the rows below the fold still exist and
+    # are reachable.  Without this marker a short list reads as a complete
+    # one, and a planner asked to act on a hidden row concludes it is not
+    # on this screen at all.
+    if scrollable:
+        parts.append("scrollable=true")
 
     class_name = node.get("class", "")
     short_class = class_name.rsplit(".", 1)[-1] or "node"

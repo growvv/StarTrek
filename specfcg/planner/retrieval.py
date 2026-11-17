@@ -59,5 +59,12 @@ class CardRetriever:
         if not isinstance(raw_keep, list):
             return candidates
         keep = {str(name) for name in raw_keep}
-        filtered = [name for name in candidates if name in keep]
+        # The model may add semantic recall, but it must not delete a card
+        # whose own name and intent share the goal's words: that card is
+        # evidence, and dropping it leaves the planner with no route the
+        # graph already had.
+        literal = {name for name in candidates if score(name) > 0}
+        filtered = [
+            name for name in candidates if name in keep or name in literal
+        ]
         return filtered or candidates

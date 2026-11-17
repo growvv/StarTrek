@@ -24,10 +24,16 @@ _REQUIRED = (
 _NAME_RE = re.compile(r"^#\s+(.+?)\s*$")
 _SECTION_RE = re.compile(
     r"^\*\*(Intent|Inputs|Preconditions|Postconditions|Effects/Outputs|"
-    r"Steps|Evidence)\*\*\s*:?\s*(.*)$"
+    r"Steps|Evidence)\s*:?\*\*\s*:?\s*(.*)$"
 )
 _STEP_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
 _BULLET_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.*)$")
+# A declaration starts with `name (required|optional)`.  Only that shape
+# starts a new input: every other comma belongs to the description of the
+# input it follows.
+_DECLARATION_RE = re.compile(
+    r"^[A-Za-z_][\w-]*\s*\((?:required|optional)\)", re.IGNORECASE
+)
 
 
 def _split_names(text: str) -> list[str]:
@@ -64,11 +70,41 @@ def _section_text(sections: dict[str, list[str]], key: str) -> str:
     ).strip()
 
 
+def _split_declarations(text: str) -> list[str]:
+    """Split a plain input list where every item declares itself.
+
+    An input declaration starts with ``name (required|optional)``.  Splitting
+    on every comma cuts a description in half and invents an input: Amaze's
+    "file_name (required): Name to assign to the new empty file, including
+    any desired extension." became a second required input named
+    "including".  A comma starts a new input only when a declaration follows
+    it.
+    """
+    if not _DECLARATION_RE.search(text):
+        return _split_names(text)
+    parts: list[str] = []
+    start = 0
+    depth = 0
+    for index, char in enumerate(text):
+        if char == "(":
+            depth += 1
+        elif char == ")" and depth > 0:
+            depth -= 1
+        elif char == "," and depth == 0:
+            rest = text[index + 1 :].lstrip()
+            if _DECLARATION_RE.match(rest):
+                parts.append(text[start:index])
+                start = index + 1
+    parts.append(text[start:])
+    return [part.strip() for part in parts if part.strip()]
+
+
 def _parse_inputs(lines: list[str]) -> list[str]:
     """Parse comma-separated canonical inputs or Markdown bullet inputs.
 
     A bullet's description may contain commas; only an input section written
-    without bullets is split on commas.
+    without bullets is split on commas.  In either form a comma inside a
+    description is punctuation, not a separator.
     """
     bullets: list[str] = []
     plain: list[str] = []
@@ -86,8 +122,9 @@ def _parse_inputs(lines: list[str]) -> list[str]:
     if bullets:
         return [item for item in bullets if item]
     return [
-        item.strip()
-        for item in _split_names(" ".join(plain))
+        item
+        for line in plain
+        for item in _split_declarations(line)
         if item.strip()
     ]
 

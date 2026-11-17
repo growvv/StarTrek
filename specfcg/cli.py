@@ -96,7 +96,21 @@ class _OfflineLLM:
         if "fully satisfy the entire goal" in prompt:
             return {"is_goal": True}
         if "Bind every required input" in prompt:
-            return {"bindings": {}}
+            # The offline stand-in has no goal understanding: it binds each
+            # required input to the goal text so the plan still compiles.
+            goal = re.search(r"Goal: (.*)", prompt)
+            names = re.findall(
+                r"Required inputs: \[(.*?)\]", prompt, re.DOTALL
+            )
+            value = goal.group(1).strip() if goal else ""
+            bound = {}
+            for declaration in re.findall(
+                r"'([^']+)'", names[0] if names else ""
+            ):
+                name = declaration.split()[0].strip()
+                if name:
+                    bound[name] = value
+            return {"bindings": bound}
         if "Convert these function-card steps" in prompt:
             return {
                 "steps": [

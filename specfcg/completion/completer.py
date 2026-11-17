@@ -83,13 +83,18 @@ class CapabilityCompleter:
         return text or None
 
     def _hypothesize(
-        self, gap: str, goal: Goal, max_hypotheses: int
+        self, gap: str, goal: Goal, max_hypotheses: int, state: str = ""
     ) -> list[MissingCapability]:
         prompt = (
             f"Goal: {goal.description}\nMissing capability: {gap}\n\n"
+            f"Current screen:\n{state[:4000]}\n\n"
             f"Propose up to {max_hypotheses} missing capabilities as "
             "concrete user-level functions with pre/postconditions and a "
-            "short probe plan."
+            "short probe plan. The first step must name a control that is "
+            "visible on the current screen, exactly as written there -- the "
+            "build's own language, not a translation. A later step may act "
+            "on a screen an earlier step opens; name its control by the "
+            "visible label the build uses, never by an invented resource id."
         )
         try:
             data = self.llm.complete_json(prompt, _CAPABILITY_SCHEMA)
@@ -247,7 +252,7 @@ class CapabilityCompleter:
             if gap is None:
                 return None
             hypotheses = self._hypothesize(
-                gap, goal, self.max_hypotheses
+                gap, goal, self.max_hypotheses, state
             )
             if not hypotheses:
                 return None

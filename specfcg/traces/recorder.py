@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -16,6 +17,25 @@ logger = logging.getLogger(__name__)
 
 class TraceParseError(Exception):
     """Raised when a trace file is not valid trace JSON."""
+
+
+def trace_digest(trace: Trace) -> str:
+    """A stable fingerprint of the evidence a trace carries.
+
+    The digest covers what the miner reads -- the app, the start state, the
+    goal and the steps -- and not the recording's metadata, which says when
+    and on what the trace was captured without changing the function it
+    demonstrates.  Two traces with the same digest are the same evidence;
+    mining the second adds nothing the graph does not already have.
+    """
+    payload = {
+        "app": trace.app,
+        "start_state": trace.start_state,
+        "goal": trace.goal,
+        "steps": [asdict(step) for step in trace.steps],
+    }
+    encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()[:16]
 
 
 def _trace_slug(trace_id: str) -> str:

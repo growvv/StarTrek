@@ -74,9 +74,13 @@ class _FakeInnerDevice:
     def __init__(self, xml: str) -> None:
         self.xml = xml
         self.started: list[str] = []
+        self.stopped: list[str] = []
 
     def app_start(self, package: str) -> None:
         self.started.append(package)
+
+    def app_stop(self, package: str) -> None:
+        self.stopped.append(package)
 
     def dump_hierarchy(self) -> str:
         return self.xml
@@ -112,3 +116,28 @@ def test_uiautomator2_device_dump_includes_share_chooser():
 
     assert "Groceries" in device.dump_ui()
     assert "Share" in device.dump_ui()
+
+
+def test_compact_ui_marks_a_list_that_can_scroll():
+    """A row past the last visible one is still reachable, and the screen
+    has to say so.
+
+    Without it the model reads a short list as a complete one: asked to
+    rename a file whose row is below the fold, it concludes the row is not
+    on this screen and plans something else entirely (Amaze: "switch to grid
+    view so the file becomes visible").
+    """
+    xml = (
+        "<hierarchy>"
+        "<node class='androidx.recyclerview.widget.RecyclerView'"
+        " package='com.example.files' text='' resource-id='app:id/list'"
+        " clickable='false' scrollable='true' bounds='[0,300][1000,2000]'>"
+        "<node class='android.widget.TextView' package='com.example.files'"
+        " text='bench_old.txt' clickable='false' bounds='[0,1900][500,1950]' />"
+        "</node>"
+        "</hierarchy>"
+    )
+
+    compact = compact_ui(xml, "com.example.files")
+
+    assert "scrollable" in compact

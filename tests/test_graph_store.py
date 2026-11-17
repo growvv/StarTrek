@@ -194,3 +194,28 @@ def test_journal_is_empty_before_any_patch(tmp_path, sample_card):
     cards = CardStore(tmp_path)
     cards.save(sample_card)
     assert GraphStore(tmp_path, cards).journal() == []
+
+
+def test_apply_patch_records_the_evidence_it_came_from(
+    tmp_path, sample_card, another_card
+):
+    """The journal says what a patch was built from, not only what it changed."""
+    store = _store(tmp_path, sample_card, another_card)
+    origin = {"kind": "trace", "id": "t1", "digest": "abc123"}
+
+    store.apply_patch(GraphPatch(reason="mined trace t1"), origin=origin)
+
+    assert store.journal()[-1]["origin"] == origin
+    assert store.applied("abc123") is True
+    assert store.applied("other") is False
+
+
+def test_a_patch_without_an_origin_keeps_the_journal_shallow(
+    tmp_path, sample_card, another_card
+):
+    store = _store(tmp_path, sample_card, another_card)
+
+    store.apply_patch(GraphPatch(reason="semantic edges over 2 cards"))
+
+    assert "origin" not in store.journal()[-1]
+    assert store.applied("abc123") is False
