@@ -13,3 +13,6 @@ __pycache__/
 /screenshot_*.png
 /config/llm.local.yaml
 /config/llm.yaml
+
+# Paper-review decks and their reference template: build artifacts, not source.
+/docs/ppt/
