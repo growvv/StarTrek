@@ -4,7 +4,7 @@
 
 **Goal:** Build the Stage 1 MVP of SpecFCG: a Python system that mines natural-language function cards from Android GUI traces, builds a Function Contract Graph, plans goal-driven test paths, executes them on an emulator, refines the graph, and completes missing capabilities.
 
-**Architecture:** Five modules — Trace Collector, Graph Maintainer (card mining + graph updates), Graph Store (cards + edges + versioning), Planner (BFS/DFS/A* with LLM transition checks), Executor (uiautomator2 device + LLM state summaries). The offline core is fully testable with fakes; the ProphetAgent adapter and real device are integration layers. A thin `Pipeline` composes the modules for the CLI and benchmarks.
+**Architecture:** Five modules — Trace Collector, Graph Maintainer (card mining + graph updates), Graph Store (cards + edges + versioning), Planner (BFS/DFS/A* with LLM transition checks), Executor (uiautomator2 device + LLM state summaries). The offline core is fully testable with fakes; the ProphetAgent adapter and real device are integration layers. A thin `Pipeline` composes the modules for the CLI and benchmarks. **Superseded in the Next Round:** a card becomes a contract with no UI steps, the planner emits a task description, and a GUI agent — not a scripted replay — executes it. Tasks 1–17 below record the MVP as it was built; the Next Round section is the current design.
 
 **Tech Stack:** Python 3.10+, pytest, PyYAML, `openai` SDK (OpenAI-compatible endpoint), `uiautomator2` (optional device extra), ADB. No graph library — the graph is small and BFS/DFS/A* are implemented directly.
 
@@ -15,13 +15,13 @@
 - Python `>=3.10`; code runs on Windows, macOS, and Linux.
 - Function granularity is **user-level task** (`create_note`, `attach_photo`, `share_note`), never page-level or widget-level.
 - Cards and edges are **natural language first**; no typed predicate DSL, no symbolic state tracker, no formal condition parser.
-- Edge types: `enables`, `dataflow`, `sequence`; `calls` is optional and only used when a card's steps literally contain another card.
+- Edge types: `enables`, `dataflow`, `sequence`; `calls` is optional and only used when a card's steps literally contain another card. **Next Round:** a card has no steps, so `calls` is removed from `EdgeType` (Task F).
 - Every LLM call uses `temperature=0` and goes through the cache; model and base URL are configurable in `config/llm.yaml`.
-- All LLM outputs are parsed defensively. Malformed JSON/Markdown must produce a typed error or a documented fallback — never an uncaught exception that kills a run.
+- All LLM outputs are parsed defensively. Malformed JSON/Markdown must produce a typed error or a documented fallback — never an uncaught exception that kills a run. **Next Round:** an unparseable card is a typed `CardParseError`; the miner returns no card and skips the episode with a warning naming the trace, rather than inventing a card (Task F).
 - Stage 1 apps: AnkiDroid, AmazeFileManager, OmniNotes, NewPipe, ActivityDiary, AntennaPod.
 - Stage 1 data: 60 NL cases (10/app) and 30 compositional goals (5/app); held-out traces for path recall.
 - Stage 1 gates: card validity ≥ 80% on 50 human-checked cards; path recall ≥ 70%; known-case completion ≥ 70%; compositional completion ≥ 50% and ≥ 20 points above ProphetAgent; ≥ 3 new capabilities/bugs.
-- ProphetAgent is pinned at commit `97667bfe109e71f57d84a2f7df9bcb03aba55b11` (MIT). It is used for trace collection via its bundled Droidbot; the MVP executor uses `uiautomator2` directly.
+- ProphetAgent is pinned at commit `97667bfe109e71f57d84a2f7df9bcb03aba55b11` (MIT). It is used for trace collection via its bundled Droidbot; the MVP executor uses `uiautomator2` directly. **Next Round:** the executor hands the task description to a GUI agent (`mobile_agent`), and nothing replays a recorded action.
 - MVP retrieval uses keyword prefilter + LLM confirmation. Embedding retrieval is a Stage 2 optimization (documented deviation).
 - MVP target resolution uses text / resource-id / LLM fallback. ProphetAgent's CUTG matcher is a Stage 2 integration (documented deviation).
 - No formal verification, no completeness guarantee, no Android static call graph.
@@ -1334,21 +1334,870 @@ git commit -m "feat: add Stage 1 data manifest and evaluation report"
 
 ---
 
-## Next Round: re-measure on the device
+## Next Round: the card is a contract, the plan is a description, the agent executes
 
-The MVP is done and its measurements are honest.  What remains is to
-re-run the four dimensions under the corrected code and the faster
-builder, then use the rebuilt graphs as the subject for the two
-improvements that need them.  Nothing here is started yet.
+**Why this round exists.** The graph was being used to *replay* an app: a
+card stored the taps that had worked, the compiler turned them back into
+taps, and the executor sent them again.  A replay can only repeat what was
+recorded, so its success rate measures the recorder, not the map.  What the
+graph is for is the opposite — to describe the app's functions well enough
+that a GUI agent, handed a task it has never run, can carry it out, and to
+say which functions must happen, in what order, and what each one needs and
+leaves behind.  So:
 
-**State at the start of this round:** 448 tests pass; the committed
-graphs were built 2026-11-11/12 by the quadratic builder, and their
-coverage, probe and self-optimization records predate the corrected
-matcher.  Device `47261FDAS00DTQ` is attached and the gateway answers.
+- a card becomes a **contract** (intent, inputs, pre/postconditions,
+  effects) and names no UI action;
+- the planner's output becomes a **task description** rendered from the
+  contracts on the chosen path — overall goal, ordered subgoals, the value
+  each subgoal needs, what each leaves behind;
+- the **executor hands that description to a GUI agent**.  Nothing sends a
+  recorded tap.
+
+The claim then becomes falsifiable in the only way that matters: give the
+same agent, on the same device, the same tasks twice — once with the raw
+goal, once with the graph-derived description — and count the paired
+difference.
+
+**What this round deliberately leaves alone.** Trace collection
+(`specfcg/traces/scripted.py`, `scripts/build_app_graph.py` without
+`--skip-collect`) still drives scripted actions: that is how the reference
+corpus is made, not how a planned task runs.  `RandomTraversalAgent` stays —
+it is a control.  `ParamBinder` stays: it turns goal values into contract
+values and reads only `card.inputs`, never steps.
+
+**Execution order.** F → G → H → C → A → B → D → E.  F is the architecture
+change and must land first; C edits the builder the rebuild in A calls; A
+before B; B before D, which is conditional on what B measures.
+
+**Letter mapping, so earlier notes still read.** A (rebuild) and B
+(re-measure) keep their meaning.  **C changes meaning**: it was "behavioural
+duplicates from compiled actions", which a step-less card makes incomputable;
+it becomes duplicate functions read from the contracts.  **D changes
+meaning**: it was "make calibration discriminate", it becomes calibration
+over agent runs, still conditional on B.  E stays the ledger.  F–H are the
+new group: the contract, the description and the agent (F), the probe path
+end to end (G), the ablation (H).
+
+**Why F is one task and not three.** Deleting `FunctionCard.steps` removes
+the compiler's input; deleting the compiler empties `TestPlan.steps`; an
+empty `TestPlan.steps` leaves the executor with nothing to send.  Split
+across three commits, each would build green while the system did nothing on
+a device — the worst kind of green, and it would need a shim to get there.
+The three are one interface change, so they land as one commit with the TDD
+cycles kept separate inside the task.
+
+**State at the start of this round:** 448 tests pass; the committed graphs
+were built 2026-08-26/27 by the quadratic builder and their coverage, probe
+and self-optimization records predate the corrected matcher.  Device
+`47261FDAS00DTQ` is attached and the gateway answers.  The four graphs hold
+93 cards and 353 edges; 157 of omninotes' 193 edges are LLM-asserted
+`enables` with no execution evidence.
+
+**Scorecard consequence, stated up front.** The `task` dimension stops
+meaning "the compiled script replayed" and starts meaning "the agent, given
+the graph's description, reached the goal".  That is a different quantity, so
+the curve is discontinuous at this point; the report says so instead of
+drawing one line through both.  The raw-goal arm is a *control*, reported
+beside the score like random traversal and never folded into it — its success
+is the agent's competence, and only the paired difference is the graph's
+contribution.
+
+**Review focus (this round), each with a test in its owning task.**
+
+1. **A card still carrying a Steps section** — migration must reject it
+   loudly rather than let the prose leak into the preceding section (F).
+2. **An app the caller already prepared** — the agent acts from the current
+   screen and never launches, so seeded files and onboarding survive it (F).
+3. **A crashing or stalling agent** — the run yields a trace with an error,
+   not an exception that kills the benchmark (F).
+4. **An agent that reports `done` on an unachieved screen** — the
+   programmatic oracle, never the agent's claim, decides success (F, H).
+
+---
+
+### Task F: the card is a contract, the plan is a description, the agent executes
+
+**Files:**
+- Modify: `specfcg/models.py:52-62` (`FunctionCard` — no `steps`), `:100-114`
+  (`TestPlan` — `description`, no `steps`), `:146-154` (`MissingCapability`),
+  `:8-18` (`EdgeType`, `EDGE_PRIORITY` — no `calls`)
+- Modify: `specfcg/cards/parser.py` (`_REQUIRED`, `_SECTION_RE`, `_STEP_RE`,
+  `_parse_steps`, `render_card`)
+- Create: `scripts/migrate_cards.py`
+- Modify: `specfcg/maintainer/miner.py:41-53` (`_CARD_PROMPT`), `:92-161`
+  (`_ground_inputs`), `:341-355` (`_fallback_card`), `:369-394` (`draft`),
+  `:396-460` (`mine`)
+- Modify: `specfcg/maintainer/updater.py:31-46`, `:84`, `:177-195`, `:235-243`,
+  `:315-330`
+- Modify: `specfcg/graph/store.py:16-60` (field aliases, `_coerce`,
+  `_split_values`)
+- Modify: `specfcg/completion/completer.py:24-32` (`ProbeRunner` — `run`
+  gains `app`), `:85-140` (hypothesis prompt), `:196-212` (merge tuple)
+- Rewrite: `specfcg/completion/probe.py` (`AgentProbe`; `cli.py` constructs
+  it for the completer, so the old `DeviceProbe` cannot outlive the compiler)
+- Create: `specfcg/planner/describer.py`
+- Modify: `specfcg/planner/planner.py:33-56`, `:372-425`
+- Delete: `specfcg/planner/compiler.py`, `tests/test_compiler.py`
+- Delete: `specfcg/benchmark/granularity.py`, `scripts/measure_granularity.py`,
+  `tests/test_benchmark_granularity.py`, `tests/test_measure_granularity.py`
+  (behavioural equivalence without behaviour; C replaces it with a reader),
+  and the granularity column in `scripts/build_bench_report.py`
+- Create: `specfcg/executor/agent.py` (`AgentTrace`, `GuiAgent`)
+- Create: `specfcg/executor/mobile_agent_backend.py`
+- Rewrite: `specfcg/executor/executor.py`
+- Modify: `specfcg/benchmark/agents.py` (`GraphAgent`; delete `execute_plan`
+  and `SpecFCGAgent`)
+- Modify: `mobile_agent/agent.py` — `run()` acts from the current screen and
+  no longer launches; `verify: bool = True` (the backend passes `False` and
+  writes no memory entry); per-step UI text; `initial_ui`/`final_ui` on
+  `TaskResult`
+- Modify: `scripts/run_agent_tasks.py` (launch explicitly; `run()` no longer
+  does)
+- Modify: `specfcg/cli.py:38-48`, `:108-121`, `:155-175`
+- Modify: `specfcg/config.py` (`AgentConfig`), `config/llm.bench.yaml`
+- Modify: `tests/fakes.py` (add `ScriptedAgent` — a `GuiAgent` with
+  `tasks`/`apps`/`max_steps` recorded and canned `steps`, `done`, `final_ui`,
+  `error`), `tests/conftest.py:31-77`, `:167-188`
+- Modify: `docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md`
+  (§5.1, §5.2, §6.2, §6.3, §6.4, §6.5)
+- Test: `tests/test_card_parser.py`, `tests/test_migrate_cards.py`,
+  `tests/test_miner.py`, `tests/test_describer.py`, `tests/test_planner.py`,
+  `tests/test_executor.py`, `tests/test_benchmark_agents.py`,
+  `tests/test_updater.py`, `tests/test_graph_store.py`, `tests/test_models.py`,
+  `tests/test_pipeline.py`, `tests/test_e2e_offline.py`
+
+**Interfaces:**
+- Produces: `FunctionCard(name, intent, inputs, preconditions, postconditions,
+  effects_outputs, evidence, success_count, attempt_count)`.
+- Produces: `CardMiner.draft(episode, trace) -> FunctionCard | None`.
+- Produces: `scripts/migrate_cards.py::migrate(text: str) -> str`.
+- Produces: `TaskDescriber.describe(goal: str, subgoals:
+  list[tuple[FunctionCard, dict[str, str]]]) -> str` — deterministic, no LLM.
+- Produces: `TestPlan(goal, path, description: str = "", assertions, app)`.
+- Produces: `AgentTrace(steps: list[Step], initial_ui: str = "", final_ui: str
+  = "", done: bool = False, error: str = "")`
+- Produces: `GuiAgent` (Protocol) with two methods and no policy:
+  `observe(app: str) -> str` (the compact UI text the planner reads) and
+  `run(task: str, max_steps: int, *, app: str) -> AgentTrace`.  The app travels
+  with the call because one pipeline serves every app.
+- Produces: `MobileAgentBackend(serial, model, fallback_model, out_root)`, a
+  `GuiAgent`.  One `VLM` and one `ExperienceStore` live on it; the store is
+  read (a lesson from an earlier judged run may apply) and never written,
+  because the backend runs the agent with `verify=False`.  One
+  `AndroidDevice` per app, so observation and action go through the same
+  client.
+- Produces: `Executor(agent: GuiAgent, llm: LLMClient, graph: Graph,
+  summarizer: StateSummarizer | None = None, max_steps: int = 20)`;
+  `execute(plan, max_steps: int | None = None) -> RunResult`;
+  `trace.metadata["task_description"]`.  `max_steps` defaults to the
+  executor's configured budget and an explicit value overrides it for one
+  run, so every existing `execute(plan)` caller keeps working and the
+  benchmark can pass its per-task cap.  The executor launches nothing: the
+  caller owns the app's state, and the agent acts from the screen it finds.
+- Produces: `GraphAgent(pipeline)` — a `Callable[[BenchTask], AgentRun]` that
+  plans and then calls `pipeline.executor.execute(plan,
+  max_steps=task.max_steps)`; `reached_cards = list(plan.path)` when the run
+  succeeded, `[]` otherwise
+- Produces: `AgentConfig(model, fallback_model, max_steps)` in
+  `specfcg/config.py`, read from `config/llm.bench.yaml`'s `agent:` block
+- Produces: `AgentProbe(agent: GuiAgent, max_steps: int = 10).run(capability:
+  MissingCapability, state: str, app: str = "") -> Trace | None`; `ProbeRunner`
+  gains the `app` parameter
+- Consumes: `mobile_agent.MobileAgent`, `mobile_agent.VLM`,
+  `mobile_agent.memory.ExperienceStore`
+
+- [ ] **Step 1: Write the failing parser tests**
+
+```python
+def test_card_with_a_steps_section_is_rejected():
+    text = (
+        "# create_note\n\n**Intent**: Create a note.\n"
+        "**Inputs**: none\n**Preconditions**: The list is open.\n"
+        "**Postconditions**: The note exists.\n**Effects/Outputs**: none\n"
+        "**Steps**:\n1. Tap '+'. 2. Tap 'Save'.\n**Evidence**: traces t1\n"
+    )
+    with pytest.raises(CardParseError, match="Steps"):
+        parse_card(text)
+
+
+def test_rendered_card_round_trips_without_steps(sample_card):
+    assert "**Steps**" not in render_card(sample_card)
+    assert parse_card(render_card(sample_card)) == sample_card
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `python -m pytest tests/test_card_parser.py -q`
+
+Expected: FAIL — Steps is a required section today, so the first test parses
+without raising and the renderer emits the section.
+
+- [ ] **Step 3: Remove `steps` from the model, the format and the store**
+
+Delete the field from `FunctionCard`.  Drop `"Steps"` from `_REQUIRED` and
+`_SECTION_RE`, and add `_RETIRED = ("Steps",)`: a card that still declares
+one raises `CardParseError("the Steps section was removed: a card is a
+contract, not a script")`.  The rejection is deliberate — without it the
+heading is unrecognised and its prose is silently absorbed into the preceding
+section.  Delete `_parse_steps`, `_STEP_RE`, and the Steps block in
+`render_card`.
+
+Then the store and the updater: drop `GraphStore._FIELD_ALIASES["steps"]`, the
+`numbered=` parameter of `_coerce`/`_split_values` (it only ever meant steps);
+`GraphUpdater._EXECUTABLE_FIELDS`, `_PATCH_SCHEMA`'s `{"Steps": [...]}`
+example, `_card_detail`'s `Steps:` block, and the `steps=` argument in
+`_new_cards`'s `FunctionCard(...)`.
+
+- [ ] **Step 4: Write the failing miner tests**
+
+```python
+def test_card_prompt_asks_for_a_contract_not_a_script(fake_llm, sample_trace):
+    CardMiner(fake_llm, CardStore(tmp_path)).draft(_episode(), sample_trace)
+    prompt = fake_llm.prompts[-1]
+    assert "**Steps**" not in prompt
+    assert "**Postconditions**" in prompt and "**Preconditions**" in prompt
+
+
+def test_an_unparseable_card_yields_no_card(fake_llm, sample_trace):
+    fake_llm.reply = "I cannot write this card."
+    assert CardMiner(fake_llm, CardStore(tmp_path)).draft(
+        _episode(), sample_trace
+    ) is None
+
+
+def test_a_trace_value_baked_into_the_contract_becomes_an_input(
+    fake_llm, sample_trace
+):
+    # The model writes the run's own file name into the postcondition
+    # instead of a placeholder; the start screen proves it is data.
+    fake_llm.reply = _card(postconditions="bench_new.txt now exists.")
+    card = CardMiner(fake_llm, CardStore(tmp_path)).draft(
+        _episode(), sample_trace
+    )
+    assert "bench_new.txt" not in card.postconditions
+    assert any(i.startswith("item_label") for i in card.inputs)
+```
+
+- [ ] **Step 5: Run them to verify they fail**
+
+Run: `python -m pytest tests/test_miner.py -q`
+
+Expected: FAIL — the prompt demands Steps, `draft` falls back to a card built
+from trace actions, and grounding walks `card.steps`.
+
+- [ ] **Step 6: Rewrite the prompt and ground the contract**
+
+`_CARD_PROMPT` asks for Intent, Inputs, Preconditions, Postconditions,
+Effects/Outputs, Evidence, and states the rule the format now enforces:
+describe what the function requires and produces; name no UI action.  Keep
+the generalisation instruction — the contract now carries the placeholders
+("refer to them as {name} in Intent, Preconditions and Postconditions").
+Delete `_fallback_card`: a card with no contract is a name, not evidence.
+`draft` returns `None` on `CardParseError`/`LLMParseError` after logging, and
+`mine` skips that episode with a warning naming the trace id.
+
+Rename `_ground_inputs` to `_ground_contract`, keyed on `intent +
+preconditions + postconditions + effects_outputs` instead of `card.steps`:
+(1) every `{name}` in the contract that is not declared becomes an input;
+(2) a trace value appearing literally in the contract **and** on the start
+screen is data — replace it with `{item_label}` and declare it; (3) a declared
+control input records the label the build actually showed (`; observed: '...'`).
+The trace's steps are still read here — as evidence of what the screen showed,
+which is what grounding is.
+
+- [ ] **Step 7: Write the failing migration test**
+
+```python
+LEGACY = """# copy_file
+
+**Intent**: Copy {source} into {dest}.
+**Inputs**: source (required): the file. dest (required): the folder.
+**Preconditions**: The browser shows {source}.
+**Postconditions**: A copy of {source} exists in {dest}.
+**Effects/Outputs**: Creates a duplicate.
+**Steps**:
+1. Long-press {source}.
+2. Tap the copy command.
+**Evidence**: traces copy-file; 3/3 successes
+"""
+
+
+def test_migration_removes_only_the_steps_section():
+    migrated = migrate(LEGACY)
+    assert "**Steps**" not in migrated and "copy command" not in migrated
+    assert "**Postconditions**: A copy of {source} exists in {dest}." in migrated
+    assert parse_card(migrated).name == "copy_file"
+    assert migrate(migrated) == migrated          # idempotent
+```
+
+- [ ] **Step 8: Implement `migrate` and the script wrapper**
+
+`migrate` drops a line matching `^\*\*Steps\*\*` and every following line up
+to the next `^\*\*` heading or end of file; it rewrites nothing else, which is
+what makes it idempotent.  The script takes one or more graph roots, migrates
+every `cards/*.md`, and prints the count per root.
+
+- [ ] **Step 9: Write the failing describer tests**
+
+```python
+def test_description_states_the_goal_then_each_subgoal_in_order(
+    sample_card, another_card
+):
+    text = TaskDescriber().describe(
+        "Create a note titled Grocery list",
+        [(sample_card, {"title": "Grocery list"}), (another_card, {})],
+    )
+    assert text.startswith("Overall goal: Create a note titled Grocery list")
+    assert text.index("1. create_note") < text.index("2. share_note")
+    assert "title = Grocery list" in text
+    assert "Postconditions: A note with the given title appears" in text
+    assert "tap" not in text.lower() and "click" not in text.lower()
+
+
+def test_a_value_bound_from_an_earlier_subgoal_says_where_it_came_from(
+    sample_card, another_card
+):
+    text = TaskDescriber().describe(
+        "Share the note just created",
+        [(sample_card, {}), (another_card, {"note": "Draft"})],
+    )
+    assert "note = Draft (from subgoal 1)" in text
+
+
+def test_an_unbound_input_is_a_named_gap_not_a_failure(sample_card):
+    text = TaskDescriber().describe("Do it", [(sample_card, {})])
+    assert "title = <unbound: not named in the goal or earlier outputs>" in text
+```
+
+- [ ] **Step 10: Run them to verify they fail**
+
+Run: `python -m pytest tests/test_describer.py -q`
+
+Expected: FAIL with `ModuleNotFoundError: specfcg.planner.describer`.
+
+- [ ] **Step 11: Implement `TaskDescriber`**
+
+Fixed layout, five fields per subgoal:
+
+```text
+Overall goal: <goal>
+
+Subgoals, in order:
+1. <card.name> — <card.intent>
+   Inputs: <name> = <value>[(from subgoal N)]; ...
+   Preconditions: <card.preconditions>
+   Postconditions: <card.postconditions>
+   Reliability: <success>/<attempt> observed successes
+
+2. ...
+```
+
+Input names come from the card's declarations, split the way `ParamBinder`
+splits them; any the plan did not bind render as the unbound marker.  The
+describer emits no action verb, and a test asserts it.
+
+- [ ] **Step 12: Replace the compiler in `TestPlan` and `compile_path`**
+
+`TestPlan.steps` becomes `description: str = ""`; delete `PlanStep`.
+`compile_path` binds each card with `ParamBinder`, collects `(card, bindings)`
+pairs, calls `describer.describe(goal.description, pairs)`, and keeps
+appending subgoals and postconditions to `assertions`.  A `None` from the
+binder no longer aborts the plan: pass `{}` and let the description name the
+gap — a compiled step could not carry a gap, a description can, and the agent
+can see the screen.  `Planner.__init__` takes `describer: TaskDescriber | None
+= None`.
+
+`git rm specfcg/planner/compiler.py tests/test_compiler.py` — 41 tests for a
+component that no longer exists, deleted on purpose.  Same step, same reason:
+`git rm specfcg/benchmark/granularity.py scripts/measure_granularity.py
+tests/test_benchmark_granularity.py tests/test_measure_granularity.py` (it
+measures compiled action sets).
+
+`completion/probe.py` is rewritten here rather than deleted: `cli.py` builds
+it for the completer, so a commit without it does not import.  `DeviceProbe`
+becomes `AgentProbe(agent, max_steps=10)` — `run(capability, state, app="")`
+renders the hypothesis as a task: its intent, preconditions and
+postconditions, the current state, and nothing about how to get there.  It
+calls `agent.run(text, max_steps, app=app)`, returns a `Trace` of the agent's
+steps with `metadata["final_state"]`, and `None` when nothing was acted.  The
+`app` comes from the caller because `MissingCapability` names a capability,
+not a package: the completer holds a `Goal` whose `app` is the package, and it
+passes it through.  The
+`MissingCapability.probe` field, `_CAPABILITY_SCHEMA`'s `"probe": []` and the
+hypothesis prompt's "short probe plan. The first step must name a control
+that is visible on the current screen" go with it: asking the model to guess
+a control sequence before anyone has seen the screen was the same mistake in
+miniature.  The `ProbeRunner` protocol gains the `app` parameter.
+`_patch_from_trace` is unchanged — it already mines the card from the trace
+the probe returns.  The four `DeviceProbe` tests in `tests/test_pipeline.py`
+are rewritten against `AgentProbe` in the same step:
+
+```python
+def test_a_hypothesis_is_probed_by_the_agent_not_by_compiled_lines():
+    agent = ScriptedAgent(steps=[Step(action="click", target="text=New")])
+    trace = AgentProbe(agent).run(
+        MissingCapability(name="add_tag", intent="Add a tag"), "",
+        app="it.feio.android.omninotes.foss",
+    )
+    assert "Add a tag" in agent.tasks[0]
+    assert agent.apps == ["it.feio.android.omninotes.foss"]
+    assert [step.target for step in trace.steps] == ["text=New"]
+
+
+def test_a_probe_that_acts_nothing_yields_no_trace():
+    assert AgentProbe(ScriptedAgent(steps=[])).run(
+        MissingCapability(name="add_tag", intent="Add a tag"), ""
+    ) is None
+```
+
+- [ ] **Step 13: Write the failing executor tests**
+
+```python
+def test_the_agent_receives_the_plan_description():
+    agent = ScriptedAgent(steps=[Step(action="click", target="text=+")])
+    plan = _plan(description="Overall goal: create a note\n1. create_note — ...")
+    Executor(agent, _llm(), _graph(), max_steps=20).execute(plan)
+    assert agent.tasks == [plan.description]
+    assert agent.apps == [plan.app]
+    assert agent.max_steps == 20
+
+
+def test_the_goal_check_not_the_agent_decides_success():
+    # The agent reports done; the goal check sees no note in the final UI.
+    agent = ScriptedAgent(steps=[], done=True, final_ui="notes list, empty")
+    result = Executor(agent, _llm(says_achieved=False), _graph()).execute(_plan())
+    assert result.success is False
+    assert result.failure_type == "goal_failure"
+    assert result.new_trace.metadata["task_description"] == _plan().description
+
+
+def test_a_crashing_agent_yields_a_trace_not_an_exception():
+    agent = ScriptedAgent(error="adb disconnected")
+    result = Executor(agent, _llm(), _graph()).execute(_plan())
+    assert result.success is False and result.failure_type == "environment_failure"
+```
+
+- [ ] **Step 14: Run them to verify they fail**
+
+Run: `python -m pytest tests/test_executor.py -q`
+
+Expected: FAIL — `Executor` takes a device and replays `plan.steps`.
+
+- [ ] **Step 15: Write the protocol, the backend and the executor**
+
+`GuiAgent` is a two-method protocol and no policy.  `MobileAgentBackend` holds
+the serial, the two model names and an output root, plus one
+`VLM(models=(model, fallback_model))`, one `ExperienceStore` and a cached
+`AndroidDevice` per package.  `observe(app)` returns `device(app).ui_text()`.
+`run` calls `MobileAgent.run` — constructed with `verify=False` — on
+`TaskSpec(id=sha256(task)[:16], app=app, app_name=app, goal=task,
+max_steps=max_steps)` and converts the result into `AgentTrace`: `tap` →
+`click` (`text=`/`resourceId=` from args), `tap_xy` → `click` with
+`args="x,y"`, `type_text` → `input`, `press` → `press`, `swipe` → `swipe`;
+`done` ends the run.  `AndroidDevice` connects lazily, so caching one per app
+costs nothing until it is used, and the agent observes and acts through the
+same client — which is what lets `Executor` drop its `device` argument.
+
+`MobileAgent` changes to match.  `run()` no longer calls
+`self.device.start_app()`: `app_start(stop=True)` restarts the process, which
+would wipe the state the benchmark's `prepare_state` just seeded, and a probe
+would wipe the screen the hypothesis was written about.  The agent's contract
+becomes "act from the screen you find", and launching is the caller's job —
+`prepare_state` already does it, `fresh_app` already does it, and
+`scripts/run_agent_tasks.py` launches after `reset_app` (its `--no-reset`
+path must launch explicitly, which is the one caller that changes).  `run()`
+also writes `initial_ui.txt` and `step_NN_before.txt` / `step_NN_after.txt`
+beside the screenshots it already saves, and returns `initial_ui` / `final_ui`
+on `TaskResult`; on the exception path `final_ui` stays empty and `error` is
+set, which is what makes Step 13's third test pass.
+
+It also gains `verify: bool = True`.  With `verify=False` the agent reports
+what it did and stops: `_verify` is not called (it is one VLM call per task
+that would answer a question the caller already answers), `success` is left
+`False`, `reason` reads "verification deferred to the caller", and no memory
+entry is written — a lesson learned from an unjudged run is a guess, and the
+store is only honest when something judged the run.  The backend constructs
+`MobileAgent(..., verify=False)`; `scripts/run_agent_tasks.py` keeps the
+default, because there the agent's own verifier *is* the verdict.
+
+`Executor(agent, llm, graph, summarizer=None, max_steps=20)` — no `device`:
+the agent owns the device, and `max_steps` is the configured budget.
+`execute(plan, max_steps=None)` builds a `Trace` whose `start_state` is the
+summarizer's reading of `agent_run.initial_ui` (or the first 2000 characters
+when no summarizer is given), calls
+`self.agent.run(plan.description, max_steps, app=plan.app or plan.goal.app)`,
+appends the returned `Step`s with `step_results =
+[{"action","target","args","success","before","after"}]` and **no** `card`
+key, then asks the existing `_GOAL_SCHEMA` over goal + `plan.assertions` + the
+action log + `final_ui`.  Delete `_step_line`, `_groups`, `_POST_SCHEMA` and
+the per-card postcondition loop: attribution is whole-path now, and
+`GraphUpdater._segments` already falls back to `plan.path` when no step names
+a card.  An `AgentTrace.error` becomes `failure_type="environment_failure"`
+with the error text, not an exception.  Callers that plan and then execute
+(`GraphAgent`, `run_pilot`, `run_probes`, `run_selfopt`) read the screen with
+`pipeline.executor.agent.observe(app)` instead of `pipeline.device.dump_ui()`,
+so the state the plan is made from is the state the agent acts on.
+`pipeline.device` stays for what it is still right for: trace collection,
+`set_app`, and the scripts that never execute a plan.  The CLI's `execute`,
+`refine` and `run` commands take `--app` and must now call
+`pipeline.device.start_app(args.app)` before the first plan — they relied on
+the executor's launch, and the caller owning the launch is exactly the
+correction.  The offline path passes `fake_device`, where `start_app` is a
+no-op on the fake.
+
+- [ ] **Step 16: Rewrite the benchmark adapter**
+
+`agents.py` keeps `RandomTraversalAgent` and gains `GraphAgent(pipeline)`: a
+callable on the `BenchTask` —
+`state = pipeline.executor.agent.observe(task.app)`, then
+`pipeline.plan(task.goal, state, app=task.app)`, then
+`pipeline.executor.execute(plan, max_steps=task.max_steps)` — translating
+`RunResult` into `AgentRun`:
+`steps` from `step_results`, `observed_ui` from each step's `before_state`
+plus the final UI, `predicted_path=list(plan.path)`, `reached_cards =
+list(plan.path)` only when the run succeeded.  Observation and action are the
+same client, so the state the plan is made from is the state the agent acts
+on.  The agent callable now takes the task rather than `(goal, max_steps)`,
+because the app is part of what the agent needs and the runner already has
+it: `TaskRunner.run(task, agent: Callable[[BenchTask], AgentRun])` and
+`RandomTraversalAgent.__call__(task)` (it reads `task.max_steps`; the device
+it holds is the task's app, set once per run by the script).  Delete
+`execute_plan` and
+`SpecFCGAgent`.  `scripts/run_mobileworld_bench.py`'s `--agent` choices become
+`graph` and `random`, and the summary records `"agent": "graph"`, so script
+and scorecard agree on the name now and in H.
+
+- [ ] **Step 17: Update the offline stand-in, the config and the spec**
+
+`_OfflineLLM` loses the "Convert these function-card steps" and "Are the
+postconditions satisfied" branches, and `_OFFLINE_CARD` loses its Steps
+block.  `AgentConfig(model, fallback_model, max_steps)` joins `AppConfig`;
+`config/llm.bench.yaml` gains `agent: {model: auto/deepseek-v4.1-flash,
+fallback_model: auto/deepseek-v4.1-flash, max_steps: 20}`; `build_pipeline`
+constructs `MobileAgentBackend(config.device.serial, config.agent.model,
+config.agent.fallback_model, Path(config.paths.root) / "agent")` and passes
+it to `Executor`.  `build_pipeline` keeps constructing
+`Uiautomator2Device` for `pipeline.device`: that is the script-facing device
+(`dump_ui`, `set_app`, `screenshot`), used by `run_pilot`, `run_selfopt`,
+`run_graph_experiments` and trace collection.  The backend builds its own
+`AndroidDevice` per app — the agent-facing one (`ui_text`, actions).  Two
+device abstractions on one phone is the status quo (`AdbOps` already sits
+beside `Uiautomator2Device`), and merging them would touch trace collection,
+which this round leaves alone.  What changes is that *planning* reads the
+screen through the agent when a plan will be executed, so the state the plan
+is made from is the state the agent acts on.  With `fake_device`,
+`build_pipeline` wires `ScriptedAgent(...)` instead of the backend, and the
+offline pipeline runs end to end without a phone.
+
+Spec edits: §5.1 Planner row becomes "goal + state → 图搜索 → function 序列 + 参数绑定 +
+任务描述"; Executor row becomes "把任务描述交给 GUI agent 执行，校验 goal 与 postcondition";
+§5.2 step 5 drops "重放步骤"; §6.2's card format and card-validity criterion drop
+Steps; §6.3 drops the `calls` edge (a card can no longer contain another
+card's steps); §6.4 step 5 becomes "把路径上的卡片契约按参数串成任务描述"; §6.5 states that
+the executor is a GUI agent, not a script.
+
+- [ ] **Step 18: Migrate the four graphs and run the suite**
+
+```
+python -m pytest tests/test_card_parser.py tests/test_miner.py tests/test_migrate_cards.py tests/test_describer.py tests/test_planner.py tests/test_executor.py tests/test_benchmark_agents.py tests/test_updater.py tests/test_graph_store.py -q
+PYTHONPATH=. python scripts/migrate_cards.py runs/mobileworld/activitydiary/graph runs/mobileworld/amaze/graph runs/mobileworld/markor/graph runs/mobileworld/omninotes/graph
+python -m pytest -q
+```
+
+Expected: 93 cards migrated, every card still parses, and the full suite green
+with a `ScriptedAgent` where the device-backed one would go.  No test asserts
+on a replayed step or on `card.steps`.
+
+- [ ] **Step 19: Smoke one task on the device**
+
+```
+PYTHONPATH=. python -c "
+from specfcg.executor.mobile_agent_backend import MobileAgentBackend
+a = MobileAgentBackend('47261FDAS00DTQ',
+                       'auto/deepseek-v4.1-flash', 'auto/deepseek-v4.1-flash',
+                       'runs/smoke/agent')
+t = a.run('Create a note titled Smoke test and save it.', 10,
+          app='it.feio.android.omninotes.foss')
+print(len(t.steps), t.done, t.error, t.initial_ui[:80])
+"
+```
+
+Expected: non-empty `t.steps`, each with a `before_state`; `done` is the
+agent's claim and no code path uses it as the verdict.
+
+- [ ] **Step 20: Commit**
+
+```bash
+git add specfcg mobile_agent/agent.py scripts/migrate_cards.py tests config/llm.bench.yaml docs/superpowers/specs
+git commit -m "refactor(cards): a card is a contract, a plan is a description, an agent executes"
+```
+
+---
+
+### Task G: probes and completion run through the agent
+
+F rebuilt `AgentProbe` so the code compiles; this task makes the probe path
+actually run through the agent end to end — the completer passes the package,
+`cli.py` wires the probe to the backend, and the experiment script's probes
+execute through the executor instead of replaying a compiled plan.
+
+**Files:**
+- Modify: `specfcg/completion/completer.py` (pass `goal.app` to `probe.run`)
+- Modify: `specfcg/cli.py` (`build_pipeline` wires `AgentProbe(executor.agent)`)
+- Modify: `scripts/run_graph_experiments.py:137-200` (`run_probes`)
+- Modify: `tests/fakes.py` (`FakeProbe.run(capability, state, app="")`
+  records `apps`)
+- Test: `tests/test_completer.py`, `tests/test_run_graph_experiments.py`,
+  `tests/test_pipeline.py` (the four rewritten probe tests)
+
+**Interfaces:**
+- Consumes: `AgentProbe` and `GuiAgent` (F), `Executor` (F)
+
+- [ ] **Step 1: Write the failing wiring test**
+
+The probe itself is tested in F.  What F cannot test is that the package
+reaches it:
+
+```python
+def test_the_completer_gives_the_probe_the_goal_s_package(
+    fake_llm, graph_store, card_miner, edge_builder, fake_probe, probe_trace
+):
+    fake_probe.trace = probe_trace
+    fake_llm.reply_json = {"capabilities": [_capability()]}
+    CapabilityCompleter(fake_llm, graph_store, card_miner, edge_builder,
+                        fake_probe).complete(
+        Goal(description="add a tag", app="it.feio.android.omninotes.foss"), ""
+    )
+    assert fake_probe.apps == ["it.feio.android.omninotes.foss"]
+```
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `python -m pytest tests/test_completer.py -q`
+
+Expected: FAIL — `FakeProbe` records no `apps`, and `complete` calls
+`probe.run(capability, state)` without the package.
+
+- [ ] **Step 3: Pass the package through and wire the probe**
+
+`CapabilityCompleter.complete` calls
+`self.probe.run(capability, state, app=goal.app)`; `tests/fakes.py`'s
+`FakeProbe` records each `app` it was given.  `build_pipeline` constructs
+`AgentProbe(executor.agent)` where it used to construct
+`DeviceProbe(device, compiler)` — the same agent, so a probe acts through the
+client that observed the screen.  F already removed
+`MissingCapability.probe`, `_CAPABILITY_SCHEMA`'s `"probe": []` and the
+"short probe plan" clause; G only checks the completer still runs without
+them.
+
+- [ ] **Step 4: Reroute `run_probes`**
+
+`run_probes` keeps its predicted path and executes it through the pipeline's
+executor (`pipeline.plan_path(...)` then `pipeline.executor.execute(plan)`
+after `fresh_app`), reading the pre-plan state with
+`pipeline.executor.agent.observe(package)`; the observed evidence is each
+step's `before_state` plus the final UI, so "reached" means the agent's
+screens showed the function.  The prediction stays about the graph's route —
+that is the quantity calibration scores.
+
+- [ ] **Step 5: Run the completer, pipeline and experiment tests**
+
+Run: `python -m pytest tests/test_completer.py tests/test_pipeline.py tests/test_run_graph_experiments.py -q`
+
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add specfcg scripts tests
+git commit -m "feat(completion): probe a hypothesized capability with the agent"
+```
+
+---
+
+### Task H: the ablation — one agent, two strings
+
+**Files:**
+- Modify: `specfcg/benchmark/agents.py` (`RawGoalAgent`)
+- Modify: `specfcg/benchmark/suite_runner.py:30-79` (`AgentRun.task_text`,
+  `TaskOutcome.task_text`, `as_record()`)
+- Modify: `specfcg/benchmark/scorecard.py:91-140` (`task` reads the graph arm;
+  `control` gains `raw`)
+- Modify: `scripts/run_mobileworld_bench.py` (`--agent graph|raw|random`)
+- Modify: `scripts/build_bench_report.py` (paired table)
+- Test: `tests/test_benchmark_agents.py`, `tests/test_benchmark_scorecard.py`,
+  `tests/test_benchmark_report.py`, `tests/test_benchmark_suite_runner.py`
+
+**Interfaces:**
+- Produces: `GraphAgent(pipeline)` and `RawGoalAgent(agent: GuiAgent)` — both
+  `Callable[[BenchTask], AgentRun]`; `TaskRunner.run(task, agent)` calls
+  `agent(task)`.
+- Produces: `AgentRun.task_text: str`, `TaskOutcome.task_text: str`, and
+  `"task_text"` in `as_record()` — the exact string the agent was given.
+- Consumes: `GraphAgent` (F), `GuiAgent` (F)
+
+- [ ] **Step 1: Write the failing tests**
+
+```python
+def test_the_two_arms_differ_only_in_the_string_the_agent_receives():
+    goal = "Create a note titled Grocery list"
+    task = _task(goal=goal)
+    graph_agent = ScriptedAgent()
+    RawGoalAgent(graph_agent)(task)
+    GraphAgent(_pipeline(agent=graph_agent,
+                         description="Overall goal: " + goal))(task)
+    assert graph_agent.tasks == [goal, "Overall goal: " + goal]
+    assert graph_agent.apps == [task.app, task.app]
+
+
+def test_the_task_dimension_reads_the_graph_arm_only():
+    entry = {"bench": [
+        {"agent": "graph", "rows": [{"success": True}, {"success": False}]},
+        {"agent": "raw", "rows": [{"success": True}, {"success": True}]},
+    ]}
+    assert app_score(entry)["task"] == 50.0
+    assert control([entry])["raw"] == 100.0
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `python -m pytest tests/test_benchmark_agents.py tests/test_benchmark_scorecard.py -q`
+
+Expected: FAIL — there is no raw arm and `app_score` reads `agent == "graph"`
+with no `control()["raw"]`.
+
+- [ ] **Step 3: Implement the second arm and record the string**
+
+Both arms share one model, one device and one runner; the only difference is
+the string.  `run_mobileworld_bench.py` gains `--agent raw` and writes
+`bench-graph/summary.json` / `bench-raw/summary.json`.  Neither arm launches
+anything: `prepare_state` already launched the app and ran onboarding, and
+the agent acts from the screen it finds.  No experience file is threaded
+through either arm, because the backend runs with `verify=False` and writes
+no memory entry — there is nothing to leak between arms, and pretending to
+separate a store neither arm writes to would be decoration.
+`RawGoalAgent` calls `agent.run(task.goal, task.max_steps, app=task.app)` and
+wraps the `AgentTrace` in an `AgentRun` with `reached_cards=[]` and no
+predicted path — it has no graph to attribute anything to.
+
+- [ ] **Step 4: Point the scorecard and the report at the new quantity**
+
+`app_score` reads rows with `agent == "graph"`; `control()` returns
+`{"random": ..., "raw": ...}`.  `build_bench_report.py` gains a paired table
+per app — both-pass, graph-only, raw-only, both-fail — and per-task rows
+showing each arm's `task_text`.  The overview states the level-versus-delta
+distinction and that the task dimension is discontinuous here.
+
+- [ ] **Step 5: Run the benchmark tests**
+
+Run: `python -m pytest tests/test_benchmark_agents.py tests/test_benchmark_scorecard.py tests/test_benchmark_report.py tests/test_benchmark_suite_runner.py -q`
+
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add specfcg/benchmark scripts/run_mobileworld_bench.py scripts/build_bench_report.py tests
+git commit -m "feat(bench): ablation between the raw goal and the graph's task description"
+```
+
+---
+
+### Task C: duplicate functions, read from contracts
+
+**Why the meaning changes.** The old measure compiled each card's steps and
+compared the resulting `(action, control)` sets.  A card has no steps now, so
+behavioural equivalence is not computable without executing both cards — a
+device run per pair.  What is computable is the contract: the semantic-edge
+call already reads every card's intent, inputs, preconditions,
+postconditions and effects, so asking it, in the same call, which cards
+describe the same function costs no extra call.
+
+**This is a reported diagnosis, not a score.** With the actions gone there is
+no deterministic oracle for "same function", and an LLM judgement must not be
+dressed up as a measurement.  It is reported beside the graph dimensions for
+a person to inspect, and the groups are never merged automatically.
+
+**Files:**
+- Modify: `specfcg/maintainer/builder.py:13-16`, `:99-169`
+- Modify: `specfcg/pipeline.py:126-136` (write the groups)
+- Create: `scripts/measure_duplicates.py`
+- Modify: `scripts/build_bench_report.py:403-430`, `:455-510` (the
+  "granularity" column and the duplicate-group listing)
+- Test: `tests/test_edge_builder.py`, `tests/test_benchmark_duplicates.py`
+
+**Interfaces:**
+- Produces: `SemanticResult(edges: list[Edge], same_function: list[list[str]])`;
+  `EdgeBuilder.infer_semantic(cards) -> SemanticResult` and `build(cards,
+  segments) -> SemanticResult`.
+- Produces: `graph/same_function.json` — `{"groups": [[...], ...]}` per app.
+  `Pipeline.build_graph` keeps returning `list[Edge]` (three callers and their
+  tests depend on it); it takes `.edges` from the result and writes the groups
+  beside the edges.  The groups are read from disk by whoever wants them,
+  which is the point: they are reported, not consumed.
+
+- [ ] **Step 1: Write the failing builder test**
+
+```python
+def test_the_semantic_call_reports_groups_and_drops_unknown_names(fake_llm):
+    fake_llm.reply_json = {"edges": [], "same_function": [
+        ["create_note", "add_note"],      # a real group
+        ["create_note", "invented_card"], # dropped: unknown name
+        ["share_note"],                   # dropped: not a group
+    ]}
+    result = EdgeBuilder(fake_llm).infer_semantic(two_cards)
+    assert result.same_function == [["create_note", "add_note"]]
+    assert result.edges == []
+```
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `python -m pytest tests/test_edge_builder.py -q`
+
+Expected: FAIL — `infer_semantic` returns a bare list, so `.same_function`
+does not exist.
+
+- [ ] **Step 3: Extend the schema, parse, and persist**
+
+Add `"same_function": [["create_note", "add_note"]]` to `_EDGE_SCHEMA` and to
+the prompt ("also list groups of cards that describe the same user-level
+function").  Validate every name against `cards`, drop groups shorter than
+two or naming an unknown card, and dedupe.  `Pipeline.build_graph` writes
+`graph/same_function.json` beside the edges and returns `result.edges`, so
+its three callers and their tests keep working unchanged.
+
+- [ ] **Step 4: Replace the measure with a reader**
+
+`measure_duplicates.py` reads each app's `same_function.json` and prints the
+groups; the report's "granularity" column becomes a "duplicate groups" column
+with the count and the members, and `_granularity_groups` reads
+`same_function.json` instead of `granularity.json`.  The report says
+explicitly that this is a model judgement, not a measured score, and that the
+old behavioural number measured a different card format and is not
+comparable.  `runs/mobileworld/granularity.json` stays on disk as a historical
+record and is no longer read.
+
+- [ ] **Step 5: Run the tests**
+
+Run: `python -m pytest tests/test_edge_builder.py tests/test_benchmark_duplicates.py tests/test_pipeline.py -q`
+
+Expected: PASS.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add specfcg scripts tests
+git commit -m "feat(graph): read duplicate functions from the contracts, and say it is a judgement"
+```
+
+---
 
 ### Task A: rebuild the four graphs with the current builder
 
 **Files:** none (a run); outputs under `runs/mobileworld/<app>/graph`.
+
+Runs after C, so the rebuild writes the `same_function` groups in the same
+single semantic call.
 
 - [ ] A1: rebuild each app from the traces already on disk
 
@@ -1359,23 +2208,25 @@ PYTHONPATH=. python scripts/build_app_graph.py --app markor --skip-collect --con
 PYTHONPATH=. python scripts/build_app_graph.py --app omninotes --skip-collect --config config/llm.bench.yaml
 ```
 
-Expected: one `semantic edges` journal frame per app (the builder now
-derives the edges once, after the last trace), and no duplicate card
-for a trace mined twice.  `scripts/measure_graph_cost.py` confirms the
-call count from the journal itself.
+Expected: one `semantic edges` journal frame per app (the builder derives the
+edges once, after the last trace), no card file containing `**Steps**`, and no
+duplicate card for a trace mined twice.  `scripts/measure_graph_cost.py`
+confirms the call count from the journal itself.
 
-- [ ] A2: record the before/after coverage and granularity
+- [ ] A2: record coverage, duplicate groups and the card count
 
 ```
-PYTHONPATH=. python scripts/measure_granularity.py
+PYTHONPATH=. python scripts/measure_duplicates.py
 PYTHONPATH=. python scripts/measure_graph_cost.py
 python -m pytest -q
 ```
 
-Expected: coverage is recomputed by the current matcher and is allowed
-to differ from the recorded 84.5% mean -- a rebuild is a different
-graph.  Granularity should not regress; the duplicate `merge_notes` /
-`merge_two_notes` pair should be gone from omninotes.
+Expected: coverage is recomputed by the current matcher and is allowed to
+differ from the recorded 84.5% mean — a rebuild is a different graph.  The
+`merge_notes` / `merge_two_notes` pair should appear in one duplicate group.
+A card the new miner could not give a contract to is absent, and its trace id
+is in the mining log — a smaller graph with honest cards beats a larger one
+with names.
 
 - [ ] A3: regenerate the replay pages from the new journals
 
@@ -1386,106 +2237,161 @@ PYTHONPATH=. python scripts/build_graph_page.py --app markor
 PYTHONPATH=. python scripts/build_graph_page.py --app omninotes
 ```
 
-### Task B: re-measure the two device dimensions
+---
 
-**Files:** none (runs); records under `runs/mobileworld/<app>/experiments`.
+### Task B: re-measure the device dimensions
+
+**Files:** none (runs); records under `runs/mobileworld/<app>/experiments`
+and `bench-graph` / `bench-raw`.
 
 - [ ] B1: re-run random traversal and probes on the rebuilt graphs
 
 ```
 PYTHONPATH=. python scripts/run_graph_experiments.py --app activitydiary --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_graph_experiments.py --app amaze --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_graph_experiments.py --app markor --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_graph_experiments.py --app omninotes --serial 47261FDAS00DTQ --config config/llm.bench.yaml
 ```
 
-Expected: a probe record with a non-constant `predicted_confidence`
-across probes.  Three of the four recorded runs predicted 0.45 for
-every probe, which makes the bias-only calibration score
-uninformative; if the rebuilt graphs still produce one value, the
-estimator -- not the graph -- is what needs to change.
+(and the other three apps)
+
+Expected: a probe record with a non-constant `predicted_confidence` across
+probes.  Three of the four recorded runs predicted 0.45 for every probe, which
+makes the bias-only calibration score uninformative; if the rebuilt graphs
+still produce one value, the estimator — not the graph — is what Task D
+changes.  Each probe's "reached" now means the agent's screens showed the
+function.
 
 - [ ] B2: re-run the self-optimization curve from a fresh seed
 
 ```
 PYTHONPATH=. python scripts/run_selfopt.py --app activitydiary --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_selfopt.py --app amaze --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_selfopt.py --app markor --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-PYTHONPATH=. python scripts/run_selfopt.py --app omninotes --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
-```
-
-Expected: `--rounds 4` matches the recorded runs, so the gain is
-comparable.  A run that grows nothing saves no record.
-
-- [ ] B3: re-run the 20-step task benchmark
-
-```
-PYTHONPATH=. python scripts/run_mobileworld_bench.py --app activitydiary --serial 47261FDAS00DTQ --config config/llm.bench.yaml
 ```
 
 (and the other three apps)
 
+Expected: `--rounds 4` matches the recorded runs, so the gain is comparable.
+A run that grows nothing saves no record.  Completion now probes with the
+agent, so a round costs more tokens than it did — record that in the report
+rather than hiding it.
+
+- [ ] B3: run both arms of the ablation on all four apps
+
+```
+PYTHONPATH=. python scripts/run_mobileworld_bench.py --app activitydiary --agent graph --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_mobileworld_bench.py --app activitydiary --agent raw   --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+```
+
+(and the other three apps, both arms)
+
+Expected: two summaries per app with the same `tasks`, `seed` and model; every
+row carries `task_text`, and the graph arm's text is the description from
+`TestPlan`.
+
 - [ ] B4: record the point and rebuild the report
 
 ```
-PYTHONPATH=. python scripts/record_score.py --label rebuilt-graphs
+PYTHONPATH=. python scripts/record_score.py --label agent-execution
 PYTHONPATH=. python scripts/build_bench_report.py
 ```
 
-Expected: one new point on the curve whose four dimensions all come
-from records written by the current code.  Do not compare this point
-with the earlier ones as if only the graphs changed: the coverage
-matcher changed too, so the earlier graph dimension is not the same
-quantity.
+Expected: one new point whose four dimensions all come from records written
+by the current code.  Do not compare it with the earlier points as if only the
+graphs changed: the coverage matcher, the card format, the executor and the
+task definition all changed.  The report carries that sentence.
 
-### Task C: mark near-duplicate functions in the semantic-edge call
+---
 
-**Files:** `specfcg/maintainer/builder.py`, `tests/test_edge_builder.py`.
+### Task D: calibration over agent runs
 
-- [ ] C1: write the failing test -- the edge call reports groups
+**Why the meaning changes.** A probe used to predict whether a compiled path
+would execute; it now predicts whether a description will lead an agent to the
+function's evidence.  The "actual" side of the comparison is therefore agent
+behaviour, and the prediction has to be about the same thing.
 
-The model already reads every card to infer edges.  Ask it, in the
-same call, which cards describe the same function; the answer costs no
-extra call.  The test asserts that `infer_semantic` returns the groups
-the model reported and that a group naming an unknown card is dropped.
+**Files:** `specfcg/benchmark/exploration.py` (`calibration`),
+`specfcg/benchmark/scorecard.py` (calibration dimension),
+`tests/test_benchmark_exploration.py`.
 
-- [ ] C2: extend the schema and the parse
+- [ ] D1: write the failing test — a constant estimate scores no better than
+      the base rate
 
-Add `same_function` to `_EDGE_SCHEMA` as a list of card-name lists.
-Validate every name against `cards`, drop groups smaller than two, and
-return them beside the edges (a small dataclass, not a second call).
-
-- [ ] C3: report the groups; do not merge
-
-Granularity already reports behavioural duplicates (same compiled
-actions).  This catches the ones that differ in actions but not in
-function -- `merge_notes` and `merge_two_notes` are the same menu flow
-written twice.  Merging changes the graph, so it stays a decision a
-person makes after reading the report.
-
-### Task D: make the calibration dimension discriminate
-
-**Files:** `specfcg/benchmark/exploration.py`,
-`specfcg/benchmark/scorecard.py`, tests.
-
-- [ ] D1: write the failing test -- a constant estimate scores zero
-
-Today a predictor that always says 0.45 scores well whenever the
-observed rate is near 0.45.  A Brier score over the probes punishes a
-constant that ignores which probe it is scoring.  The test asserts a
-constant estimator scores no better than the base rate.
+```python
+def test_a_constant_estimate_earns_only_the_base_rate():
+    probes = [_probe(predicted=0.45, reached=hit)
+              for hit in (True, False, True, False)]
+    assert brier(probes) >= brier(
+        [_probe(predicted=0.5, reached=p.reached) for p in probes]
+    )
+```
 
 - [ ] D2: implement only if B1 shows the estimator is still constant
 
-This is deliberately conditional.  If the rebuilt graphs produce
-distinct predictions, the bias score already measures something and
-the Brier change is unnecessary.  Measure first.
+Deliberately conditional.  If the rebuilt graphs produce distinct predictions,
+the bias score already measures something and the Brier change is
+unnecessary.  Measure first.  If it is still constant, replace the dimension
+with a Brier score over the probes and say in the report that the old bias
+number rewarded a constant.
+
+- [ ] D3: state in the report what the dimension can and cannot see
+
+The prediction is about the graph's route, the observation is about the
+agent's walk; an agent that ignores a correct route and an agent that finds
+the function despite a wrong one both appear as prediction error.  A single
+number cannot separate those, and the report says so rather than implying the
+graph was right or wrong.
+
+---
 
 ### Task E: keep the ledger current
 
-- [ ] E1: after each of A-D, tick the steps that ran and record the
-  command and result, so the plan never again reads as untouched while
+- [ ] E1: after each task above, tick the steps that ran and record the
+  command and the result, so the plan never again reads as untouched while
   the work is in the tree.
+
+---
+
+### Self-Review (this round)
+
+**Spec coverage.** Every part of the correction has an owning task: cards as
+contracts, the plan as a description and the agent as the executor (F); the
+probe rebuilt against the agent (F) and wired through the completer (G); the
+paired ablation (H); duplicates under the new model (C); rebuild (A);
+re-measure (B); calibration (D); the ledger (E).  Spec text is edited inside F
+and G — the format, the architecture section and the probe definition travel
+with the code that changes them.
+
+**Type consistency.** `FunctionCard` has no `steps` from F onward, and F
+updates every consumer it can reach in one commit.  `TestPlan.description` is
+produced in F and consumed by F's executor and by both arms in H.  `AgentTrace`
+is produced by `GuiAgent` (F) and consumed by `Executor` (F), `AgentProbe` (F)
+and both arms (H).  `Step` (a trace record) is never confused with `PlanStep`,
+which is deleted with its last producer.  The bench agent name is `graph`
+everywhere — script, summary, scorecard — from F onward.
+
+**Deliberate deletions, each named with the design it belonged to:**
+`specfcg/planner/compiler.py` and its 41 tests (compiling contracts back into
+taps), `PlanStep`, `execute_plan` (replay), `SpecFCGAgent` (the replay
+adapter), `granularity.py` and its two test files (behavioural equivalence
+without behaviour), `MissingCapability.probe` (a guessed control sequence),
+`DeviceProbe`, `StepCompiler`, `_fallback_card` (a card invented from trace
+actions), the `calls` edge type (one card containing another's steps).
+
+**Limits to state in the report, not to hide.**
+- The 20-task suite is too small for a significance claim over the paired
+  difference.  This round makes the comparison possible and honest; the suite
+  has to grow before the delta can be called a result.
+- Card attribution of a run is whole-path, so `card_rate` now moves in
+  path-sized steps and the per-card success counts are coarser than before.
+- Duplicate detection is an LLM judgement.  It is reported, never scored, and
+  never merged automatically.
+- The agent's own verifier is disabled for planned runs (`verify=False`), so
+  its self-reported `done` is recorded and ignored; the programmatic oracle
+  decides.  A consequence worth stating: the experience memory stays empty on
+  those runs, so a planned run cannot teach the agent anything it did not
+  already know.  That is deliberate — an unjudged run is not evidence — and it
+  is also why the ablation measures the graph's description and not the
+  agent's self-improvement.
+
+**Placeholders:** none.  Every step has a file, an interface, a test and a
+command.
 
 ---
 
