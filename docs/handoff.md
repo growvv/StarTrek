@@ -136,7 +136,7 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
 | `docs/assets/`、`docs/demo/`、`docs/graph/` | 是 | GitHub Pages 站点素材 |
 | `.cache/` | 否 | LLM 回复缓存（`.cache/llm`、`.cache/llm-bench`） |
 | `config/llm.yaml` | 否 | 本机网关与设备序列号 |
-| `.tmp/` | 否 | 开发期临时截图/日志，约 515 MB，可安全删除 |
+| `.tmp/` | 否 | 开发期临时截图/日志，约 515 MB，如无需保留可删除 |
 | `papers/`、`third_party/`、各 venv | 否 | 依赖与本地产物 |
 
 ## 7. 当前测量状态与限制
