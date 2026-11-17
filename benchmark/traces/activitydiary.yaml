@@ -1,0 +1,146 @@
+# Scripted reference traces for ActivityDiary.
+#
+# These are the demonstration traces the graph is mined from. Each trace is
+# one user-level function recorded on the real device; the miner turns it into
+# a function card, and the edge builder connects the cards.
+#
+# Labels are what the installed 1.4.2 build shows on this device (Chinese
+# locale for the search icon).  A trace that needs an existing activity or
+# diary entry creates it in `prelude`, which is not recorded, so the card
+# describes only the function under study.
+app: activitydiary
+package: de.rampro.activitydiary
+
+# A freshly installed app asks for POST_NOTIFICATIONS on first launch; the
+# dialog covers the activity list, so every reset trace dismisses it first.
+onboarding:
+  - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button", wait: 1.5}
+
+preludes:
+  start_officework: &start_officework
+    - {action: click, target: "text=Officework", wait: 2.0}
+  open_diary: &open_diary
+    - {action: click, target: "desc=Open navigation", wait: 1.2}
+    - {action: click, target: "text=Diary", wait: 2.0}
+
+traces:
+  - id: diary-start-officework
+    goal: Start recording the Officework activity
+    # reset clears the app database so no activity is recording: tapping an
+    # activity name starts it when idle and stops it when it is the active one.
+    reset: true
+    actions:
+      - {action: click, target: "text=Officework", wait: 2.0}
+
+  - id: diary-stop-officework
+    goal: Stop recording the Officework activity
+    reset: true
+    # Tapping the active activity's name again stops it (the same control
+    # starts it when idle), which is why this trace starts the activity first.
+    prelude:
+      - {action: click, target: "text=Officework", wait: 2.0}
+    actions:
+      - {action: click, target: "text=Officework", wait: 2.0}
+
+  - id: diary-switch-to-cinema
+    goal: Switch the current activity from Officework to Cinema
+    actions:
+      - {action: click, target: "text=Officework", wait: 2.0}
+      - {action: click, target: "text=Cinema", wait: 2.0}
+
+  - id: diary-add-note
+    goal: Add a note to the currently recorded activity
+    prelude: *start_officework
+    actions:
+      - {action: click, target: "resourceId=de.rampro.activitydiary:id/fab_edit_note", wait: 1.5}
+      - {action: input, target: "resourceId=de.rampro.activitydiary:id/noteText", args: "Finished the quarterly report", wait: 1.0}
+      - {action: click, target: "text=OK", wait: 1.5}
+
+  - id: diary-open-history
+    goal: Open the diary history screen
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Diary", wait: 2.0}
+
+  - id: diary-open-statistics
+    goal: Open the statistics screen
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Statistics", wait: 2.0}
+
+  - id: diary-add-activity-type
+    goal: Create a new activity type
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Add Activity", wait: 1.5}
+      - {action: input, target: "resourceId=de.rampro.activitydiary:id/edit_activity_name", args: "Stargazing", wait: 1.0}
+      - {action: click, target: "desc=Save", wait: 2.0}
+
+  - id: diary-open-manage
+    goal: Open the activity manager to edit activity types
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Edit Activities", wait: 2.0}
+
+  - id: diary-edit-activity-type
+    goal: Rename an existing activity type
+    prelude:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Edit Activities", wait: 2.0}
+    actions:
+      - {action: click, target: "text=Cinema", wait: 2.0}
+      - {action: input, target: "resourceId=de.rampro.activitydiary:id/edit_activity_name", args: "Movie night", wait: 1.0}
+      - {action: click, target: "desc=Save", wait: 2.0}
+
+  - id: diary-open-map
+    goal: Open the map view
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Map", wait: 2.5}
+
+  - id: diary-open-settings
+    goal: Open the app settings
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Settings", wait: 2.5}
+
+  - id: diary-open-about
+    goal: Open the About screen
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=About", wait: 2.5}
+
+  - id: diary-open-privacy
+    goal: Open the privacy policy
+    actions:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Privacy Policy", wait: 2.5}
+
+  - id: diary-search
+    goal: Search the activity list
+    actions:
+      - {action: click, target: "resourceId=de.rampro.activitydiary:id/search_button", wait: 1.5}
+      - {action: input, target: "resourceId=de.rampro.activitydiary:id/search_src_text", args: "Cine", wait: 1.0}
+      - {action: back, wait: 1.2}
+
+  - id: diary-filter-history
+    goal: Filter the diary history by activity
+    prelude: *open_diary
+    actions:
+      - {action: click, target: "resourceId=de.rampro.activitydiary:id/action_filter", wait: 2.0}
+
+  - id: diary-open-history-detail
+    goal: Open one diary entry's details
+    prelude: *open_diary
+    actions:
+      - {action: click, target: "text=Officework", wait: 2.5}
+
+  - id: diary-edit-history-detail
+    goal: Edit the note of a recorded diary entry
+    prelude:
+      - {action: click, target: "desc=Open navigation", wait: 1.2}
+      - {action: click, target: "text=Diary", wait: 2.0}
+      - {action: click, target: "text=Officework", wait: 2.5}
+    actions:
+      - {action: input, target: "resourceId=de.rampro.activitydiary:id/edit_activity_note", args: "Reviewed with the team", wait: 1.0}
+      - {action: click, target: "desc=Save", wait: 2.0}

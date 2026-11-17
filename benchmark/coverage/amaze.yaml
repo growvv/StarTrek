@@ -1,0 +1,107 @@
+# Source-derived user-level function inventory: Amaze File Manager 3.11.4.
+app: amaze
+package: com.amaze.filemanager
+source: https://github.com/TeamAmaze/AmazeFileManager
+functions:
+  - id: browse_folder
+    label: Browse into a folder
+    source: layout/main_fragment.xml#firstline, #second
+    cards: [open_folder]
+    ui_evidence: [文件夹, fullpath]
+  - id: go_up
+    label: Go up one folder level
+    source: layout#button; toolbar back
+    cards: [navigate_up]
+    ui_evidence: [转到上一层级]
+  - id: create_folder
+    label: Create a new folder
+    source: res/menu/activity_extra.xml; layout#menu_new_folder
+    cards: [create_folder]
+    ui_evidence: [文件夹, 新建]
+  - id: create_file
+    label: Create a new file
+    source: layout#menu_new_file
+    cards: [create_file]
+    ui_evidence: [文件, 新建]
+  - id: rename
+    label: Rename a file or folder
+    source: res/menu/item_extras.xml#rename
+    cards: [rename_file]
+    ui_evidence: [重命名, Rename]
+  - id: delete
+    label: Delete a file or folder
+    source: res/menu/item_extras.xml#delete; contextual.xml#delete
+    cards: [delete_file]
+    ui_evidence: [删除, Delete]
+  - id: copy
+    label: Copy a file or folder
+    source: res/menu/item_extras.xml#copy
+    cards: [copy_file]
+    ui_evidence: [复制, Copy]
+  - id: cut_move
+    label: Cut and paste to move a file
+    source: res/menu/item_extras.xml#cut
+    cards: [cut_file, move_file]
+    ui_evidence: [剪切, Cut]
+  - id: search
+    label: Search files
+    source: res/menu/activity_extra.xml#search
+    cards: [search_files]
+    ui_evidence: [搜索, Search]
+  - id: sort
+    label: Sort the file list
+    source: res/menu/activity_extra.xml#sort
+    cards: [sort_files]
+    ui_evidence: [排序, Sort]
+  - id: view_mode
+    label: Switch grid/list view
+    source: res/menu/activity_extra.xml#view; #网格视图
+    cards: [switch_file_list_view]
+    ui_evidence: [网格视图, 列表视图]
+    # The menu entry is 网格视图 (grid view); the build exposes the toggle only
+    # from the file list overflow menu, not as a separate toolbar button.
+  - id: hidden_files
+    label: Show hidden files
+    source: res/menu/activity_extra.xml#hiddenfiles
+    cards: [show_hidden_files]
+    ui_evidence: [已隐藏文件, Hidden files]
+  - id: properties
+    label: Show file properties
+    source: res/menu/item_extras.xml#properties
+    cards: [show_properties]
+    ui_evidence: [属性, Properties]
+  - id: compress
+    label: Compress files into an archive
+    source: res/menu/item_extras.xml#compress
+    cards: [compress_files]
+    ui_evidence: [压缩, Compress]
+  - id: extract
+    label: Extract an archive
+    source: res/menu/item_extras.xml#extract
+    cards: [extract_archive]
+    ui_evidence: [提取, 解压, Extract]
+  - id: share
+    label: Share a file
+    source: res/menu/item_extras.xml#share
+    cards: [share_file]
+    ui_evidence: [分享, Share]
+  - id: open_with
+    label: Open a file with another app
+    source: res/menu/item_extras.xml#open_with
+    cards: [open_with]
+    ui_evidence: [打开方式, Open with]
+  - id: bookmarks
+    label: Manage bookmarks
+    source: res/menu/item_extras.xml#add_to_bookmarks
+    cards: [add_bookmark]
+    ui_evidence: [书签, Bookmark]
+  - id: text_editor
+    label: Open a text file in the built-in editor
+    source: AndroidManifest#TextEditorActivity
+    cards: [open_text_editor]
+    ui_evidence: [保存, save]
+  - id: open_settings
+    label: Open app settings
+    source: AndroidManifest#PreferencesActivity
+    cards: [open_settings]
+    ui_evidence: [设置, Settings]

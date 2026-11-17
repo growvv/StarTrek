@@ -1,0 +1,194 @@
+# Scripted reference traces for Amaze File Manager.
+#
+# Labels are the ones the installed 3.11.4 build shows on this device.  The
+# row's overflow button is exposed as content-desc "属性" (the ellipsis on the
+# right of each row) and opens the per-item menu (cut/copy/delete/rename/...).
+app: amaze
+package: com.amaze.filemanager
+
+onboarding:
+  - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button", wait: 1.5}
+
+prelude_common: &to_documents
+  - {action: click, target: "desc=主页", wait: 2.0}
+  - {action: click, target: "text=Documents", wait: 2.2}
+
+traces:
+  - id: amaze-create-folder
+    goal: Create a new folder inside the current folder
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "resourceId=com.amaze.filemanager:id/sd_main_fab", wait: 1.5}
+      - {action: click, target: "desc=文件夹", wait: 1.5}
+      - {action: input, target: "resourceId=com.amaze.filemanager:id/singleedittext_input", args: "notes", wait: 0.8}
+      - {action: click, target: "text=新建", wait: 2.0}
+
+  - id: amaze-create-file
+    goal: Create a new empty file inside the current folder
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "resourceId=com.amaze.filemanager:id/sd_main_fab", wait: 1.5}
+      - {action: click, target: "desc=文件", wait: 1.5}
+      - {action: input, target: "resourceId=com.amaze.filemanager:id/singleedittext_input", args: "todo.txt", wait: 0.8}
+      - {action: click, target: "text=新建", wait: 2.0}
+
+  - id: amaze-open-folder
+    goal: Open a folder to browse its contents
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "text=bench_folder", wait: 2.2}
+
+  - id: amaze-go-up
+    goal: Go up one folder level
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=转到上一层级", wait: 2.2}
+
+  - id: amaze-select-and-delete
+    goal: Select a file and delete it
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: long_click, target: "text=bench_new.txt", wait: 1.5}
+      - {action: click, target: "desc=删除", wait: 1.5}
+      - {action: click, target: "text=确定", wait: 2.0}
+
+  - id: amaze-select-and-copy
+    goal: Select a file and copy it
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: long_click, target: "text=bench_folder", wait: 1.5}
+      - {action: click, target: "desc=复制", wait: 1.8}
+
+  - id: amaze-select-and-cut
+    goal: Select a file and cut it for moving
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: long_click, target: "text=bench_new.txt", wait: 1.5}
+      - {action: click, target: "desc=剪切", wait: 1.8}
+
+  - id: amaze-rename
+    goal: Rename a file through the row menu
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=属性", wait: 1.5}
+      - {action: click, target: "text=重命名", wait: 1.5}
+      - {action: input, target: "resourceId=com.amaze.filemanager:id/singleedittext_input", args: "renamed-notes", wait: 0.8}
+      - {action: click, target: "text=保存", wait: 2.0}
+
+  - id: amaze-properties
+    goal: Show the properties of a file
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=属性", wait: 1.5}
+      - {action: click, target: "text=属性", wait: 2.0}
+
+  - id: amaze-compress
+    goal: Compress a file into an archive
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=属性", wait: 1.5}
+      - {action: click, target: "text=压缩", wait: 2.0}
+
+  - id: amaze-bookmark
+    goal: Add a file to the bookmarks
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=属性", wait: 1.5}
+      - {action: click, target: "text=添加到书签", wait: 2.0}
+
+  - id: amaze-share
+    goal: Share a file
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: long_click, target: "text=bench_new.txt", wait: 1.5}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=分享", wait: 2.0}
+
+  - id: amaze-open-with
+    goal: Open a file with another app
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: long_click, target: "text=bench_new.txt", wait: 1.5}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=打开方式", wait: 2.0}
+
+  - id: amaze-search
+    goal: Search for files
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=搜索", wait: 1.5}
+
+  - id: amaze-open-menu
+    goal: Open the overflow menu to sort or toggle hidden files
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+
+  - id: amaze-sort
+    goal: Change the sort order of the file list
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=排序", wait: 2.0}
+
+  - id: amaze-view-mode
+    goal: Switch the file list between grid and list view
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=网格视图", wait: 2.0}
+
+  - id: amaze-hidden-files
+    goal: Show hidden files in the current folder
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=已隐藏文件", wait: 2.0}
+
+  - id: amaze-text-editor
+    goal: Open a text file in the built-in editor
+    reset: true
+    prelude: *to_documents
+    actions:
+      - {action: click, target: "text=bench_new.txt", wait: 3.0}
+      - {action: click, target: "text=Amaze Text Editor", wait: 3.0}
+
+  - id: amaze-open-settings
+    goal: Open the app settings
+    reset: true
+    actions:
+      - {action: swipe, target: "", args: "5,1000,800,1000", wait: 1.5}
+      - {action: swipe, target: "", args: "400,1800,400,900", wait: 1.2}
+      - {action: click, target: "text=设置", wait: 2.5}
+
+  - id: amaze-extract
+    goal: Extract an archive
+    reset: true
+    # bench_pack/ holds exactly one file (bench_archive.zip), seeded on the
+    # device before the run (adb push); reset clears app data, not shared
+    # storage.  A folder with a single row makes the row ellipsis unambiguous.
+    prelude:
+      - {action: click, target: "desc=主页", wait: 2.0}
+      - {action: click, target: "text=Documents", wait: 2.2}
+      - {action: click, target: "text=bench_pack", wait: 2.0}
+    actions:
+      - {action: click, target: "desc=属性", wait: 1.5}
+      - {action: click, target: "text=提取", wait: 2.0}

@@ -1,0 +1,351 @@
+# Scripted reference traces for OmniNotes (6.5.1 FOSS).
+#
+# These are replayed on the device to produce the benchmark graph, so the
+# OmniNotes graph is built the same way as the other three apps rather than
+# inherited from the earlier demo run.
+#
+# Every trace starts from a wiped app (`reset: true`): the onboarding pages
+# and the notification permission are dismissed by `onboarding`, and the note
+# the trace needs is produced by `prelude`.  Neither is recorded, so each
+# mined card describes only the function under study.  Labels below are the
+# ones the 6.5.1 Chinese build actually shows on this device.
+app: omninotes
+package: it.feio.android.omninotes.foss
+
+onboarding:
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next", wait: 1.0}
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next", wait: 1.0}
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next", wait: 1.0}
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next", wait: 1.0}
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next", wait: 1.0}
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/done", wait: 1.2}
+  - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button", wait: 2.0}
+  # The changelog dialog is shown on the first launch after an update; a fresh
+  # install shows it too, and it hides the notes list behind a modal.
+  - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/md_buttonDefaultPositive", wait: 1.5}
+
+# Fragments reused by several traces: they build the state a trace assumes
+# (a note to work on, a security password, an archived or trashed note) and
+# are not recorded, so each card describes only the function under study.
+# Each action is anchored once and the fragments reference it, because a
+# prelude has to stay a flat list of actions.
+preludes:
+  fab_open: &fab_open {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/fab_expand_menu_button", wait: 1.2}
+  fab_note: &fab_note {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/fab_note", wait: 1.5}
+  fab_checklist: &fab_checklist {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/fab_checklist", wait: 2.0}
+  title_grocery: &title_grocery {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_title", args: "Grocery list", wait: 0.8}
+  content_milk: &content_milk {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_content", args: "Buy milk and eggs", wait: 0.8}
+  back_editor: &back_editor {action: back, wait: 0.8}
+  back_list: &back_list {action: back, wait: 1.5}
+  open_grocery: &open_grocery {action: click, target: "text=Grocery list", wait: 2.0}
+  more_options: &more_options {action: click, target: "desc=更多选项", wait: 1.2}
+  menu_archive: &menu_archive {action: click, target: "text=归档", wait: 2.0}
+  menu_trash: &menu_trash {action: click, target: "text=删除记事", wait: 2.0}
+  open_drawer: &open_drawer {action: click, target: "desc=抽屉打开", wait: 1.5}
+
+  create_note: &create_note
+    - *fab_open
+    - *fab_note
+    - *title_grocery
+    - *content_milk
+    - *back_editor
+    - *back_list
+
+traces:
+  - id: omni-create-note
+    goal: Create a text note and return to the notes list
+    reset: true
+    actions: *create_note
+
+  - id: omni-open-note
+    goal: Open a note from the notes list
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+
+  - id: omni-edit-note
+    goal: Edit a note's content and save it
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_content", args: "Buy milk, eggs and bread", wait: 1.0}
+      - {action: back, wait: 0.8}
+      - {action: back, wait: 1.5}
+
+  - id: omni-search
+    goal: Search the notes list by keyword
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_search", wait: 1.5}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/search_src_text", args: "Grocery", wait: 1.0}
+      - {action: press, target: "", args: enter, wait: 1.5}
+
+  - id: omni-share
+    goal: Open a note and share it through the system chooser
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_share", wait: 2.5}
+
+  - id: omni-archive
+    goal: Archive a note from the detail screen
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=归档", wait: 2.0}
+
+  - id: omni-pin
+    goal: Pin a note to the top of the list
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=置顶笔记", wait: 2.0}
+
+  - id: omni-sort
+    goal: Sort the notes list by title
+    reset: true
+    actions:
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_sort", wait: 1.5}
+      - {action: click, target: "text=标题", wait: 2.0}
+
+  - id: omni-delete
+    goal: Delete a note from the detail screen
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=删除记事", wait: 2.0}
+
+  - id: omni-checklist
+    goal: Turn a note into a checklist
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=启用待办事项列表", wait: 2.0}
+
+  - id: omni-attach
+    goal: Open the attachment picker for a note
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: click, target: "text=Grocery list", wait: 2.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_attachment", wait: 2.0}
+
+  - id: omni-select-all
+    goal: Select all notes from the list contextual bar
+    reset: true
+    prelude: *create_note
+    actions:
+      - {action: long_click, target: "text=Grocery list", wait: 1.5}
+      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "text=全选", wait: 2.0}
+
+  - id: omni-open-drawer
+    goal: Open the navigation drawer
+    reset: true
+    actions:
+      - {action: click, target: "desc=抽屉打开", wait: 1.5}
+
+  - id: omni-settings
+    goal: Open app settings from the navigation drawer
+    reset: true
+    actions:
+      - {action: click, target: "desc=抽屉打开", wait: 1.5}
+      - {action: click, target: "text=设置", wait: 2.0}
+
+  - id: omni-create-checklist
+    goal: Create a checklist note from the expanded new-note button
+    reset: true
+    actions:
+      - *fab_open
+      - *fab_checklist
+
+  - id: omni-add-tag
+    goal: Add an existing tag to a note
+    reset: true
+    # Tags are mined from hashtags in a note's text, so one note has to carry
+    # #work before the tag picker has anything to offer.
+    prelude:
+      - *fab_open
+      - *fab_note
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_title", args: "Tag source", wait: 0.8}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_content", args: "Plan the #work sprint", wait: 0.8}
+      - *back_editor
+      - *back_list
+      - *fab_open
+      - *fab_note
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_title", args: "Tag target", wait: 0.8}
+      - *back_editor
+      - *back_list
+    actions:
+      - {action: click, target: "text=Tag target", wait: 2.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_tag", wait: 2.0}
+      - {action: click, target: "text=work (1)", wait: 1.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/md_buttonDefaultPositive", wait: 2.0}
+
+  - id: omni-set-category
+    goal: Create a category and assign it to a note
+    reset: true
+    prelude: *create_note
+    actions:
+      - *open_grocery
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_category", wait: 1.8}
+      - {action: click, target: "text=新增分类", wait: 2.5}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/category_title", args: "Work", wait: 0.8}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/save", wait: 2.5}
+
+  - id: omni-reminder
+    goal: Add a reminder to a note
+    reset: true
+    prelude: *create_note
+    actions:
+      - *open_grocery
+      - {action: click, target: "desc=提醒", wait: 2.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/buttonPositive", wait: 2.5}
+
+  - id: omni-lock-note
+    goal: Lock a note behind the security password
+    reset: true
+    # The first lock opens the password editor directly, because no security
+    # password is set yet; confirming it locks the note and returns to the
+    # list.  The editor's OK button sits under the soft keyboard, and only
+    # ESCAPE (keycode 111) dismisses the keyboard without leaving the editor.
+    prelude: *create_note
+    actions:
+      - *open_grocery
+      - *more_options
+      - {action: click, target: "text=锁定", wait: 2.0}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/password", args: "4321", wait: 0.4}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/password_check", args: "4321", wait: 0.4}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/question", args: "Pet name", wait: 0.4}
+      # The last two fields sit below the keyboard; scrolling the form brings
+      # them into view so the input lands on the right field.
+      - {action: swipe, args: "500,1500,500,700", wait: 0.8}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/answer", args: "Rex", wait: 0.4}
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/answer_check", args: "Rex", wait: 0.6}
+      - {action: press, target: "", args: 111, wait: 1.2}
+      - {action: press, target: "", args: 111, wait: 1.2}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/password_confirm", wait: 2.5}
+
+  - id: omni-open-archive-view
+    goal: Open the archived-notes view from the navigation drawer
+    reset: true
+    # The drawer only lists 归档 once a note is archived: the navigation is
+    # dynamic and hides empty sections.
+    prelude:
+      - *fab_open
+      - *fab_note
+      - *title_grocery
+      - *content_milk
+      - *back_editor
+      - *back_list
+      - *open_grocery
+      - *more_options
+      - *menu_archive
+    actions:
+      - *open_drawer
+      - {action: click, target: "text=归档", wait: 2.5}
+
+  - id: omni-unarchive
+    goal: Restore an archived note
+    reset: true
+    prelude:
+      - *fab_open
+      - *fab_note
+      - *title_grocery
+      - *content_milk
+      - *back_editor
+      - *back_list
+      - *open_grocery
+      - *more_options
+      - *menu_archive
+      - *open_drawer
+      - {action: click, target: "text=归档", wait: 2.5}
+    actions:
+      - *open_grocery
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=从归档中恢复", wait: 2.5}
+
+  - id: omni-open-trash-view
+    goal: Open the trash view from the navigation drawer
+    reset: true
+    prelude:
+      - *fab_open
+      - *fab_note
+      - *title_grocery
+      - *content_milk
+      - *back_editor
+      - *back_list
+      - *open_grocery
+      - *more_options
+      - *menu_trash
+    actions:
+      - *open_drawer
+      - {action: click, target: "text=回收站", wait: 2.5}
+
+  - id: omni-empty-trash
+    goal: Empty the trash
+    reset: true
+    prelude:
+      - *fab_open
+      - *fab_note
+      - *title_grocery
+      - *content_milk
+      - *back_editor
+      - *back_list
+      - *open_grocery
+      - *more_options
+      - *menu_trash
+      - *open_drawer
+      - {action: click, target: "text=回收站", wait: 2.5}
+    actions:
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=清空回收站", wait: 2.0}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/md_buttonDefaultPositive", wait: 2.5}
+
+  - id: omni-merge
+    goal: Merge two notes into one
+    reset: true
+    # 合并 only appears in the contextual bar once more than one note is
+    # selected; with a single selection the bar offers 共享 instead.
+    prelude:
+      - *fab_open
+      - *fab_note
+      - *title_grocery
+      - *content_milk
+      - *back_editor
+      - *back_list
+      - *fab_open
+      - *fab_note
+      - {action: input, target: "resourceId=it.feio.android.omninotes.foss:id/detail_title", args: "Second list", wait: 0.8}
+      - *back_editor
+      - *back_list
+    actions:
+      - {action: long_click, target: "text=Grocery list", wait: 1.5}
+      - {action: click, target: "text=Second list", wait: 1.5}
+      - {action: click, target: "desc=更多选项", wait: 1.5}
+      - {action: click, target: "text=合并", wait: 2.5}
+
+  - id: omni-attach-file
+    goal: Attach a file from device storage to a note
+    reset: true
+    # Documents/omni_attach.txt is seeded on the device before the run; reset
+    # clears app data, not shared storage, and the system picker lists the
+    # most recent files first.
+    prelude: *create_note
+    actions:
+      - *open_grocery
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_attachment", wait: 2.0}
+      - {action: click, target: "text=文件", wait: 3.0}
+      - {action: click, target: "text=omni_attach.txt", wait: 3.0}

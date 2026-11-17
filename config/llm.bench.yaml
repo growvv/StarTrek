@@ -1,0 +1,19 @@
+# Benchmark runs: a faster model on the same gateway, separate cache so the
+# experiment records exactly which model produced each card.
+llm:
+  model: auto/deepseek-v4.1-flash
+  api_key_env: OPENAI_API_KEY
+  base_url: http://127.0.0.1:3425/v1
+  temperature: 0.0
+  cache_dir: .cache/llm-bench
+device:
+  serial: 47261FDAS00DTQ
+  timeout_s: 30
+paths:
+  root: runs/mobileworld/work
+  cards: cards
+  graph: graph
+  traces: traces
+  runs: runs
+  state: state
+  completion: completion

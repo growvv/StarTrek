@@ -1,0 +1,127 @@
+# Source-derived user-level function inventory: OmniNotes 6.5.1 (FOSS).
+#
+# Ground truth for graph completeness. Each entry is a user-visible function
+# found in the app's own source: a menu action (res/menu/*.xml), an activity
+# (AndroidManifest.xml), or a primary control in a layout. `cards` lists the
+# function-card names that would have to exist in the graph; `ui_evidence`
+# lists strings that appear on screen when the function is reachable, used by
+# random-traversal observation checks.
+app: omninotes
+package: it.feio.android.omninotes.foss
+source: https://github.com/Frederick888/OmniNotes-Android
+functions:
+  - id: create_note
+    label: Create a text note
+    source: res/menu/menu_list.xml#fab_note; layout/activity_main.xml#fab_expand_menu_button
+    cards: [create_note]
+    ui_evidence: [文本注释, Text note, 新建, 笔记]
+  - id: create_checklist
+    label: Create a checklist note
+    source: layout/activity_main.xml#fab_checklist
+    cards: [create_checklist]
+    ui_evidence: [清单, Checklist]
+  - id: open_note
+    label: Open a note from the list
+    source: layout/note_layout.xml#note_title
+    cards: [open_note_by_title]
+    ui_evidence: [note_title, 内容]
+  - id: edit_note
+    label: Edit a note's title or content
+    source: layout/activity_detail.xml#detail_title, #detail_content
+    cards: [edit_note]
+    ui_evidence: [detail_title, detail_content]
+  - id: delete_note
+    label: Move a note to trash / delete it
+    source: res/menu/menu_detail.xml#trash
+    cards: [delete_note_from_detail_screen, trash_note]
+    ui_evidence: [删除, Trash, 移至回收站]
+  - id: archive_note
+    label: Archive a note
+    source: res/menu/menu_detail.xml#archive; res/menu/menu_list.xml#archive
+    cards: [archive_note]
+    ui_evidence: [归档, Archive]
+  - id: unarchive_note
+    label: Restore a note from the archive
+    source: res/menu/menu_detail.xml#unarchive
+    cards: [unarchive_note]
+    ui_evidence: [取消归档, Unarchive]
+  - id: pin_note
+    label: Pin a note to the top
+    source: res/menu/menu_detail.xml#pin_note
+    cards: [pin_note]
+    ui_evidence: [置顶, Pin]
+  - id: lock_note
+    label: Lock a note
+    source: res/menu/menu_detail.xml#lock
+    cards: [lock_note]
+    ui_evidence: [锁定, Lock]
+  - id: search_notes
+    label: Search notes by keyword
+    source: res/menu/menu_list.xml#search
+    cards: [search_notes_by_keyword]
+    ui_evidence: [搜索, Search]
+  - id: sort_notes
+    label: Sort the notes list
+    source: res/menu/menu_list.xml (sort submenu); layout/activity_main.xml#menu_sort
+    cards: [sort_list_by_criterion]
+    ui_evidence: [排序, Sort]
+  - id: share_note
+    label: Share a note through the system chooser
+    source: res/menu/menu_detail.xml#share
+    cards: [invoke_share_chooser_for_note]
+    ui_evidence: [分享, Share]
+  - id: add_tag
+    label: Add tags to a note
+    source: res/menu/menu_detail.xml#add_tag; res/menu/menu_list.xml#tags
+    cards: [add_tags]
+    ui_evidence: [标签, Tags]
+  - id: set_category
+    label: Assign a category to a note
+    source: res/menu/menu_detail.xml#category
+    cards: [set_category]
+    ui_evidence: [分类, Category]
+  - id: add_reminder
+    label: Add a reminder to a note
+    source: res/menu/menu_list.xml#add_reminder
+    cards: [add_reminder]
+    ui_evidence: [提醒, Reminder]
+  - id: enable_checklist
+    label: Turn a note into a checklist
+    source: res/menu/menu_detail.xml#checklist_on
+    cards: [enable_todo_checklist]
+    ui_evidence: [核对, Checklist]
+  - id: merge_notes
+    label: Merge several notes into one
+    source: res/menu/menu_list.xml#merge
+    cards: [merge_notes]
+    ui_evidence: [合并, Merge]
+  - id: open_archive_view
+    label: Open the archived-notes view
+    source: res/menu/menu_list.xml#filter_archived; navigation drawer
+    cards: [open_archive_view]
+    ui_evidence: [归档, Archive]
+  - id: open_trash_view
+    label: Open the trash view
+    source: navigation drawer; res/menu/menu_list.xml
+    cards: [open_trash_view]
+    ui_evidence: [回收站, Trash]
+  - id: empty_trash
+    label: Empty the trash
+    source: navigation drawer / trash menu
+    cards: [empty_trash]
+    ui_evidence: [清空回收站, Empty trash]
+  - id: open_settings
+    label: Open app settings
+    source: AndroidManifest.xml#SettingsActivity; res/xml/preferences.xml
+    cards: [open_settings]
+    ui_evidence: [设置, Settings]
+  - id: attach_file
+    label: Attach a file or photo to a note
+    source: res/menu/menu_detail.xml#attachment; AndroidManifest.xml#GalleryActivity
+    cards: [attach_attachment]
+    ui_evidence: [附件, Attachment]
+  - id: multi_select_notes
+    label: Select multiple notes from the list
+    source: res/menu/menu_list.xml#select_all
+    cards: [select_all_notes]
+    ui_evidence: [全选, Select all]

@@ -1,0 +1,90 @@
+# Source-derived user-level function inventory: Markor.
+app: markor
+package: net.gsantner.markor
+source: https://github.com/gsantner/markor
+functions:
+  - id: create_file
+    label: Create a new file
+    source: res/menu/filesystem__menu.xml#create; layout#fab_add_new_item
+    cards: [create_file]
+    ui_evidence: [新建, 创建一个新的文件或文件夹, 名称]
+  - id: create_folder
+    label: Create a new folder
+    source: layout new_file_dialog button3 文件夹; res/menu/filesystem__menu.xml
+    cards: [create_folder]
+    ui_evidence: [文件夹, 名称]
+  - id: open_file
+    label: Open a file in the editor
+    source: AndroidManifest#DocumentEditActivity; layout#document__fragment__edit__highlighting_editor
+    cards: [open_markdown_file]
+    ui_evidence: [保存, save]
+  - id: save_file
+    label: Save the open file
+    source: res/menu/document__edit__menu.xml#save
+    cards: [save_file, save_note]
+    ui_evidence: [保存, save]
+  - id: rename_file
+    label: Rename a file or folder
+    source: res/menu/filesystem__menu.xml#rename
+    cards: [rename_file]
+    ui_evidence: [重命名, Rename]
+  - id: delete_file
+    label: Delete a file or folder
+    source: res/menu/filesystem__menu.xml#delete
+    cards: [delete_file]
+    ui_evidence: [删除, Delete]
+  - id: move_file
+    label: Move a file to another folder
+    source: res/menu/filesystem__menu.xml#move
+    cards: [move_file]
+    ui_evidence: [移动, Move]
+  - id: copy_file
+    label: Copy a file to another folder
+    source: res/menu/filesystem__menu.xml#copy
+    cards: [copy_file]
+    ui_evidence: [复制, Copy]
+  - id: search
+    label: Search files
+    source: res/menu/filesystem__menu.xml#search; layout#action_search
+    cards: [search_files]
+    ui_evidence: [搜索, Search]
+  - id: sort
+    label: Sort the file list
+    source: res/menu/filesystem__menu.xml#sort_by; layout#action_sort
+    cards: [sort_files]
+    ui_evidence: [排序方式, Sort]
+  - id: go_to
+    label: Jump to a folder path
+    source: layout#action_go_to
+    cards: [go_to_folder]
+    ui_evidence: [转到, Go to]
+  - id: favourite
+    label: Mark a file as favourite
+    source: res/menu/filesystem__menu.xml#favourite
+    cards: [mark_favourite]
+    ui_evidence: [收藏, favourite]
+  - id: share_file
+    label: Share a file
+    source: res/menu/filesystem__menu.xml#share
+    cards: [share_file]
+    ui_evidence: [分享, Share]
+  - id: file_details
+    label: Show file details
+    source: res/menu/filesystem__menu.xml#details
+    cards: [show_details]
+    ui_evidence: [详细信息, Details]
+  - id: open_todo
+    label: Open the To-Do list view
+    source: res/menu/main__bottom_nav.xml#todo
+    cards: [open_todo_view]
+    ui_evidence: [To-Do]
+  - id: open_quicknote
+    label: Open QuickNote
+    source: res/menu/main__bottom_nav.xml#quicknote
+    cards: [open_quicknote]
+    ui_evidence: [QuickNote]
+  - id: open_settings
+    label: Open app settings
+    source: res/menu/main__menu.xml#settings
+    cards: [open_settings]
+    ui_evidence: [设置, Settings]

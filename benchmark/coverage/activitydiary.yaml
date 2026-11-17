@@ -1,0 +1,100 @@
+# Source-derived user-level function inventory: ActivityDiary 1.4.2.
+app: activitydiary
+package: de.rampro.activitydiary
+source: https://github.com/ramack/ActivityDiary
+functions:
+  - id: start_activity
+    label: Start recording an activity
+    source: layout/activity_main.xml#select_card_view, #activity_name
+    cards: [start_activity]
+    ui_evidence: [Officework, Since, What are you doing]
+  - id: stop_activity
+    label: Stop the currently recorded activity
+    source: MainActivity action on the active activity card
+    cards: [stop_activity]
+    ui_evidence: ["<No Activity>", UNDO]
+  - id: switch_activity
+    label: Switch from one activity to another
+    source: layout/activity_main.xml#select_card_view
+    cards: [switch_activity]
+    ui_evidence: [Since, UNDO]
+  - id: add_note
+    label: Attach a note to the current activity
+    source: layout/activity_main.xml#fab_edit_note; dialog note
+    cards: [add_note]
+    ui_evidence: [Note, NOTE, OK]
+  - id: attach_picture
+    label: Attach a picture to the current activity
+    source: layout/activity_main.xml#fab_attach_picture
+    cards: [attach_picture]
+    ui_evidence: [Pictures, PICTURES]
+    reachable: false
+    note: >-
+      The 1.4.2 build ships fab_attach_picture and it is clickable, but on
+      Android 16 it starts no picker and produces no visible transition, so
+      the function cannot be traced or executed on this device.
+  - id: add_activity_type
+    label: Create a new activity type
+    source: res/menu/main_drawer.xml#nav_add_activity; AndroidManifest#EditActivity
+    cards: [add_activity_type]
+    ui_evidence: [New activity, Activity title, Save]
+  - id: edit_activity_type
+    label: Edit or delete an existing activity type
+    source: res/menu/manage_menu.xml; AndroidManifest#ManageActivity
+    cards: [rename_activity]
+    ui_evidence: [Manage activities, Edit Activities]
+  - id: open_history
+    label: Open the diary history screen
+    source: res/menu/main_drawer.xml#nav_diary; AndroidManifest#HistoryActivity
+    cards: [open_history]
+    ui_evidence: [TODAY, Start:, Diary]
+  - id: history_detail
+    label: Open one diary entry's details
+    source: AndroidManifest#HistoryDetailActivity
+    cards: [open_diary_entry_details]
+    ui_evidence: [Start:, note]
+  - id: edit_diary_entry
+    label: Edit a recorded diary entry
+    source: res/menu/edit_diary_entry_menu.xml; AndroidManifest#EditActivity
+    cards: [edit_diary_note]
+    ui_evidence: [Save, action_store]
+  - id: delete_diary_entry
+    label: Delete a recorded diary entry
+    source: res/menu/edit_diary_entry_menu.xml#action_diary_entry_delete
+    cards: [delete_diary_entry]
+    ui_evidence: [Delete, action_diary_entry_delete]
+    reachable: false
+    note: >-
+      The shipped edit_diary_entry_menu contains only action_store (Save); the
+      delete action declared in the source is not in this build, and neither
+      the history list nor the entry screen exposes a delete control.
+  - id: filter_history
+    label: Filter the diary history
+    source: res/menu/history_menu.xml#action_filter
+    cards: [open_activity_filter]
+    ui_evidence: [Filter, action_filter]
+  - id: open_statistics
+    label: Open statistics
+    source: res/menu/main_drawer.xml#nav_stats; AndroidManifest#StatisticsActivity
+    cards: [open_statistics]
+    ui_evidence: [Statistics, All]
+  - id: open_map
+    label: Open the map view
+    source: res/menu/main_drawer.xml#nav_map; AndroidManifest#MapActivity
+    cards: [open_map]
+    ui_evidence: [Map]
+  - id: search
+    label: Search activities or entries
+    source: layout/activity_main.xml#search_button
+    cards: [search_diary]
+    ui_evidence: [搜索, Search]
+  - id: open_settings
+    label: Open app settings
+    source: res/menu/main_drawer.xml#nav_settings; AndroidManifest#SettingsActivity
+    cards: [open_settings]
+    ui_evidence: [Settings, 设置]
+  - id: open_about
+    label: Open the About / Privacy screen
+    source: res/menu/main_drawer.xml#nav_about, #nav_privacy
+    cards: [open_about]
+    ui_evidence: [About, Privacy Policy]

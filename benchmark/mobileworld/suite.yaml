@@ -1,0 +1,387 @@
+# AndroidWorld/MobileWorld-style task suite for SpecFCG.
+#
+# Each task follows the benchmark design of AndroidWorld's TaskEval and
+# MobileWorld's BaseTask: a goal template plus bound parameters, a task
+# complexity, app-state initialisation, and a programmatic final-state oracle.
+# The oracle only looks at the state observable after the agent stops: final
+# UI text / focused window, or files the user can see in the app.
+#
+# The 20-step cap is a deliberate constraint for this study: exceeding it,
+# looping, failing an action, or never finding a plan is recorded as a typed
+# failure rather than silently truncated.
+
+apps:
+  - name: omninotes
+    package: it.feio.android.omninotes.foss
+    source: https://github.com/Frederick888/OmniNotes-Android (6.5.1 FOSS)
+    onboarding:
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next"}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next"}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next"}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next"}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/next"}
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/done"}
+      - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
+      # The changelog dialog is shown on the first launch after an update; a
+      # fresh install shows it too, and it hides the notes list behind a modal.
+      - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/md_buttonDefaultPositive"}
+    tasks:
+      - id: omni_create_note
+        template: >-
+          Create a note titled {title} with content {content}.
+          Save it and return to the notes list.
+        params:
+          title: Grocery list
+          content: Buy milk and eggs
+        complexity: 1.2
+        tags: [notes, create, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Grocery list, Buy milk and eggs]
+          ui_absent: [暂无内容]
+        max_steps: 20
+
+      - id: omni_edit_note
+        template: >-
+          Create a note titled {title} with content {old}. Then change its
+          content to {new} and save it.
+        params:
+          title: Project Alpha
+          old: Draft the kickoff agenda
+          new: Ship the beta on Friday
+        complexity: 1.6
+        tags: [notes, edit, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Project Alpha, Ship the beta on Friday]
+          ui_absent: [Draft the kickoff agenda]
+        max_steps: 20
+
+      - id: omni_search_note
+        template: >-
+          Create a note titled {title} with content {content}, then search
+          the notes list for {query}.
+        params:
+          title: Project Alpha
+          content: Ship the beta on Friday
+          query: Project Alpha
+        complexity: 1.6
+        tags: [notes, search, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Project Alpha, Ship the beta on Friday]
+        max_steps: 20
+
+      - id: omni_delete_note
+        template: >-
+          Create two notes, one titled {title} and one titled {keep}, then
+          delete {title} and return to the notes list.
+        params:
+          title: Temporary memo
+          keep: Keep this one
+        complexity: 1.8
+        tags: [notes, delete, single-app]
+        init:
+          clear_app: true
+        # The empty-list text alone would also pass if the note was never
+        # created, so the task leaves a second note behind: the deleted one
+        # must be gone and the other must still be listed.
+        oracle:
+          ui_all: [Keep this one]
+          ui_absent: [Temporary memo]
+        max_steps: 20
+
+      - id: omni_share_note
+        template: >-
+          Create a note titled {title} with content {content}, open it, and
+          share it.
+        params:
+          title: Meeting notes
+          content: Agenda for Monday
+        complexity: 2.0
+        tags: [notes, share, cross-app]
+        init:
+          clear_app: true
+        oracle:
+          focus_package: intentresolver
+        max_steps: 20
+
+  - name: activitydiary
+    package: de.rampro.activitydiary
+    source: https://github.com/ramack/ActivityDiary (1.4.2)
+    onboarding:
+      - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
+    tasks:
+      - id: diary_start_activity
+        template: Start recording the activity {activity} in Activity Diary.
+        params:
+          activity: Officework
+        complexity: 1.0
+        tags: [diary, record, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Officework, Since]
+          ui_absent: ["<No Activity>"]
+        max_steps: 20
+
+      - id: diary_add_activity_type
+        template: Create a new activity type named {name} in Activity Diary.
+        params:
+          name: Stargazing
+        complexity: 1.2
+        tags: [diary, manage, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Stargazing]
+        max_steps: 20
+
+      - id: diary_add_note
+        template: >-
+          Start recording the activity {activity}, add a note saying {note},
+          then open the Diary history screen.
+        params:
+          activity: Officework
+          note: Finished the quarterly report
+        complexity: 1.8
+        tags: [diary, note, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Officework, Finished the quarterly report]
+        max_steps: 20
+
+      - id: diary_open_history
+        template: >-
+          Start recording the activity {activity}, then open the Diary
+          history screen.
+        params:
+          activity: Officework
+        complexity: 1.4
+        tags: [diary, history, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Diary, TODAY, "Start:", Officework]
+        max_steps: 20
+
+      - id: diary_open_statistics
+        template: >-
+          Start recording the activity {activity}, then open the Statistics
+          screen.
+        params:
+          activity: Officework
+        complexity: 1.4
+        tags: [diary, statistics, single-app]
+        init:
+          clear_app: true
+        oracle:
+          ui_all: [Statistics, All]
+        max_steps: 20
+
+  - name: markor
+    package: net.gsantner.markor
+    source: https://github.com/gsantner/markor
+    onboarding:
+      - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
+      - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
+      - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
+      - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
+      - {action: click, target: "resourceId=net.gsantner.markor:id/done"}
+      - {action: click, target: "text=确定"}
+    tasks:
+      - id: markor_create_note
+        template: >-
+          Create a new Markdown file named {name} in the current Markor
+          folder, with the text {content}, and save it.
+        params:
+          name: bench_create
+          content: Remember to water the plants
+        complexity: 1.6
+        tags: [markor, create, file]
+        init:
+          clear_app: true
+          remove_paths:
+            - /storage/emulated/0/Documents/markor/bench_create.md
+        oracle:
+          fs_content:
+            /storage/emulated/0/Documents/markor/bench_create.md:
+              - Remember to water the plants
+        max_steps: 20
+
+      - id: markor_edit_note
+        template: >-
+          Open the file {name} in Markor and replace its text with {new},
+          then save it.
+        params:
+          name: bench_edit.md
+          old: The old draft text
+          new: The final approved text
+        complexity: 1.6
+        tags: [markor, edit, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/markor/bench_edit.md: The old draft text
+        oracle:
+          fs_content:
+            /storage/emulated/0/Documents/markor/bench_edit.md:
+              - The final approved text
+          fs_absent: []
+        max_steps: 20
+
+      - id: markor_create_folder
+        template: Create a new folder named {folder} in the current Markor folder.
+        params:
+          folder: bench_folder
+        complexity: 1.2
+        tags: [markor, folder, file]
+        init:
+          clear_app: true
+          remove_paths:
+            - /storage/emulated/0/Documents/markor/bench_folder
+        oracle:
+          fs_dir:
+            - /storage/emulated/0/Documents/markor/bench_folder
+        max_steps: 20
+
+      - id: markor_delete_note
+        template: Delete the file {name} from the current Markor folder.
+        params:
+          name: bench_delete.md
+        complexity: 1.4
+        tags: [markor, delete, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/markor/bench_delete.md: Delete this file
+        oracle:
+          fs_absent:
+            - /storage/emulated/0/Documents/markor/bench_delete.md
+        max_steps: 20
+
+      - id: markor_move_note
+        template: Move the file {name} into the folder {folder} in Markor.
+        params:
+          name: bench_move.md
+          folder: bench_dest
+        complexity: 1.8
+        tags: [markor, move, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/markor/bench_move.md: Move this file
+          seed_dirs:
+            - /storage/emulated/0/Documents/markor/bench_dest
+        oracle:
+          fs_content:
+            /storage/emulated/0/Documents/markor/bench_dest/bench_move.md:
+              - Move this file
+          fs_absent:
+            - /storage/emulated/0/Documents/markor/bench_move.md
+        max_steps: 20
+
+  - name: amaze
+    package: com.amaze.filemanager
+    source: https://github.com/TeamAmaze/AmazeFileManager (3.11.4)
+    onboarding:
+      - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
+      # Every task names Documents explicitly, so task initialisation lands
+      # there instead of leaving the agent on Amaze's home tab.
+      - {action: click, target: "desc=主页"}
+      - {action: click, target: "text=Documents"}
+    tasks:
+      - id: amaze_create_folder
+        template: In Amaze, create a new folder named {folder} inside Documents.
+        params:
+          folder: bench_folder
+        complexity: 1.2
+        tags: [amaze, folder, file]
+        init:
+          clear_app: true
+          remove_paths:
+            - /storage/emulated/0/Documents/bench_folder
+        oracle:
+          fs_dir:
+            - /storage/emulated/0/Documents/bench_folder
+        max_steps: 20
+
+      - id: amaze_create_file
+        template: In Amaze, create a new empty file named {name} inside Documents.
+        params:
+          name: bench_new.txt
+        complexity: 1.4
+        tags: [amaze, create, file]
+        init:
+          clear_app: true
+          remove_paths:
+            - /storage/emulated/0/Documents/bench_new.txt
+        oracle:
+          fs_exists:
+            - /storage/emulated/0/Documents/bench_new.txt
+          fs_not_dir:
+            - /storage/emulated/0/Documents/bench_new.txt
+        max_steps: 20
+
+      - id: amaze_rename_file
+        template: >-
+          In Amaze, rename the file {old} inside Documents to {new}.
+        params:
+          old: bench_old.txt
+          new: bench_renamed.txt
+        complexity: 1.6
+        tags: [amaze, rename, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/bench_old.txt: Rename this file
+          remove_paths:
+            - /storage/emulated/0/Documents/bench_renamed.txt
+        oracle:
+          fs_exists:
+            - /storage/emulated/0/Documents/bench_renamed.txt
+          fs_absent:
+            - /storage/emulated/0/Documents/bench_old.txt
+        max_steps: 20
+
+      - id: amaze_delete_file
+        template: In Amaze, delete the file {name} from Documents.
+        params:
+          name: bench_delete.txt
+        complexity: 1.4
+        tags: [amaze, delete, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/bench_delete.txt: Delete this file
+        oracle:
+          fs_absent:
+            - /storage/emulated/0/Documents/bench_delete.txt
+        max_steps: 20
+
+      - id: amaze_copy_file
+        template: >-
+          In Amaze, copy the file {name} from Documents into the folder
+          Documents/{folder}.
+        params:
+          name: bench_copy.txt
+          folder: bench_dest
+        complexity: 2.0
+        tags: [amaze, copy, file]
+        init:
+          clear_app: true
+          seed_files:
+            /storage/emulated/0/Documents/bench_copy.txt: Copy this file
+          seed_dirs:
+            - /storage/emulated/0/Documents/bench_dest
+        oracle:
+          fs_content:
+            /storage/emulated/0/Documents/bench_dest/bench_copy.txt:
+              - Copy this file
+          fs_exists:
+            - /storage/emulated/0/Documents/bench_copy.txt
+        max_steps: 20
