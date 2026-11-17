@@ -1,6 +1,6 @@
 # SpecFCG Stage 1 MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the Stage 1 MVP of SpecFCG: a Python system that mines natural-language function cards from Android GUI traces, builds a Function Contract Graph, plans goal-driven test paths, executes them on an emulator, refines the graph, and completes missing capabilities.
 
@@ -127,7 +127,7 @@ benchmark/
   - `LLMParseError(Exception)`.
   - `FakeLLMClient` in `tests/fakes.py` with `responses: list[str | dict]` and a `calls` counter.
 
-- [ ] **Step 1: Initialize the repo and branch**
+- [x] **Step 1: Initialize the repo and branch**
 
 ```bash
 git init
@@ -156,7 +156,7 @@ testpaths = ["tests"]
 
 Create `.gitignore` with `.venv/`, `__pycache__/`, `.pytest_cache/`, `.cache/`, `runs/`, `traces/`, `third_party/`.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 `tests/test_config.py`:
 
@@ -186,13 +186,13 @@ def test_complete_json_raises_on_malformed():
         client.complete_json("p", "{}")
 ```
 
-- [ ] **Step 3: Run the tests to verify they fail**
+- [x] **Step 3: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_config.py tests/test_llm_client.py -v`
 
 Expected: FAIL with import errors (`load_config`/`CachedLLMClient` not defined).
 
-- [ ] **Step 4: Implement the config, client, cache, and fakes**
+- [x] **Step 4: Implement the config, client, cache, and fakes**
 
 `specfcg/config.py`:
 
@@ -235,13 +235,13 @@ def load_config(path: Path) -> AppConfig: ...
 
 `tests/fakes.py`: `FakeLLMClient` pops from `responses`; `complete` returns the string; `complete_json` parses a string or returns a dict; increments `calls`.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_config.py tests/test_llm_client.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add pyproject.toml .gitignore config specfcg tests
@@ -287,7 +287,7 @@ class CardPatch:
     segments: list[dict] = field(default_factory=list)
 ```
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_card_parser.py`:
 
@@ -306,23 +306,23 @@ def test_parse_evidence_counts(sample_card):
     assert card.evidence == ["t1", "t2"]
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_card_parser.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the models and parser**
+- [x] **Step 3: Implement the models and parser**
 
 Parser rules: the first line is `# name`; headings are `**Intent**:`, `**Inputs**:`, `**Preconditions**:`, `**Postconditions**:`, `**Effects/Outputs**:`, `**Steps**:`, `**Evidence**:`. Steps are numbered lines after the `**Steps**:` heading. Evidence parses `traces t1, t2; 2/3 successes` into `evidence=["t1","t2"]`, `success_count=2`, `attempt_count=3`; if no counts, both stay 0. Missing required headings raise `CardParseError`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_card_parser.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/models.py specfcg/cards tests/test_models.py tests/test_card_parser.py
@@ -343,7 +343,7 @@ git commit -m "feat: add shared models and function-card parser"
   - `GraphStore(root: Path, cards: CardStore)`: `load() -> Graph`, `edges() -> list[Edge]`, `apply_patch(patch: GraphPatch) -> None`, `backup() -> Path`, `restore(version: Path) -> None`, `neighbors(name: str, type: str | None = None) -> list[Edge]`.
   - `GraphStore` dedupes edges by `(from_card, to_card, type)`; a duplicate updates `description` and merges `evidence`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_card_store.py`:
 
@@ -393,25 +393,25 @@ def test_backup_and_restore(tmp_path, sample_card):
     assert store.load().cards[sample_card.name].intent == sample_card.intent
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_card_store.py tests/test_graph_store.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the stores**
+- [x] **Step 3: Implement the stores**
 
 `CardStore` uses `cards/<slug>.md`; slug lowercases and replaces non-alphanumerics with `_`. `all()` logs and skips malformed files. `GraphStore` loads `graph/edges.jsonl`; `apply_patch` handles `new_cards`, `card_updates`, `edge_updates` (`add`/`update`/`remove`), `split` (delete the old card; replacements come from `new_cards`), and `merge` (keep the first card, merge evidence, delete the second, rewrite edges). `backup()` copies `cards/` and `graph/edges.jsonl` to `graph/versions/<timestamp>/`. `restore()` replaces both from the backup.
 
 `neighbors(name, type=None)` returns outgoing edges ordered by type priority: `enables`, `dataflow`, `sequence`, `calls`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_card_store.py tests/test_graph_store.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/cards/store.py specfcg/graph tests/test_card_store.py tests/test_graph_store.py
@@ -443,7 +443,7 @@ def search(
 
 Semantics: `start=None` means all cards are initial candidates; otherwise expand neighbors of `start`. The returned list is the card execution path. `can_execute` gates expansion. `is_goal` is checked on each candidate; the path ends at the goal card. Cycles are prevented with a visited set; `max_depth` bounds the path length.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_bfs_finds_shortest_path(simple_graph):
@@ -462,23 +462,23 @@ def test_astar_uses_heuristic(simple_graph):
     assert path is not None and path[-1] == "C"
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_graph_search.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement `search`**
+- [x] **Step 3: Implement `search`**
 
 Use adjacency from `graph.edges`. BFS uses `collections.deque` of paths; DFS uses a list as a stack; A* uses `heapq` with `(cost + heuristic(card), cost, path)`. Edge priority: `enables`, `dataflow`, `sequence`, `calls`. Mark candidates visited before enqueueing; skip visited candidates. Return `None` when the frontier is exhausted.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_graph_search.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/graph/search.py tests/test_graph_search.py
@@ -500,7 +500,7 @@ git commit -m "feat: add BFS/DFS/A* graph search"
   - `TraceCollector` Protocol: `collect(app: str, policy: str = "greedy_dfs") -> list[Trace]`.
   - `FixtureCollector(root: Path)` loads all JSON traces under a directory.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_trace_round_trip(tmp_path, sample_trace):
@@ -521,23 +521,23 @@ def test_malformed_trace_json_raises(tmp_path):
         TraceStore(tmp_path).load("bad")
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_trace_recorder.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement recorder/store/collector**
+- [x] **Step 3: Implement recorder/store/collector**
 
 Trace JSON is `{"trace_id": ..., "app": ..., "steps": [Step fields]}`. `TraceParseError(Exception)` wraps JSON/shape errors. `FixtureCollector` filters by `trace.app` and returns an empty list when none match.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_trace_recorder.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/traces tests/test_trace_recorder.py
@@ -559,7 +559,7 @@ git commit -m "feat: add trace recorder, store, and fixture collector"
   - `draft(episode: dict, trace: Trace) -> FunctionCard`.
   - `mine(trace: Trace) -> CardPatch` with `segments` filled for `{trace_id, start, end, card}`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_segment_returns_llm_boundaries(fake_llm, sample_trace):
@@ -589,13 +589,13 @@ def test_mine_single_step_trace_produces_card(fake_llm, single_step_trace):
     assert patch.new_cards[0].name == "open_app"
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_miner.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the miner**
+- [x] **Step 3: Implement the miner**
 
 Prompts:
 
@@ -604,13 +604,13 @@ Prompts:
 
 Validation: segments must be non-overlapping, sorted, within `[0, len(steps)-1]`; otherwise fall back to one episode spanning the whole trace. `draft` parses the LLM Markdown with `parse_card`; on `CardParseError`, build a minimal card from the episode (`name`, `intent`, `steps=[step.action + " " + step.target]`, empty pre/post). `mine` merges with an existing card of the same name by appending evidence and incrementing counts; otherwise adds a new card. `mine` returns an empty patch for an empty trace. Each segment maps to `{"trace_id": trace.trace_id, "start": episode["start"], "end": episode["end"], "card": card.name}`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_miner.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/maintainer tests/test_miner.py
@@ -631,7 +631,7 @@ git commit -m "feat: add trace segmentation and function-card mining"
   - `build(cards: dict[str, FunctionCard], segments: list[dict]) -> list[Edge]`: adds `sequence` edges between consecutive cards in each trace, and LLM-inferred `enables`/`dataflow` edges for card pairs seen together.
   - `infer_semantic(cards: dict[str, FunctionCard]) -> list[Edge]`: LLM returns `{"edges":[{"from":...,"to":...,"type":"enables|dataflow","description":...}]}`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_build_sequence_edges_from_segments(fake_llm, two_cards):
@@ -659,23 +659,23 @@ def test_build_skips_unknown_card_names(fake_llm, two_cards):
     assert EdgeBuilder(fake_llm).infer_semantic(two_cards) == []
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_edge_builder.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the builder**
+- [x] **Step 3: Implement the builder**
 
 Sequence edges: group segments by `trace_id`, sort by `start`, add an edge for each consecutive pair. Semantic edges: send card names/intents/pre/post to the LLM; validate `from`/`to` exist and `type` is `enables` or `dataflow`; skip invalid entries. Deduplicate by `(from, to, type)` and merge evidence.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_edge_builder.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/maintainer/builder.py tests/test_edge_builder.py
@@ -697,7 +697,7 @@ git commit -m "feat: add sequence and semantic edge builder"
   - `Uiautomator2Device(serial: str | None = None)` (lazy import of `uiautomator2`).
   - `StateSummarizer(llm: LLMClient)` with `summarize(ui_dump: str) -> str`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_fake_device_returns_states_in_order():
@@ -718,13 +718,13 @@ def test_summarizer_falls_back_on_llm_error(fake_llm):
     assert len(out) <= 2000
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_device.py tests/test_summarizer.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the device and summarizer**
+- [x] **Step 3: Implement the device and summarizer**
 
 `FakeDevice` pops states and action results; `dump_ui` returns the current state (last one repeats); `execute` records calls. `Uiautomator2Device` maps actions:
 - `click`: `d(text=target).click()` if target starts with `text=`, else `d(resourceId=target).click()`.
@@ -735,13 +735,13 @@ Expected: FAIL with `ImportError`.
 
 `StateSummarizer` prompts: "Summarize this Android UI hierarchy in at most 6 lines: current screen, visible widgets, user state, known entities, recent actions." On any exception or empty response, return `ui_dump[:2000]`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_device.py tests/test_summarizer.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/executor tests/test_device.py tests/test_summarizer.py
@@ -763,7 +763,7 @@ git commit -m "feat: add device abstraction and state summarizer"
 
 Behavior: start the app, summarize the initial UI, execute each `PlanStep` in order, record before/after states, then after the last step of each card ask the LLM whether the card's postconditions hold. At the end ask the LLM whether the goal is achieved. `success = all steps succeeded and all postconditions satisfied and goal_success`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_execute_success_returns_goal_success(fake_device, fake_llm, sample_graph, sample_plan):
@@ -792,23 +792,23 @@ def test_execute_check_error_does_not_crash(fake_device, fake_llm, sample_graph,
     assert result.failure_type == "check_error"
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_executor.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the executor**
+- [x] **Step 3: Implement the executor**
 
 Group `plan.steps` by `card` while preserving order. For each step: capture `before = device.dump_ui()`, call `device.execute`, capture `after`, append a `Step` to the trace, append a result dict. On `False`, set `failure_type="widget_failure"`, stop, and return. After a card's last step, call `llm.complete_json` with the state summary and `card.postconditions`; on `LLMParseError`, set `failure_type="check_error"` and stop. At the end, check the goal; if not achieved, `failure_type="goal_failure"`. Use a `run-<uuid>` trace id.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_executor.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/executor/executor.py tests/test_executor.py
@@ -832,7 +832,7 @@ Retrieval rules: if `len(cards) <= top_k`, return all names; otherwise score by 
 
 Binding rules: the LLM returns `{"bindings": {"param": "value"}}`; values may reference `$prior_param` or `$output`. The binder substitutes `prior_outputs`. If a required input is missing, return `None`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_retrieve_returns_all_when_small(fake_llm, two_cards):
@@ -855,23 +855,23 @@ def test_bind_missing_required_returns_none(fake_llm, two_cards):
     ) is None
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_retrieval.py tests/test_binding.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement retrieval and binding**
+- [x] **Step 3: Implement retrieval and binding**
 
 `CardRetriever` uses a simple token-overlap score (lowercase, split on non-alphanumerics). The LLM prompt returns `{"keep": ["name", ...]}`; validate names. `ParamBinder` sends the card's `inputs`, `goal.description`, `state`, and `prior_outputs`; substitutes `$key` values; returns `None` if a required input is still missing after one retry.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_retrieval.py tests/test_binding.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/planner tests/test_retrieval.py tests/test_binding.py
@@ -893,7 +893,7 @@ git commit -m "feat: add card retrieval and parameter binding"
 
 Planner behavior: retrieve candidates; run `search` with `can_execute` and `is_goal` LLM checks (cached per `(card, state)`); for each card in the path, bind parameters (passing prior `effects_outputs`/outputs), compile steps, concatenate; assertions = `[goal.description] + [card.postconditions for card in path]`. Return `None` when no path is found or a required binding fails.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_compile_steps_parses_actions(fake_llm, two_cards):
@@ -927,25 +927,25 @@ def test_plan_returns_none_when_no_path(fake_llm, sample_graph):
                        Goal("impossible"), "start") is None
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_compiler.py tests/test_planner.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the compiler and planner**
+- [x] **Step 3: Implement the compiler and planner**
 
 `StepCompiler` prompt: "Convert these function-card steps and bindings into UI actions. Return JSON `{steps:[{action,target,args}]}`; action is click/input/swipe/back/wait; target uses `text=...` or `resourceId=...`." Fallback regex: lines starting with `Tap`/`Click` → click; `Enter`/`Input`/`Type` → input; `Swipe` → swipe; `Back` → back; otherwise `click` with the whole line as target.
 
 `Planner` closures: `can_execute(card)` calls `llm.complete_json` with "Can this card execute in this state? Return `{can_execute: bool, reason: str}`"; `is_goal(card)` calls "Does executing this card satisfy the goal or its postconditions? Return `{is_goal: bool, reason: str}`". Cache responses in a dict keyed by `(card, state)`. On `LLMParseError`, treat `can_execute=False` and `is_goal=False`. Build the plan only if all bindings succeed; otherwise return `None`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_compiler.py tests/test_planner.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/planner/compiler.py specfcg/planner/planner.py tests/test_compiler.py tests/test_planner.py
@@ -966,7 +966,7 @@ git commit -m "feat: add step compiler and graph planner"
   - `classify_failure(result: RunResult) -> FailureType | None`: returns `result.failure_type` if present, otherwise `None` on success; uses rules first and only asks the LLM for ambiguous cases.
   - `update(result: RunResult) -> GraphPatch`: success updates evidence and adds edges from the new trace; failure asks the LLM for a patch, validates it, applies it, and rolls back if the patch is invalid.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_success_updates_evidence(fake_llm, graph_store, successful_result):
@@ -982,23 +982,23 @@ def test_invalid_patch_does_not_corrupt_graph(fake_llm, graph_store, failed_resu
     assert "missing" not in graph_store.load().cards
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_updater.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the updater**
+- [x] **Step 3: Implement the updater**
 
 On success: increment `attempt_count` and `success_count` for each card in `result.plan.path`; add `sequence` edges from `result.new_trace` via `EdgeBuilder`; return the patch. On failure: prompt the LLM with `result` + current cards/edges, asking for JSON `{card_updates, new_cards, edge_updates, split, merge, reason}`; validate every card name and edge endpoint; if invalid, return an empty patch. Before applying a non-empty patch, call `store.backup()`; if `apply_patch` raises, call `store.restore(version)` and return an empty patch.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_updater.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/maintainer/updater.py tests/test_updater.py
@@ -1019,7 +1019,7 @@ git commit -m "feat: add failure classification and graph updater"
   - `CapabilityCompleter(llm: LLMClient, store: GraphStore, miner: CardMiner, builder: EdgeBuilder, probe: ProbeRunner, max_hypotheses: int = 5, max_probes: int = 3, max_rounds: int = 2)`.
   - `complete(goal: Goal, state: str) -> GraphPatch | None`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_no_gap_returns_none(fake_llm, graph_store, card_miner, edge_builder, fake_probe):
@@ -1051,23 +1051,23 @@ def test_budget_limits_hypotheses(fake_llm, graph_store, card_miner, edge_builde
                                    Goal("x"), "state") is None
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_completer.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the completer**
+- [x] **Step 3: Implement the completer**
 
 `detect_gap` prompt: "Given goal, cards, and state, is a capability missing? Return `{gap: string|null, blocked_precondition: string}`." `hypothesize` prompt: "Propose up to N missing capabilities as JSON `{capabilities:[...]}`." For each hypothesis, call `probe.run`; if a trace is returned, call `miner.mine(trace)`, add semantic/sequence edges via `EdgeBuilder`, validate the new card with `parse_card`, and return a combined `GraphPatch`. On failure, append `{goal, capability, reason}` to `completion/negative.jsonl` and continue. Stop at `max_hypotheses`, `max_probes`, or `max_rounds`. `ProbeRunner` is injected; tests use a fake.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_completer.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/completion tests/test_completer.py
@@ -1092,7 +1092,7 @@ git commit -m "feat: add capability gap detection and graph completion"
   - `main(argv: list[str] | None = None) -> int` in `specfcg/cli.py`.
   - CLI commands: `mine`, `build-graph`, `plan`, `execute`, `refine`, `complete`, `run`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_cli.py`:
 
@@ -1119,23 +1119,23 @@ def test_offline_pipeline_mines_plans_executes_and_refines(tmp_path, fixture_env
     assert result.reason
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_cli.py tests/test_e2e_offline.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the pipeline and CLI**
+- [x] **Step 3: Implement the pipeline and CLI**
 
 `Pipeline` wires the components. `run_goal` loops: `plan`; if no plan, `completer.complete` and retry; else `execute`, `updater.update`, and stop on success or `max_rounds`. CLI uses `argparse`; `--fake-llm` uses `FakeLLMClient` with a small canned script, `--fake-device` uses `FakeDevice`; otherwise it builds `OpenAICompatibleClient` and `Uiautomator2Device`. `mine` writes cards/edges; `plan` prints `TestPlan` JSON; `execute` prints `RunResult` JSON; `refine` prints the patch; `complete` prints the patch or `null`; `run` prints a JSON summary.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_pipeline.py tests/test_cli.py tests/test_e2e_offline.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/pipeline.py specfcg/cli.py config tests/test_pipeline.py tests/test_cli.py tests/test_e2e_offline.py
@@ -1156,7 +1156,7 @@ git commit -m "feat: add pipeline orchestration and CLI"
   - `ProphetAgentCollector(repo_path: Path, output_root: Path, device_serial: str | None = None)` with `collect(app: str, apk_path: Path, policy: str = "greedy_dfs", count: int = 500, timeout_s: int = 600) -> list[Trace]`.
   - `parse_droidbot_output(output_dir: Path, app: str) -> list[Trace]`.
 
-- [ ] **Step 1: Write the failing parser test**
+- [x] **Step 1: Write the failing parser test**
 
 `tests/test_prophetagent_parser.py`:
 
@@ -1172,13 +1172,13 @@ def test_parse_missing_events_returns_empty(tmp_path):
     assert parse_droidbot_output(tmp_path, "omninotes") == []
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `python -m pytest tests/test_prophetagent_parser.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement the adapter**
+- [x] **Step 3: Implement the adapter**
 
 `parse_droidbot_output` reads `events.json` (list or `{"events": [...]}`), groups events by their trace/state sequence, and maps `event_type`/`event_str`/`from_state`/`to_state`/`view_str` to our `Step` fields. It skips events without a target and never raises on missing optional files; a missing `events.json` returns `[]`. `collect` runs:
 
@@ -1188,13 +1188,13 @@ python start.py -a <apk> -o <output_dir> -policy <policy> -count <count> -timeou
 
 from `repo_path`, then parses the output. `scripts/setup_prophetagent.sh` clones the repo and checks out the pinned commit.
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `python -m pytest tests/test_prophetagent_parser.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Manual integration check**
+- [x] **Step 5: Manual integration check**
 
 Run on one emulator/app:
 
@@ -1205,7 +1205,7 @@ specfcg mine --config config/llm.yaml --trace <output_dir>/events.json
 
 Expected: a trace is parsed and a card is produced. Record the output directory in `runs/`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specfcg/integrations scripts/setup_prophetagent.sh tests/test_prophetagent_parser.py tests/fixtures/prophetagent
@@ -1228,7 +1228,7 @@ git commit -m "feat: add ProphetAgent Droidbot output adapter"
   - `completion_rate(results)`, `action_accuracy(results)`, `path_recall(graph, held_out)`, `coverage(graph, executed_cards, executed_edges)`.
   - `Runner(run_case: Callable[[str], RunResult])` with `run(cases) -> list[dict]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_completion_rate():
@@ -1246,13 +1246,13 @@ def test_coverage_counts():
     assert cov["edge"] > 0
 ```
 
-- [ ] **Step 2: Run the tests to verify they fail**
+- [x] **Step 2: Run the tests to verify they fail**
 
 Run: `python -m pytest tests/test_metrics.py tests/test_runner.py -v`
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Implement cases, metrics, and runner**
+- [x] **Step 3: Implement cases, metrics, and runner**
 
 Metrics formulas:
 - `completion_rate = successful results / total`.
@@ -1261,13 +1261,13 @@ Metrics formulas:
 - `coverage = {node: executed_cards / total_cards, edge: executed_edges / total_edges}`.
 - `Runner` calls `run_case(case.id)` and collects `{case_id, success, goal_success, steps, failure_type}`.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `python -m pytest tests/test_metrics.py tests/test_runner.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add specfcg/benchmark tests/test_metrics.py tests/test_runner.py
@@ -1287,7 +1287,7 @@ git commit -m "feat: add benchmark cases, metrics, and runner"
   - `scripts/run_stage1.py` loads apps/cases/goals, runs the pipeline, and writes `runs/stage1_report.json`.
   - `tests/test_stage1_manifest.py` asserts the Stage 1 data counts.
 
-- [ ] **Step 1: Write the failing manifest test**
+- [x] **Step 1: Write the failing manifest test**
 
 ```python
 def test_stage1_manifest_has_6_apps_60_cases_30_goals():
@@ -1299,33 +1299,33 @@ def test_stage1_manifest_has_6_apps_60_cases_30_goals():
     assert len(goals) == 30
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `python -m pytest tests/test_stage1_manifest.py -v`
 
 Expected: FAIL with missing files.
 
-- [ ] **Step 3: Create the Stage 1 data**
+- [x] **Step 3: Create the Stage 1 data**
 
 `benchmark/apps.yaml` lists AnkiDroid, AmazeFileManager, OmniNotes, NewPipe, ActivityDiary, AntennaPod with package names and APK paths under `third_party/apks/`. `benchmark/cases/<app>.yaml` has 10 NL cases per app. `benchmark/goals/<app>.yaml` has 5 compositional goals per app with assertions. Use the app versions recorded in `apps.yaml`; do not use apps released after the LLM training cutoff for the main results.
 
-- [ ] **Step 4: Implement the runner**
+- [x] **Step 4: Implement the runner**
 
 `scripts/run_stage1.py` builds the pipeline (real or fake via flags), runs each case, aggregates metrics, and writes `runs/stage1_report.json` with `{apps, cases, goals, completion_rate, action_accuracy, path_recall, coverage, cost}`. Print a one-line summary.
 
-- [ ] **Step 5: Run the manifest test to verify it passes**
+- [x] **Step 5: Run the manifest test to verify it passes**
 
 Run: `python -m pytest tests/test_stage1_manifest.py -v`
 
 Expected: PASS.
 
-- [ ] **Step 6: Smoke-run the offline report**
+- [x] **Step 6: Smoke-run the offline report**
 
 Run: `python scripts/run_stage1.py --fake --limit 3`
 
 Expected: `runs/stage1_report.json` exists and contains the three cases.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add benchmark scripts/run_stage1.py tests/test_stage1_manifest.py
