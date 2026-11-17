@@ -8,6 +8,11 @@
 
 > 项目主页 / 交互演示：<https://growvv.github.io/StarTrek/>
 
+> **状态（2026-11-18）**：MVP 已实现（448 个测试通过）。下一轮架构调整
+> 已写入[实施计划](docs/superpowers/plans/2026-11-10-specfcg-mvp.md#next-round-the-card-is-a-contract-the-plan-is-a-description-the-agent-executes)：
+> 卡片将变成不含执行步骤的契约，计划输出任务描述，由 GUI agent 执行。
+> 接手开发请先读[交接文档](docs/handoff.md)。
+
 ---
 
 ## 为什么
@@ -65,7 +70,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \
 没有设备也能跑：
 
 ```bash
-python -m pytest -q                                     # 204 passed
+python -m pytest -q                                     # 448 passed
 python -m specfcg.cli plan --config config/llm.local.yaml \
     --fake-llm --fake-device --goal "Create a note titled Trip"
 ```
@@ -110,6 +115,7 @@ docs/
 
 ## 文档
 
+- [交接文档](docs/handoff.md)：现状、路线图、环境、常用命令与已知坑
 - [设计文档](docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md)
 - [真机实验记录（F1–F26）](docs/experiments/2026-11-10-real-device-pilot.md)
 - [AgentProg 复现与讲解](https://growvv.github.io/StarTrek/reports/agentprog-explained.html)（页面在 Pages 上可直接看）
