@@ -1334,6 +1334,161 @@ git commit -m "feat: add Stage 1 data manifest and evaluation report"
 
 ---
 
+## Next Round: re-measure on the device
+
+The MVP is done and its measurements are honest.  What remains is to
+re-run the four dimensions under the corrected code and the faster
+builder, then use the rebuilt graphs as the subject for the two
+improvements that need them.  Nothing here is started yet.
+
+**State at the start of this round:** 448 tests pass; the committed
+graphs were built 2026-11-11/12 by the quadratic builder, and their
+coverage, probe and self-optimization records predate the corrected
+matcher.  Device `47261FDAS00DTQ` is attached and the gateway answers.
+
+### Task A: rebuild the four graphs with the current builder
+
+**Files:** none (a run); outputs under `runs/mobileworld/<app>/graph`.
+
+- [ ] A1: rebuild each app from the traces already on disk
+
+```
+PYTHONPATH=. python scripts/build_app_graph.py --app activitydiary --skip-collect --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/build_app_graph.py --app amaze --skip-collect --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/build_app_graph.py --app markor --skip-collect --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/build_app_graph.py --app omninotes --skip-collect --config config/llm.bench.yaml
+```
+
+Expected: one `semantic edges` journal frame per app (the builder now
+derives the edges once, after the last trace), and no duplicate card
+for a trace mined twice.  `scripts/measure_graph_cost.py` confirms the
+call count from the journal itself.
+
+- [ ] A2: record the before/after coverage and granularity
+
+```
+PYTHONPATH=. python scripts/measure_granularity.py
+PYTHONPATH=. python scripts/measure_graph_cost.py
+python -m pytest -q
+```
+
+Expected: coverage is recomputed by the current matcher and is allowed
+to differ from the recorded 84.5% mean -- a rebuild is a different
+graph.  Granularity should not regress; the duplicate `merge_notes` /
+`merge_two_notes` pair should be gone from omninotes.
+
+- [ ] A3: regenerate the replay pages from the new journals
+
+```
+PYTHONPATH=. python scripts/build_graph_page.py --app activitydiary
+PYTHONPATH=. python scripts/build_graph_page.py --app amaze
+PYTHONPATH=. python scripts/build_graph_page.py --app markor
+PYTHONPATH=. python scripts/build_graph_page.py --app omninotes
+```
+
+### Task B: re-measure the two device dimensions
+
+**Files:** none (runs); records under `runs/mobileworld/<app>/experiments`.
+
+- [ ] B1: re-run random traversal and probes on the rebuilt graphs
+
+```
+PYTHONPATH=. python scripts/run_graph_experiments.py --app activitydiary --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_graph_experiments.py --app amaze --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_graph_experiments.py --app markor --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_graph_experiments.py --app omninotes --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+```
+
+Expected: a probe record with a non-constant `predicted_confidence`
+across probes.  Three of the four recorded runs predicted 0.45 for
+every probe, which makes the bias-only calibration score
+uninformative; if the rebuilt graphs still produce one value, the
+estimator -- not the graph -- is what needs to change.
+
+- [ ] B2: re-run the self-optimization curve from a fresh seed
+
+```
+PYTHONPATH=. python scripts/run_selfopt.py --app activitydiary --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_selfopt.py --app amaze --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_selfopt.py --app markor --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+PYTHONPATH=. python scripts/run_selfopt.py --app omninotes --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+```
+
+Expected: `--rounds 4` matches the recorded runs, so the gain is
+comparable.  A run that grows nothing saves no record.
+
+- [ ] B3: re-run the 20-step task benchmark
+
+```
+PYTHONPATH=. python scripts/run_mobileworld_bench.py --app activitydiary --serial 47261FDAS00DTQ --config config/llm.bench.yaml
+```
+
+(and the other three apps)
+
+- [ ] B4: record the point and rebuild the report
+
+```
+PYTHONPATH=. python scripts/record_score.py --label rebuilt-graphs
+PYTHONPATH=. python scripts/build_bench_report.py
+```
+
+Expected: one new point on the curve whose four dimensions all come
+from records written by the current code.  Do not compare this point
+with the earlier ones as if only the graphs changed: the coverage
+matcher changed too, so the earlier graph dimension is not the same
+quantity.
+
+### Task C: mark near-duplicate functions in the semantic-edge call
+
+**Files:** `specfcg/maintainer/builder.py`, `tests/test_edge_builder.py`.
+
+- [ ] C1: write the failing test -- the edge call reports groups
+
+The model already reads every card to infer edges.  Ask it, in the
+same call, which cards describe the same function; the answer costs no
+extra call.  The test asserts that `infer_semantic` returns the groups
+the model reported and that a group naming an unknown card is dropped.
+
+- [ ] C2: extend the schema and the parse
+
+Add `same_function` to `_EDGE_SCHEMA` as a list of card-name lists.
+Validate every name against `cards`, drop groups smaller than two, and
+return them beside the edges (a small dataclass, not a second call).
+
+- [ ] C3: report the groups; do not merge
+
+Granularity already reports behavioural duplicates (same compiled
+actions).  This catches the ones that differ in actions but not in
+function -- `merge_notes` and `merge_two_notes` are the same menu flow
+written twice.  Merging changes the graph, so it stays a decision a
+person makes after reading the report.
+
+### Task D: make the calibration dimension discriminate
+
+**Files:** `specfcg/benchmark/exploration.py`,
+`specfcg/benchmark/scorecard.py`, tests.
+
+- [ ] D1: write the failing test -- a constant estimate scores zero
+
+Today a predictor that always says 0.45 scores well whenever the
+observed rate is near 0.45.  A Brier score over the probes punishes a
+constant that ignores which probe it is scoring.  The test asserts a
+constant estimator scores no better than the base rate.
+
+- [ ] D2: implement only if B1 shows the estimator is still constant
+
+This is deliberately conditional.  If the rebuilt graphs produce
+distinct predictions, the bias score already measures something and
+the Brier change is unnecessary.  Measure first.
+
+### Task E: keep the ledger current
+
+- [ ] E1: after each of A-D, tick the steps that ran and record the
+  command and result, so the plan never again reads as untouched while
+  the work is in the tree.
+
+---
+
 ## Self-Review
 
 **Spec coverage:** Every spec section maps to a task:
