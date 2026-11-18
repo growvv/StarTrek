@@ -32,7 +32,7 @@ DISMISS_CONTROLS = (
 
 # Text a dialog shows; clicking the matching button is what closes it.  Kept
 # separate from ids because some builds use the platform button.
-DISMISS_TEXTS = ("OK", "Allow", "确定", "允许", "Got it", "Close")
+DISMISS_TEXTS = ("OK", "Allow", "ALLOW", "确定", "允许", "Got it", "Close")
 
 # Screens that are not the app at all: the package installer, the settings
 # page an all-files grant opens.
@@ -41,6 +41,7 @@ FOREIGN_PACKAGES = (
     "com.google.android.permissioncontroller",
     "com.android.settings",
     "com.android.packageinstaller",
+    "com.google.android.packageinstaller",
 )
 
 # Storage permissions, by the mechanism the build was written for.  A 2018
