@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from specfcg.benchmark.first_run import settle_first_run
 from specfcg.benchmark.themis import BuggyVersion, crash_hit
 
 # A crash that names the app's own process; the same shape FuncDroid checks.
@@ -37,6 +38,7 @@ class BugRun:
     steps: int = 0
     detected: bool = False
     error: str = ""
+    stuck_on: str = ""
     logcat_path: str = ""
     matched_crash: str = ""
 
@@ -89,6 +91,15 @@ class BugExperiment:
         self.device.clear_app(version.package)
         self.device.launch(version.package)
         time.sleep(self.settle_s)
+        # A build's own onboarding — a permission grant, a licences notice —
+        # is not a function under test.  Clearing it here keeps the agent's
+        # steps for the app's UI, which is what the measurement is about.
+        launch = settle_first_run(
+            self.device, version.package, settle_s=self.settle_s
+        )
+        if not launch.ready:
+            result.stuck_on = launch.stuck_on
+            result.error = f"never reached the app: stuck on {launch.stuck_on}"
 
         try:
             trace = self.agent.run(task, max_steps, app=version.package)

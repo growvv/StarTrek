@@ -38,6 +38,8 @@ class FakeDevice:
         self.install_ok = install_ok
         self.calls: list[str] = []
         self.uninstalled: list[str] = []
+        # What has focus once launched; the first-run settler reads this.
+        self.foreground = "com.example.app"
 
     def install(self, apk) -> bool:
         self.calls.append("install")
@@ -50,6 +52,8 @@ class FakeDevice:
         self.calls.append(command)
         if command.startswith("logcat -d"):
             return self.logcat
+        if "dumpsys window" in command:
+            return f"mCurrentFocus=Window{{a u0 {self.foreground}/.Main}}"
         return ""
 
     def clear_app(self, package: str) -> None:
@@ -57,6 +61,9 @@ class FakeDevice:
 
     def launch(self, package: str) -> None:
         self.calls.append("launch")
+
+    def act(self, action: str, target: str) -> bool:
+        return False
 
 
 class FakeAgent:
@@ -182,3 +189,33 @@ def test_the_summary_counts_detections_and_keeps_the_errors(tmp_path):
     assert summary["detected"] == 1
     assert summary["detected_ids"] == [VERSION.id]
     assert VERSION.id in summary["errors"]
+
+
+def test_a_first_run_dialog_is_cleared_before_the_agent_acts(tmp_path):
+    """Markor 0.3.9 shows a licences notice; the agent read it and stopped.
+
+    Clearing the dialog is the experiment's job: the build's onboarding is
+    not a function under test, and spending the step budget on it measures
+    the dialog instead of the app.
+    """
+    device = FakeDevice(logcat=CRASH)
+    # The settler reads the foreground package; VERSION's is com.example.app.
+    device.foreground = VERSION.package
+
+    run = BugExperiment(
+        device, FakeAgent(), tmp_path, settle_s=0, after_s=0
+    ).run(VERSION, _apk(tmp_path), "task")
+
+    assert run.error == ""
+
+
+def test_a_build_that_never_reaches_its_ui_is_reported(tmp_path):
+    device = FakeDevice(logcat="")
+    device.foreground = "com.android.settings"
+
+    run = BugExperiment(
+        device, FakeAgent(), tmp_path, settle_s=0, after_s=0
+    ).run(VERSION, _apk(tmp_path), "task")
+
+    assert run.stuck_on == "com.android.settings"
+    assert "never reached the app" in run.error
