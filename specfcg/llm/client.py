@@ -18,6 +18,7 @@ class LLMClient(Protocol):
         *,
         system: str | None = None,
         temperature: float = 0.0,
+        extra_body: dict[str, Any] | None = None,
     ) -> str: ...
 
     def complete_json(
@@ -68,10 +69,16 @@ class OpenAICompatibleClient:
         model: str,
         api_key: str,
         base_url: str | None = None,
+        extra_body: dict[str, Any] | None = None,
     ) -> None:
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
+        # Merged into structured requests only.  A reasoning model can spend
+        # minutes thinking about a large JSON prompt and still emit a short
+        # answer; the server-side switch that turns thinking off belongs to
+        # the model, so it is configuration, not a client constant.
+        self.extra_body = dict(extra_body or {})
         self._client: Any = None
 
     def _sdk(self) -> Any:
@@ -87,15 +94,18 @@ class OpenAICompatibleClient:
         *,
         system: str | None = None,
         temperature: float = 0.0,
+        extra_body: dict[str, Any] | None = None,
     ) -> str:
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
+        body = dict(extra_body or {})
         response = self._sdk().chat.completions.create(
             model=self.model,
             messages=messages,
             temperature=temperature,
+            **({"extra_body": body} if body else {}),
         )
         return response.choices[0].message.content or ""
 
@@ -110,4 +120,8 @@ class OpenAICompatibleClient:
             f"{prompt}\n\nReturn only a JSON object matching this shape:\n"
             f"{schema_hint}"
         )
-        return extract_json_object(self.complete(full_prompt, system=system))
+        return extract_json_object(
+            self.complete(
+                full_prompt, system=system, extra_body=self.extra_body
+            )
+        )

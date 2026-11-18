@@ -106,8 +106,8 @@ groups:
         note: 与语义边同一次调用给出重复功能组；只报告、不评分、不自动合并。
       - key: A
         title: 用当前 builder 重建四个图
-        status: planned
-        note: 依赖 C。
+        status: done
+        note: 四图已重建；每图一次语义边调用，0 个 Steps 残留，卡片数 25/21/18/17。
       - key: B
         title: 重测设备维度
         status: planned

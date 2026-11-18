@@ -16,6 +16,10 @@ class LLMConfig:
     base_url: str | None = None
     temperature: float = 0.0
     cache_dir: str = ".cache/llm"
+    # Merged into structured (JSON) requests only.  A reasoning model can
+    # spend minutes on a large JSON prompt; the switch that disables that is
+    # the model's, so it is configuration rather than a client constant.
+    json_extra_body: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

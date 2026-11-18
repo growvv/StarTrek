@@ -10,6 +10,12 @@ llm:
   base_url: http://127.0.0.1:8002/v1
   temperature: 0.0
   cache_dir: .cache/llm-bench-qwen38
+  # Qwen3.8 reasons by default.  On a 25-card semantic prompt that ran past
+  # the client's timeout; the same request answers in 18s with thinking off.
+  # Applied to structured (JSON) calls only.
+  json_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
 device:
   serial: emulator-5600
   timeout_s: 30

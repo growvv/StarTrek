@@ -2199,7 +2199,7 @@ git commit -m "feat(graph): read duplicate functions from the contracts, and say
 Runs after C, so the rebuild writes the `same_function` groups in the same
 single semantic call.
 
-- [ ] A1: rebuild each app from the traces already on disk
+- [x] A1: rebuild each app from the traces already on disk
 
 ```
 PYTHONPATH=. python scripts/build_app_graph.py --app activitydiary --skip-collect --config config/llm.bench.yaml
@@ -2213,7 +2213,7 @@ edges once, after the last trace), no card file containing `**Steps**`, and no
 duplicate card for a trace mined twice.  `scripts/measure_graph_cost.py`
 confirms the call count from the journal itself.
 
-- [ ] A2: record coverage, duplicate groups and the card count
+- [x] A2: record coverage, duplicate groups and the card count
 
 ```
 PYTHONPATH=. python scripts/measure_duplicates.py
@@ -2228,7 +2228,7 @@ A card the new miner could not give a contract to is absent, and its trace id
 is in the mining log — a smaller graph with honest cards beats a larger one
 with names.
 
-- [ ] A3: regenerate the replay pages from the new journals
+- [x] A3: regenerate the replay pages from the new journals
 
 ```
 PYTHONPATH=. python scripts/build_graph_page.py --app activitydiary

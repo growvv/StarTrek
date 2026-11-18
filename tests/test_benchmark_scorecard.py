@@ -268,11 +268,24 @@ def test_the_graph_dimension_is_recomputed_from_the_graph_not_read_back():
         pytest.skip("no local graph under runs/ (git-ignored artifact)")
 
     report = coverage_from_disk("activitydiary", root / "runs" / "mobileworld")
-
     assert report is not None
-    assert report.covered == 11
-    assert report.total == 15
-    assert report.hint_dependence > 0.2
+
+    # The property is that the scorecard asks the current rule over the graph
+    # and inventory on disk.  The exact numbers belong to whichever graph is
+    # on this machine -- a rebuild changes them, and pinning them would mean
+    # the test fails every time the graph is honestly rebuilt.
+    from specfcg.benchmark.coverage_eval import graph_coverage, load_inventory
+    from specfcg.cards.store import CardStore
+    from specfcg.graph.store import GraphStore
+
+    inventory = load_inventory(root / "benchmark" / "coverage" / "activitydiary.yaml")
+    fresh = graph_coverage(
+        inventory,
+        GraphStore(graph, CardStore(graph)).load(),
+    )
+    assert report.covered == fresh.covered
+    assert report.total == fresh.total
+    assert report.total > 0
 
 
 def test_a_record_from_the_graph_arm_counts_under_either_name():

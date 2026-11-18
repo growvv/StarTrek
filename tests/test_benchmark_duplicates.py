@@ -52,3 +52,15 @@ def test_the_reader_prints_the_judgement_caveat(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "model judgements" in out
     assert "never merged" in out
+
+
+def test_the_reader_finds_groups_in_the_nested_graph_layout(tmp_path):
+    """`runs/mobileworld/<app>/graph` keeps its store in a nested `graph/`."""
+    app = tmp_path / "omninotes"
+    nested = app / "graph" / "graph"
+    nested.mkdir(parents=True)
+    (nested / "same_function.json").write_text(
+        json.dumps({"groups": [["merge_notes", "merge_two_notes"]]}),
+        encoding="utf-8",
+    )
+    assert _module().groups_for(app) == [["merge_notes", "merge_two_notes"]]

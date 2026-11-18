@@ -136,7 +136,10 @@ def build_pipeline(
     else:
         api_key = os.environ.get(config.llm.api_key_env, "")
         inner = OpenAICompatibleClient(
-            config.llm.model, api_key, config.llm.base_url
+            config.llm.model,
+            api_key,
+            config.llm.base_url,
+            extra_body=config.llm.json_extra_body,
         )
         llm = CachedLLMClient(inner, Path(config.llm.cache_dir))
 

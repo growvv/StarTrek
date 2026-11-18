@@ -20,9 +20,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def same_function_path(app_dir: Path) -> Path | None:
+    """The groups file under an app directory, in either layout.
+
+    A graph written by ``build_app_graph --out X`` keeps its store in
+    ``X/graph/``; one recorded under ``runs/mobileworld/<app>/graph`` nests a
+    second ``graph/``.  Both are the same graph, so both are read — the same
+    rule ``measure_graph_cost.py`` applies to the journal.
+    """
+    for candidate in (
+        app_dir / "graph" / "graph" / "same_function.json",
+        app_dir / "graph" / "same_function.json",
+        app_dir / "same_function.json",
+    ):
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def groups_for(app_dir: Path) -> list[list[str]]:
-    path = app_dir / "graph" / "same_function.json"
-    if not path.exists():
+    path = same_function_path(app_dir)
+    if path is None:
         return []
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
