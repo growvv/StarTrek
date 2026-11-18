@@ -59,16 +59,25 @@ class CrashSignature:
 
     @property
     def identity(self) -> str:
-        """A stable key: exception type plus the first application frame."""
+        """A stable key: exception type plus the first frame that is ours.
+
+        A crash with no application frame is a platform-level failure —
+        `FileUriExposedException` from `StrictMode` is thrown by Android for
+        any app that passes a `file://` URI.  Two versions of one app can
+        share such a crash, so its identity is not enough to tell them apart
+        and the caller has to add the version.
+        """
         app_frame = next(
             (
                 frame
                 for frame in self.frames
                 if not frame.startswith(("java.", "android.", "androidx.", "kotlin."))
             ),
-            self.frames[0] if self.frames else "",
+            "",
         )
-        return f"{self.exception}@{app_frame}"
+        if app_frame:
+            return f"{self.exception}@{app_frame}"
+        return f"{self.exception}@platform"
 
 
 @dataclass
@@ -210,7 +219,24 @@ def crash_hit(logcat: str, version: BuggyVersion) -> bool:
     Matching is on the exception type plus the top application frame, not on
     the message: messages carry run-specific values (a file name, a count),
     and requiring them would make a real crash look like a miss.
+
+    Every crash the dataset recorded for the version has to appear.  A
+    version whose log carries two failures is a different entry from one
+    carrying only the first, and accepting either alone would let one run
+    count as a detection of both — AnkiDroid 2.7beta1 and 2.9alpha4 share a
+    `FileUriExposedException` and differ only by the second crash.
     """
+    if not version.crashes:
+        return False
+    wanted = {crash.identity for crash in version.crashes}
+    seen = {
+        crash.identity
+        for crash in _parse_crashes(logcat)
+        if crash.process == version.package
+    }
+    if not wanted.issubset(seen):
+        return False
+    return True
     if not version.crashes or not version.package:
         return False
     # The crash has to be the app's own: a system process dying around it is

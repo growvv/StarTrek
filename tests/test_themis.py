@@ -132,3 +132,40 @@ def test_a_missing_dataset_directory_is_an_error_not_an_empty_result(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         load_dataset(tmp_path / "does-not-exist")
+
+
+def test_every_recorded_crash_has_to_appear(tmp_path):
+    """A version with two failures is a different entry from one with the first.
+
+    AnkiDroid 2.7beta1 records a FileUriExposedException *and* a
+    ClassCastException; 2.9alpha4 records only the first.  Accepting either
+    crash alone let one log count as a detection of both versions.
+    """
+    both = CRASH + """
+01-08 10:17:00.000 23018 23018 E AndroidRuntime: FATAL EXCEPTION: main
+01-08 10:17:00.000 23018 23018 E AndroidRuntime: Process: it.feio.android.omninotes.alpha, PID: 23018
+01-08 10:17:00.000 23018 23018 E AndroidRuntime: java.lang.ClassCastException: x
+01-08 10:17:00.000 23018 23018 E AndroidRuntime: \tat it.feio.android.omninotes.Other.run(Other.java:7)
+"""
+    root = _version(tmp_path, "Omni-Notes-6.1.0-#745", both)
+    version = load_dataset(root)[0]
+
+    assert crash_hit(CRASH, version) is False
+    assert crash_hit(both, version) is True
+
+
+def test_a_platform_crash_is_marked_as_such(tmp_path):
+    """A crash with no application frame is Android's, not the app's.
+
+    `FileUriExposedException` is thrown by StrictMode for any app passing a
+    `file://` URI, so the identity cannot tell two versions apart on its own.
+    """
+    platform = """01-08 10:16:01.640 23018 23018 E AndroidRuntime: FATAL EXCEPTION: main
+01-08 10:16:01.640 23018 23018 E AndroidRuntime: Process: it.feio.android.omninotes.alpha, PID: 23018
+01-08 10:16:01.640 23018 23018 E AndroidRuntime: android.os.FileUriExposedException: exposed
+01-08 10:16:01.640 23018 23018 E AndroidRuntime: \tat android.os.StrictMode.onFileUriExposed(StrictMode.java:1)
+"""
+    root = _version(tmp_path, "Omni-Notes-6.1.0-#745", platform)
+    crash = load_dataset(root)[0].crashes[0]
+
+    assert crash.identity.endswith("@platform")
