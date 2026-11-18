@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from mobile_agent import prompts
+from mobile_agent.screen import describe, screen_identity
 from mobile_agent.device import AndroidDevice
 from mobile_agent.llm import VLM
 from mobile_agent.memory import ExperienceStore
@@ -107,13 +108,16 @@ class MobileAgent:
         memory_text: str,
         step: int,
         ui: str,
+        screen_line: str = "",
     ) -> str:
         recent = "\n".join(history[-14:]) or "None yet."
+        where = f"{screen_line}\n" if screen_line else ""
         return (
             f"Goal: {task.goal}\n"
             f"App: {task.app_name} ({task.app})\n\n"
             f"Plan:\n{plan}\n\n"
             f"Relevant lessons from similar past tasks:\n{memory_text}\n\n"
+            f"{where}"
             f"Recent actions:\n{recent}\n\n"
             f"This is step {step} of at most {task.max_steps}.\n"
             f"Current UI elements:\n{ui}"
@@ -265,6 +269,7 @@ class MobileAgent:
         done_summary = ""
         last_signature = ""
         stall = 0
+        previous_screen = ""
         initial_ui = ""
         final_ui = ""
 
@@ -296,8 +301,15 @@ class MobileAgent:
                     ui, encoding="utf-8"
                 )
                 ui_hash = hashlib.sha1(ui.encode("utf-8")).hexdigest()[:16]
+                # Name the screen so the agent can tell "the action changed
+                # nothing" from "I am now somewhere else".  Without it a tap
+                # that opens an editor looks like a tap that failed, and the
+                # agent keeps looking for the same control on the new screen.
+                identity = screen_identity(ui, self.device.activity())
+                screen_line = describe(identity, previous_screen)
+                previous_screen = identity
                 observation = self._observation(
-                    task, plan, history, memory_text, step, ui
+                    task, plan, history, memory_text, step, ui, screen_line
                 )
                 message = self.llm.chat(
                     [

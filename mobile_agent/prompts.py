@@ -15,6 +15,11 @@ Rules:
 - Coordinates are in the screenshot's pixel space.
 - After typing, submit or close the keyboard when the task needs it.
 - Never repeat an action that just failed. If the screen did not change, try a different target.
+- The observation names the current screen and says whether the last action changed it.
+  When the screen changed, re-read what is actually there before acting: a control
+  that was on the previous screen is not on this one.
+- If the screen you are on is not the one your plan expected, go back to the screen
+  the plan assumes instead of searching for its controls here.
 - Do not call done until the current screen visibly proves the whole goal is achieved.
 - Keep the action small: one tap / one input / one key press at a time.
 """

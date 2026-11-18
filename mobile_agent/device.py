@@ -87,6 +87,18 @@ class AndroidDevice:
         width, _ = self.size()
         return self.shot_width / width if width else 1.0
 
+    def activity(self) -> str:
+        """The activity on screen, for naming the screen the agent is on.
+
+        Two screens of one app can share every control name; the activity is
+        what tells them apart.
+        """
+        try:
+            current = self._d().app_current() or {}
+        except Exception:
+            return ""
+        return str(current.get("activity") or "")
+
     def ui_text(self, max_chars: int = 5000) -> str:
         raw = compact_ui(
             self._d().dump_hierarchy(),
