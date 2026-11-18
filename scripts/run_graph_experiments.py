@@ -33,6 +33,7 @@ sys.path.insert(0, str(ROOT))
 from specfcg.benchmark.agents import (  # noqa: E402
     RandomTraversalAgent,
 )
+from specfcg.benchmark.suite import BenchTask  # noqa: E402
 from specfcg.benchmark.suite_runner import AgentRun  # noqa: E402
 from specfcg.benchmark.coverage_eval import (  # noqa: E402
     graph_coverage,
@@ -91,7 +92,15 @@ def run_random(
         agent = RandomTraversalAgent(
             device, rng=random.Random(seed + index)
         )
-        run = agent("explore the app", steps)
+        # The runner-facing agent callable takes the task; a random walk is
+        # the same call with a task whose goal it ignores.
+        run = agent(BenchTask(
+            id=f"random-{index}",
+            app=app,
+            package=package,
+            template="explore the app",
+            max_steps=steps,
+        ))
         text = "\n".join(run.observed_ui)
         final = device.dump_ui()
         text = text + "\n" + final

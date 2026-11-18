@@ -177,3 +177,19 @@ def test_the_graph_arm_uses_the_serial_it_was_given(monkeypatch, tmp_path):
         pass
 
     assert seen["serial"] == "emulator-5604"
+
+
+def test_the_random_arm_takes_a_task_like_every_other_agent():
+    """The runner calls every agent the same way: `agent(task)`.
+
+    `RandomTraversalAgent` reads `task.max_steps`.  The traversal experiment
+    still called it with `(goal, steps)`, which raised TypeError only on that
+    path — the ablation and the traversal measurement disagreed about the
+    callable's shape, and no unit test covered the experiment path.
+    """
+    import inspect
+
+    from specfcg.benchmark.agents import RandomTraversalAgent
+
+    params = list(inspect.signature(RandomTraversalAgent.__call__).parameters)
+    assert params[:2] == ["self", "task"]
