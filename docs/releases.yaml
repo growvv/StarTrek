@@ -12,6 +12,21 @@
 #   evidence   paths under docs/ that back the claims (may be empty)
 
 releases:
+  - tag: v0.3.0
+    version: 0.3.0
+    date: 2026-11-18
+    title: 探针与能力补全走 agent
+    summary: >-
+      能力补全不再依赖预先写好的探针脚本：一个能力假设被渲染成任务描述，
+      交给同一个 GUI agent 去尝试，它看到什么就做什么。
+    highlights:
+      - 探针经 AgentProbe 交给 agent，与 benchmark 执行器是同一个客户端。
+      - 修复：探针计划漏传包名，agent 会在错误的 app 上行动；已加回归测试。
+      - 能力假设只写意图与前后置条件，不再让模型预先猜控件。
+      - 真机验证：探针任务六步执行，每步带动作前 UI，trace 记录最终状态。
+      - 419 个测试通过。
+    evidence:
+      - docs/handoff.md
   - tag: v0.2.0
     version: 0.2.0
     date: 2026-11-18
