@@ -12,6 +12,24 @@
 #   evidence   paths under docs/ that back the claims (may be empty)
 
 releases:
+  - tag: v0.4.0
+    version: 0.4.0
+    date: 2026-11-19
+    title: 重建四个图，消融没有测出图的增量
+    summary: >-
+      卡片契约化之后重建四个图，并在新图上做了图描述与原始 goal 的配对消融。
+      结果必须如实读：20 个任务里 18 个两臂结论相同，配对差异 -1，
+      任务描述没有表现出比用户原话更好的效果。
+    highlights:
+      - 四图已用当前 builder 从同一批轨迹重建：25/21/18/17 张卡片，每图一次语义边调用。
+      - 重复功能改为在语义边同一次调用里读契约判断，只报告不评分、不自动合并。
+      - 两臂消融：图描述 12/20，原始 goal 13/20，配对差异 -1。
+      - 唯一差异来自图缺一条边（add_note_to_current_activity 无入边），不是描述质量的证据。
+      - 修复：Qwen 的 reasoning 会让大 JSON 提示超时，结构化请求可配置关闭 thinking（25 卡语义调用从超时降到 18 秒）。
+      - 440 个测试通过，CI 在干净环境（无 Pillow / 无 adb / 无 runs）下通过。
+    evidence:
+      - docs/reports/mobileworld.html
+      - docs/handoff.md
   - tag: v0.3.0
     version: 0.3.0
     date: 2026-11-18

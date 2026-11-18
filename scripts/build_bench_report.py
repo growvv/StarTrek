@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from specfcg.benchmark.report import summarize  # noqa: E402
-from specfcg.benchmark.scorecard import (  # noqa: E402
+from specfcg.benchmark.scorecard import (
+    control,  # noqa: E402
     DIMENSIONS,
     app_score,
     collect_entries,
@@ -130,7 +131,10 @@ def estimate(entry: dict) -> dict[str, float]:
     return app_score(entry)
 
 
-def _estimate_section(estimates: list[tuple[str, dict[str, float]]]) -> str:
+def _estimate_section(
+    estimates: list[tuple[str, dict[str, float]]],
+    control: dict[str, float] | None = None,
+) -> str:
     if not estimates:
         return ""
     labels = [(key, label) for key, label, _source in DIMENSIONS]
@@ -152,10 +156,18 @@ def _estimate_section(estimates: list[tuple[str, dict[str, float]]]) -> str:
         "<p>每个能力维度 0–100，全部由 <code>runs/mobileworld</code> 下的记录算出："
         "图完整度取源码功能清单覆盖率；探针标定取 100 − |预测 − 实际|；"
         "自优化增益取曲线新增功能占清单比例；"
-        "任务成功率取 specfcg 在 20 步上限内的通过率。"
-        "随机遍历可达是无引导对照组，只作参照，不计入分数：它对每个被测量的"
-        "系统都是同一个值，给它权重只会移动分数、不衡量任何能力。</p>"
-        "<p>探针标定用的是偏差（bias）口径，它只比较预测均值与实际命中率："
+        "任务成功率取图臂在 20 步上限内的通过率；原始 goal 臂是配对对照，"
+        "单独列出、不计入分数。"
+        "随机遍历可达与原始 goal 臂都是对照组，只作参照，不计入分数："
+        "随机遍历对每个被测量的系统都是同一个值，给它权重只会移动分数；"
+        "原始 goal 臂的成功率是 agent 的能力，只有两臂的配对差异才说明图的分量。</p>"
+        + (
+            f"<p>对照组：随机遍历 {control.get('random', 0):.1f}，"
+            f"原始 goal 臂 {control.get('raw', 0):.1f}。</p>"
+            if control
+            else ""
+        )
+        + "<p>探针标定用的是偏差（bias）口径，它只比较预测均值与实际命中率："
         "一个恰好猜中总体命中率的常数同样拿满分，所以这一维目前衡量的是"
         "估计有没有系统性偏高或偏低，而不是每个探针估得准不准。"
         "要让区分度（discrimination）也进入分数，需要用 Brier 这类"
@@ -374,6 +386,7 @@ def _curve_section(points: list[dict]) -> str:
     delta = last - first
     note = (
         f"综合从 {first:.1f} 到 {last:.1f}（{delta:+.1f}）。"
+        "<b>这条曲线止于旧架构</b>：Task F 之后任务维度的含义从""“编译脚本回放成功”变成“agent 按图描述达成目标”，""与旧分数不连续，不能连成一条线。"
         if len(points) > 1
         else "目前只有一个记录点；曲线从下一次迭代开始延伸。"
     )
@@ -398,15 +411,43 @@ def _curve_section(points: list[dict]) -> str:
 
 def collect(runs: Path) -> dict:
     """The page's shape: {"apps": [...]}, from the shared scorecard reader."""
-    return {
-        "apps": collect_entries(runs),
-        "cost": _load(runs / "graph-cost.json") or {},
-        "duplicates": {
-            app_dir.name: _load_groups(app_dir / "graph" / "same_function.json")
-            for app_dir in sorted(Path(runs).iterdir())
-            if app_dir.is_dir()
-        },
+    runs = Path(runs)
+    apps = collect_entries(runs)
+    # The graph's size and duplicate groups are read from the graph on disk,
+    # not from a record written by an older build: a rebuild changes both.
+    sizes = {entry["app"]: _graph_size(runs, entry["app"]) for entry in apps}
+    duplicates = {
+        entry["app"]: _load_groups(_graph_file(runs, entry["app"], "same_function.json"))
+        for entry in apps
     }
+    for entry in apps:
+        entry.update(sizes.get(entry["app"]) or {})
+    return {
+        "apps": apps,
+        "cost": _load(runs / "graph-cost.json") or {},
+        "duplicates": duplicates,
+    }
+
+
+def _graph_file(runs: Path, app: str, name: str) -> Path:
+    """A file under the app's graph, in either layout."""
+    base = Path(runs) / app / "graph"
+    for candidate in (base / "graph" / name, base / name):
+        if candidate.exists():
+            return candidate
+    return base / "graph" / name
+
+
+def _graph_size(runs: Path, app: str) -> dict[str, int]:
+    from specfcg.cards.store import CardStore
+    from specfcg.graph.store import GraphStore
+
+    base = Path(runs) / app / "graph"
+    if not (base / "cards").exists():
+        return {"cards": 0, "edges": 0}
+    cards = CardStore(base).all()
+    graph = GraphStore(base, CardStore(base)).load()
+    return {"cards": len(cards), "edges": len(graph.edges)}
 
 
 def _load_groups(path: Path) -> list[list[str]]:
@@ -666,12 +707,23 @@ def render(
 
     sections.append(
         _estimate_section(
-            [(entry["app"], estimate(entry)) for entry in data["apps"]]
+            [(entry["app"], estimate(entry)) for entry in data["apps"]],
+            control(data["apps"]),
         )
     )
     sections.append(
         _graph_section(
-            [(entry["app"], entry.get("coverage")) for entry in data["apps"]],
+            [
+                (
+                    entry["app"],
+                    {
+                        **(entry.get("coverage") or {}),
+                        "cards": entry.get("cards", 0),
+                        "edges": entry.get("edges", 0),
+                    },
+                )
+                for entry in data["apps"]
+            ],
             data.get("cost") or {},
             data.get("duplicates") or {},
         )
