@@ -168,10 +168,15 @@ def _estimate_section(
             else ""
         )
         + "<p>探针标定用的是偏差（bias）口径，它只比较预测均值与实际命中率："
-        "一个恰好猜中总体命中率的常数同样拿满分，所以这一维目前衡量的是"
+        "一个恰好猜中总体命中率的常数同样拿满分，所以这一维衡量的是"
         "估计有没有系统性偏高或偏低，而不是每个探针估得准不准。"
-        "要让区分度（discrimination）也进入分数，需要用 Brier 这类"
-        "逐探针的评分规则，并且要有足够多的探针记录支撑。</p>"
+        "记录里同时给出 Brier 分数与「不同预测值的个数」：前者是逐探针的"
+        "正规评分，后者为 1 就说明估计器是常数、无法区分任何两个探针。</p>"
+        "<p><b>这个维度看得见什么、看不见什么：</b>预测说的是"
+        "「图给出的路线能否走通」，观测说的是「agent 实际走的那一趟有没有"
+        "走到」。一个无视正确路线乱走的 agent，和一个走错路线却误打误撞"
+        "找到功能的 agent，都会表现为预测误差。单个数字分不开这两者，"
+        "所以这里的数字不能用来说明图对了还是错了。</p>"
         + _table(
             ["App"] + [label for _key, label in labels] + ["综合"],
             rows,
@@ -794,10 +799,22 @@ def render(
                     )
                 )
             calib = probes.get("calibration") or {}
+            distinct = calib.get("distinct_predictions")
+            spread = (
+                f"，Brier {calib.get('brier', 0):.3f}，"
+                f"不同预测值 {distinct} 个"
+                + (
+                    "（<b>常数估计</b>：无法区分任何两个探针）"
+                    if distinct == 1
+                    else ""
+                )
+                if distinct is not None
+                else ""
+            )
             parts.append(
                 f"<p>校准：预测均值 {calib.get('predicted', 0):.2f}，"
                 f"实际命中 {calib.get('actual', 0):.2f}，"
-                f"差 {calib.get('gap', 0):+.2f}。</p>"
+                f"差 {calib.get('gap', 0):+.2f}{spread}。</p>"
             )
         parts.append(_selfopt_section(entry.get("selfopt")))
         parts.append(_ablation_section(entry.get("bench") or []))

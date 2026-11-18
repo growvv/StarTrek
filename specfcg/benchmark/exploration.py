@@ -142,14 +142,39 @@ def evidence_hit(function: FunctionSpec, observed_text: str) -> bool:
     )
 
 
+def brier(probes: list[CompletionProbe]) -> float:
+    """Mean squared error of each prediction against what actually happened.
+
+    A proper score: it is minimised by the true probability, so a constant
+    that happens to match the base rate still pays for being wrong about
+    every individual probe.  The bias score (``1 - |predicted - actual|``)
+    does not have that property -- any constant near the base rate scores
+    well -- which is why the spread is reported beside it.
+    """
+    if not probes:
+        return 0.0
+    total = sum(
+        (probe.predicted_confidence - (1.0 if probe.reached else 0.0)) ** 2
+        for probe in probes
+    )
+    return round(total / len(probes), 4)
+
+
 def calibration(probes: list[CompletionProbe]) -> dict[str, float]:
-    """Predicted vs empirical coverage rate over the probes."""
+    """Predicted vs empirical coverage rate over the probes.
+
+    ``distinct_predictions`` is the number of different values the estimator
+    produced.  One means the estimator is constant, and a constant cannot
+    discriminate between probes however good its bias looks.
+    """
     if not probes:
         return {
             "probes": 0,
             "predicted": 0.0,
             "actual": 0.0,
             "gap": 0.0,
+            "brier": 0.0,
+            "distinct_predictions": 0,
         }
     predicted = sum(probe.predicted_confidence for probe in probes) / len(
         probes
@@ -160,4 +185,8 @@ def calibration(probes: list[CompletionProbe]) -> dict[str, float]:
         "predicted": round(predicted, 3),
         "actual": round(actual, 3),
         "gap": round(predicted - actual, 3),
+        "brier": brier(probes),
+        "distinct_predictions": len(
+            {round(probe.predicted_confidence, 6) for probe in probes}
+        ),
     }

@@ -113,6 +113,8 @@ def test_calibration_of_no_probes_is_zero():
         "predicted": 0.0,
         "actual": 0.0,
         "gap": 0.0,
+        "brier": 0.0,
+        "distinct_predictions": 0,
     }
 
 
@@ -271,3 +273,67 @@ def test_probe_confidence_prices_the_unmodelled_step_with_the_unexecuted_prior()
 
     # (4+1)/(4+2) smoothed card rate x the 0.5 unexecuted-step prior
     assert round(probe.predicted_confidence, 3) == 0.417
+
+
+def _probe(predicted: float, reached: bool) -> "CompletionProbe":
+    from specfcg.benchmark.exploration import CompletionProbe
+
+    return CompletionProbe(
+        function_id="f",
+        label="f",
+        goal="g",
+        target_card="",
+        predicted_path=[],
+        predicted_confidence=predicted,
+        reached=reached,
+    )
+
+
+def test_brier_scores_a_constant_estimate_no_better_than_the_base_rate():
+    """A constant prediction cannot discriminate, and Brier says so.
+
+    The bias score (100 - |predicted - actual|) rewards any constant that
+    happens to match the base rate.  Brier is proper: it is minimised by the
+    true probability, so a constant that is wrong for individual probes pays
+    for it even when its mean is right.
+    """
+    from specfcg.benchmark.exploration import brier
+
+    probes = [
+        _probe(0.45, True),
+        _probe(0.45, False),
+        _probe(0.45, True),
+        _probe(0.45, False),
+    ]
+    constant = brier(probes)
+    base_rate = brier([_probe(0.5, p.reached) for p in probes])
+
+    assert constant >= base_rate
+
+
+def test_brier_rewards_a_prediction_that_separates_the_outcomes():
+    from specfcg.benchmark.exploration import brier
+
+    good = [
+        _probe(0.9, True),
+        _probe(0.1, False),
+        _probe(0.9, True),
+        _probe(0.1, False),
+    ]
+    constant = [_probe(0.5, p.reached) for p in good]
+
+    assert brier(good) < brier(constant)
+
+
+def test_calibration_reports_the_spread_of_its_predictions():
+    """A constant prediction is not a calibration, and the record says so.
+
+    B1's acceptance criterion is a non-constant `predicted_confidence`; the
+    record has to carry that fact so a reader does not treat a single value
+    as a measurement.
+    """
+    constant = calibration([_probe(0.45, True), _probe(0.45, False)])
+    varied = calibration([_probe(0.3, True), _probe(0.7, False)])
+
+    assert constant["distinct_predictions"] == 1
+    assert varied["distinct_predictions"] == 2
