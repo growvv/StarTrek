@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 from typing import Any
 
 from specfcg.cards.store import CardStore
@@ -125,15 +127,30 @@ class Pipeline:
 
     def build_graph(self, segments: list[dict[str, Any]]) -> list[Edge]:
         cards = self.card_store.all()
-        edges = self.builder.build(cards, segments)
+        result = self.builder.build(cards, segments)
+        self._write_same_function(result.same_function)
         self._apply_patch(
             GraphPatch(
-                edge_updates=[_edge_update(edge) for edge in edges],
+                edge_updates=[_edge_update(edge) for edge in result.edges],
                 reason=f"semantic edges over {len(cards)} card"
                 f"{'s' if len(cards) != 1 else ''}",
             )
         )
-        return edges
+        return result.edges
+
+    def _write_same_function(self, groups: list[list[str]]) -> None:
+        """Record the model's same-function groups beside the edges.
+
+        This is a diagnosis, not a score: the groups are read by whoever
+        wants them and never consumed by the planner.  Writing them on every
+        build keeps them in step with the cards they describe.
+        """
+        path = Path(self.store.root) / "graph" / "same_function.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps({"groups": groups}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
 
     def observe(self, app: str) -> str:
         """The screen the agent sees, for planning a plan it will execute.

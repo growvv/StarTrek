@@ -401,7 +401,21 @@ def collect(runs: Path) -> dict:
     return {
         "apps": collect_entries(runs),
         "cost": _load(runs / "graph-cost.json") or {},
+        "duplicates": {
+            app_dir.name: _load_groups(app_dir / "graph" / "same_function.json")
+            for app_dir in sorted(Path(runs).iterdir())
+            if app_dir.is_dir()
+        },
     }
+
+
+def _load_groups(path: Path) -> list[list[str]]:
+    data = _load(path) or {}
+    return [
+        [str(name) for name in group]
+        for group in (data.get("groups") or [])
+        if isinstance(group, list) and len(group) >= 2
+    ]
 
 
 def _cost_cell(record: dict | None) -> str:
@@ -483,17 +497,43 @@ def _ablation_section(benches: list[dict]) -> str:
     )
 
 
+def _duplicate_listing(duplicates: dict) -> str:
+    """The groups themselves, with the caveat attached to them."""
+    rows = []
+    for app in sorted(duplicates):
+        for group in duplicates[app]:
+            rows.append(
+                "<tr>"
+                f"<td>{html.escape(app)}</td>"
+                f"<td>{html.escape('、'.join(group))}</td>"
+                "</tr>"
+            )
+    if not rows:
+        return (
+            "<p>这次构建没有报告重复功能组。</p>"
+        )
+    return (
+        "<h3>重复功能组明细</h3>"
+        "<p class=\"mini\">模型判断，不是分数；只报告，不自动合并。</p>"
+        "<table><thead><tr><th>App</th><th>卡片组</th></tr></thead>"
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
 def _graph_section(
     apps: list[tuple[str, dict | None]],
     cost: dict | None = None,
+    duplicates: dict | None = None,
 ) -> str:
     """Per-app link to the animated construction journal."""
     cost = cost or {}
+    duplicates = duplicates or {}
     rows = [
         [
             app,
             f"{entry.get('cards', 0)} 张卡片 / {entry.get('edges', 0)} 条边",
             f"{entry.get('covered', 0)}/{entry.get('functions', 0)}",
+            str(len(duplicates.get(app) or [])),
             _cost_cell(cost.get(app)),
             f'<a href="../graph/{html.escape(app)}.html">构建过程 →</a>',
         ]
@@ -516,21 +556,23 @@ def _graph_section(
         "<p>每张图从轨迹开始逐帧构建：先回放探索轨迹挖出卡片，再让 LLM 在卡片之间"
         "推断语义边。下面的页面按 journal 的回放顺序显示每一帧，"
         "可以直接看到卡片与边是如何长出来的。</p>"
-        "<p>「行为面」是图里独立行为数与可比卡片数之比：把每张卡片的步骤用编译器"
-        "自己解析成 (动作, 控件) 序列，再看有多少张卡片做的是同一件事。它不设相似度"
-        "阈值——两个行为面要么相同，要么不同。只有编译器能确定解析的卡片进入比较，"
-        "所以分母是可比卡片数而不是卡片总数。</p>"
+        "<p>「重复功能组」是模型在推断语义边的同一次调用里给出的判断："
+        "它读每张卡片的意图、输入、前后置条件与产出，指出哪些卡片描述的是同一个"
+        "用户级功能。<b>这是判断，不是测量</b>——卡片不再带动作，就没有确定性的"
+        "「同一功能」判据。旧的「行为面」分数比较的是编译出来的动作集，"
+        "衡量的是另一个卡片格式，与这里不可比。</p>"
         f'<table><thead><tr><th>App</th><th>图规模</th><th>覆盖</th>'
-        f"<th>行为面（独立/可比）</th><th>语义边推断</th>"
+        f"<th>重复功能组</th><th>语义边推断</th>"
         f"<th>链接</th></tr></thead><tbody>{body}</tbody></table>"
-        "<p>「语义边推断」读的是构图 journal：每挖完一条轨迹就重推一次全图，"
+        + _duplicate_listing(duplicates)
+        + "<p>「语义边推断」读的是构图 journal：每挖完一条轨迹就重推一次全图，"
         "会留下一条 <code>semantic edges</code> 帧，两帧之间的时间就是那次模型调用。"
         "表里是已记录图的实测开销。当前构建流程在挖完所有轨迹后只推一次；"
         "2026-11-14 用同一份轨迹冷缓存重建 activitydiary 实测 "
         "<strong>1 次调用 / 2.8 分钟</strong>，记录图为 17 次 / 38.3 分钟。"
         "同一份轨迹也只挖一次：记录图里 omninotes 的 "
         "<code>merge_notes</code> 与 <code>merge_two_notes</code> 就是"
-        "<code>omni-merge</code> 被挖了两遍的结果，重建后只会留下一张。</p>"
+        + "<code>omni-merge</code> 被挖了两遍的结果，重建后只会留下一张。</p>"
     )
 
 
@@ -631,6 +673,7 @@ def render(
         _graph_section(
             [(entry["app"], entry.get("coverage")) for entry in data["apps"]],
             data.get("cost") or {},
+            data.get("duplicates") or {},
         )
     )
 

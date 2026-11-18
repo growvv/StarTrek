@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 from specfcg.llm.client import LLMClient, LLMParseError
@@ -12,8 +13,22 @@ logger = logging.getLogger(__name__)
 
 _EDGE_SCHEMA = (
     '{"edges": [{"from": "create_note", "to": "share_note", '
-    '"type": "enables|dataflow", "description": "why the edge exists"}]}'
+    '"type": "enables|dataflow", "description": "why the edge exists"}], '
+    '"same_function": [["create_note", "add_note"]]}'
 )
+
+
+@dataclass
+class SemanticResult:
+    """What one semantic call returned: edges, and groups of same function.
+
+    The groups are a model judgement, not a measurement: with the action
+    lists gone there is no deterministic oracle for "same function".  They
+    are reported for a person to inspect and never merged automatically.
+    """
+
+    edges: list[Edge] = field(default_factory=list)
+    same_function: list[list[str]] = field(default_factory=list)
 
 
 class EdgeBuilder:
@@ -98,9 +113,9 @@ class EdgeBuilder:
 
     def infer_semantic(
         self, cards: dict[str, FunctionCard]
-    ) -> list[Edge]:
+    ) -> SemanticResult:
         if len(cards) < 2:
-            return []
+            return SemanticResult()
         card_lines = "\n".join(
             f"- {name}: intent={card.intent!r}; "
             f"inputs={card.inputs!r}; "
@@ -116,17 +131,21 @@ class EdgeBuilder:
             "preconditions of another, or 'dataflow' when an output of one "
             "can supply an input of another (for example a note title "
             "created by one card and used by another). Skip unrelated "
-            "pairs."
+            "pairs.\n\n"
+            "Also list groups of cards that describe the SAME user-level "
+            "function, as same_function: a list of lists of card names. "
+            "A group must name at least two cards that exist above, and a "
+            "card belongs to at most one group. Use [] when there are none."
         )
         try:
             data = self.llm.complete_json(prompt, _EDGE_SCHEMA)
         except LLMParseError as exc:
             logger.warning("semantic edge inference failed: %s", exc)
-            return []
+            return SemanticResult()
 
         raw_edges = data.get("edges") if isinstance(data, dict) else None
         if not isinstance(raw_edges, list):
-            return []
+            raw_edges = []
 
         edges: list[Edge] = []
         for item in raw_edges:
@@ -157,13 +176,51 @@ class EdgeBuilder:
                     evidence=[str(value) for value in evidence],
                 )
             )
-        return self._merge_edges(edges)
+        return SemanticResult(
+            edges=self._merge_edges(edges),
+            same_function=self._same_function(
+                data.get("same_function") if isinstance(data, dict) else None,
+                cards,
+            ),
+        )
+
+    @staticmethod
+    def _same_function(
+        raw: Any, cards: dict[str, FunctionCard]
+    ) -> list[list[str]]:
+        """Keep only real groups: two or more known, distinct cards."""
+        if not isinstance(raw, list):
+            return []
+        groups: list[list[str]] = []
+        seen: set[frozenset[str]] = set()
+        for item in raw:
+            if not isinstance(item, list):
+                continue
+            names = [
+                name
+                for name in item
+                if isinstance(name, str) and name in cards
+            ]
+            # Preserve the model's order while dropping duplicates.
+            unique = list(dict.fromkeys(names))
+            if len(unique) < 2:
+                continue
+            key = frozenset(unique)
+            if key in seen:
+                continue
+            seen.add(key)
+            groups.append(unique)
+        return groups
 
     def build(
         self,
         cards: dict[str, FunctionCard],
         segments: list[dict[str, Any]],
-    ) -> list[Edge]:
-        return self._merge_edges(
-            self._sequence_edges(cards, segments) + self.infer_semantic(cards)
+    ) -> SemanticResult:
+        semantic = self.infer_semantic(cards)
+        return SemanticResult(
+            edges=self._merge_edges(
+                self._sequence_edges(cards, segments) + semantic.edges
+            ),
+            same_function=semantic.same_function,
         )

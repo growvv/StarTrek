@@ -2136,7 +2136,7 @@ a person to inspect, and the groups are never merged automatically.
   beside the edges.  The groups are read from disk by whoever wants them,
   which is the point: they are reported, not consumed.
 
-- [ ] **Step 1: Write the failing builder test**
+- [x] **Step 1: Write the failing builder test**
 
 ```python
 def test_the_semantic_call_reports_groups_and_drops_unknown_names(fake_llm):
@@ -2150,14 +2150,14 @@ def test_the_semantic_call_reports_groups_and_drops_unknown_names(fake_llm):
     assert result.edges == []
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `python -m pytest tests/test_edge_builder.py -q`
 
 Expected: FAIL — `infer_semantic` returns a bare list, so `.same_function`
 does not exist.
 
-- [ ] **Step 3: Extend the schema, parse, and persist**
+- [x] **Step 3: Extend the schema, parse, and persist**
 
 Add `"same_function": [["create_note", "add_note"]]` to `_EDGE_SCHEMA` and to
 the prompt ("also list groups of cards that describe the same user-level
@@ -2166,7 +2166,7 @@ two or naming an unknown card, and dedupe.  `Pipeline.build_graph` writes
 `graph/same_function.json` beside the edges and returns `result.edges`, so
 its three callers and their tests keep working unchanged.
 
-- [ ] **Step 4: Replace the measure with a reader**
+- [x] **Step 4: Replace the measure with a reader**
 
 `measure_duplicates.py` reads each app's `same_function.json` and prints the
 groups; the report's "granularity" column becomes a "duplicate groups" column
@@ -2177,13 +2177,13 @@ old behavioural number measured a different card format and is not
 comparable.  `runs/mobileworld/granularity.json` stays on disk as a historical
 record and is no longer read.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `python -m pytest tests/test_edge_builder.py tests/test_benchmark_duplicates.py tests/test_pipeline.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specfcg scripts tests

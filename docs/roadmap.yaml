@@ -102,8 +102,8 @@ groups:
         note: 两臂同一 agent、同一设备、只差一个字符串；task 维度只读图臂，raw 作为对照单列。
       - key: C
         title: 重复功能检测改为读契约
-        status: planned
-        note: 依赖 F；只报告，不评分、不自动合并。
+        status: done
+        note: 与语义边同一次调用给出重复功能组；只报告、不评分、不自动合并。
       - key: A
         title: 用当前 builder 重建四个图
         status: planned

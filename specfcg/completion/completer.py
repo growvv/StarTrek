@@ -234,7 +234,7 @@ class CapabilityCompleter:
                 "description": edge.description,
                 "evidence": edge.evidence,
             }
-            for edge in self.builder.build(cards, segments)
+            for edge in self.builder.build(cards, segments).edges
         ]
         return GraphPatch(
             new_cards=new_cards,
