@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from specfcg.benchmark.first_run import grant_storage_access, settle_first_run
+from specfcg.benchmark.seeding import prepare as seed_data
 from specfcg.benchmark.themis import BuggyVersion, crash_hit
 
 # A crash that names the app's own process; the same shape FuncDroid checks.
@@ -39,6 +40,7 @@ class BugRun:
     detected: bool = False
     error: str = ""
     stuck_on: str = ""
+    seed_note: str = ""
     logcat_path: str = ""
     matched_crash: str = ""
 
@@ -90,6 +92,12 @@ class BugExperiment:
         self.device.shell("logcat -c")
         self.device.clear_app(version.package)
         grant_storage_access(self.device, version.package)
+        # A file task needs a file.  The path is the build's own — Markor
+        # reads Documents/markor, not a directory called Notebook — and a
+        # build whose path is unknown is reported rather than given a default.
+        # Recorded beside the run, not as an error: a build whose data path
+        # is unknown can still have tasks that need no file.
+        result.seed_note = seed_data(self.device, version.package)
         self.device.launch(version.package)
         time.sleep(self.settle_s)
         # A build's own onboarding — a permission grant, a licences notice —
