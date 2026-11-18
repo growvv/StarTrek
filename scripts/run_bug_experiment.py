@@ -21,7 +21,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.apk_source import ApkUnavailable, find_apk, download  # noqa: E402
+from specfcg.benchmark.apk_source import (  # noqa: E402
+    ApkUnavailable,
+    download,
+    find_apk,
+    find_in_archive,
+)
 from specfcg.benchmark.bug_experiment import BugExperiment, summarise  # noqa: E402
 from specfcg.benchmark.bug_task import task_for  # noqa: E402
 from specfcg.benchmark.device_ops import AdbOps  # noqa: E402
@@ -83,8 +88,24 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(f"task ({derived.source if derived else 'explicit'}): {task}", flush=True)
 
+    # Two sources, in order: the project's own releases, then F-Droid's
+    # archive, which kept builds the projects no longer publish.  Neither is
+    # allowed to substitute a neighbouring version.
+    candidate = None
+    errors: list[str] = []
+    for source in (
+        lambda: find_apk(version.app, version.version_name),
+        lambda: find_in_archive(version.package, version.version_name),
+    ):
+        try:
+            candidate = source()
+            break
+        except ApkUnavailable as exc:
+            errors.append(str(exc))
+    if candidate is None:
+        print(f"{version.id}: {'; '.join(errors)}", file=sys.stderr)
+        return 2
     try:
-        candidate = find_apk(version.app, version.version_name)
         apk = download(candidate, Path(args.apks))
     except ApkUnavailable as exc:
         print(f"{version.id}: {exc}", file=sys.stderr)

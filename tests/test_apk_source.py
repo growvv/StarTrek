@@ -165,3 +165,35 @@ def test_two_versions_of_one_app_do_not_share_a_file(tmp_path, fake_releases):
 
     assert first != second
     assert first.exists() and second.exists()
+
+
+def test_the_archive_supplies_a_build_github_no_longer_has(monkeypatch):
+    """Several dataset builds predate the projects' own release uploads."""
+    index = {
+        "packages": {
+            "net.gsantner.markor": [
+                {"versionName": "0.3.9", "apkName": "net.gsantner.markor_23.apk"},
+                {"versionName": "0.3.10", "apkName": "net.gsantner.markor_24.apk"},
+            ]
+        }
+    }
+    monkeypatch.setattr(apk_source, "_archive_index", lambda *a, **k: index)
+
+    candidate = apk_source.find_in_archive("net.gsantner.markor", "0.3.9")
+
+    assert candidate.url.endswith("net.gsantner.markor_23.apk")
+    assert candidate.tag == "f-droid-archive"
+
+
+def test_the_archive_does_not_substitute_either(monkeypatch):
+    index = {
+        "packages": {
+            "net.gsantner.markor": [
+                {"versionName": "0.3.10", "apkName": "net.gsantner.markor_24.apk"}
+            ]
+        }
+    }
+    monkeypatch.setattr(apk_source, "_archive_index", lambda *a, **k: index)
+
+    with pytest.raises(apk_source.ApkUnavailable):
+        apk_source.find_in_archive("net.gsantner.markor", "0.3.9")

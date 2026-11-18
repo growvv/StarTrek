@@ -134,6 +134,60 @@ def _names_version(text: str, version: str) -> bool:
     return re.search(pattern, text) is not None
 
 
+ARCHIVE_INDEX = "https://f-droid.org/archive/index-v1.jar"
+ARCHIVE_APK = "https://f-droid.org/archive/{name}"
+_ARCHIVE_CACHE: dict[str, dict] | None = None
+
+
+def _archive_index(cache_dir: Path | None = None) -> dict:
+    """F-Droid's archive index: every build it ever published.
+
+    GitHub Releases only carry what each project chose to upload, and several
+    of the dataset's builds predate that.  F-Droid kept them all, keyed by
+    package and version name, which is exactly what the dataset names.
+    """
+    global _ARCHIVE_CACHE
+    if _ARCHIVE_CACHE is not None:
+        return _ARCHIVE_CACHE
+    cache = Path(cache_dir or "/home/farong/hdd/android/fdroid-index.jar")
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    if not cache.exists() or cache.stat().st_size == 0:
+        result = subprocess.run(
+            ["curl", "-sL", "--max-time", "300", "-o", str(cache), ARCHIVE_INDEX],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or not cache.exists():
+            raise ApkUnavailable(f"cannot fetch the F-Droid archive index: {result.stderr[:200]}")
+    import zipfile
+
+    with zipfile.ZipFile(cache) as archive:
+        _ARCHIVE_CACHE = json.loads(archive.read("index-v1.json"))
+    return _ARCHIVE_CACHE
+
+
+def find_in_archive(package: str, version_name: str) -> ApkCandidate:
+    """The archived build F-Droid published under this version name."""
+    index = _archive_index()
+    entries = index.get("packages", {}).get(package) or []
+    for entry in entries:
+        if str(entry.get("versionName") or "") != version_name:
+            continue
+        name = str(entry.get("apkName") or "")
+        if not name:
+            continue
+        return ApkCandidate(
+            app=package,
+            version=version_name,
+            url=ARCHIVE_APK.format(name=name),
+            asset=name,
+            tag="f-droid-archive",
+        )
+    raise ApkUnavailable(
+        f"{package} has no archived build for version {version_name}"
+    )
+
+
 def download(candidate: ApkCandidate, out_dir: Path) -> Path:
     """Download the APK, named by app and version code."""
     out_dir = Path(out_dir)
