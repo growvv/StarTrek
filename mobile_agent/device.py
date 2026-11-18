@@ -100,8 +100,20 @@ class AndroidDevice:
         return str(current.get("activity") or "")
 
     def ui_text(self, max_chars: int = 5000) -> str:
+        # uiautomator returns an empty or failing dump while a window is
+        # animating or a keyboard is settling; one retry turns a spurious
+        # "the screen is blank" into the screen the agent needs.
+        raw_ui = ""
+        for attempt in range(3):
+            try:
+                raw_ui = self._d().dump_hierarchy()
+            except Exception:
+                raw_ui = ""
+            if raw_ui and "<hierarchy" in raw_ui:
+                break
+            time.sleep(0.4 * (attempt + 1))
         raw = compact_ui(
-            self._d().dump_hierarchy(),
+            raw_ui,
             self.package,
             extra_packages=OVERLAY_PACKAGES,
         )

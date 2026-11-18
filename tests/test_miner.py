@@ -358,3 +358,24 @@ def test_a_trace_value_baked_into_the_contract_becomes_an_input(
     assert card is not None
     assert "Trip" not in card.postconditions
     assert any(item.startswith("item_label") for item in card.inputs)
+
+
+def test_a_trace_whose_actions_all_failed_yields_no_card(
+    tmp_path, fake_llm, sample_trace
+):
+    """A failed trace records what the app did not do.
+
+    The quicknote trace collected on a build whose controls had moved had
+    three failed actions, and the miner still wrote a `write_quick_note` card
+    from it — a function nobody had seen work.
+    """
+    for step in sample_trace.steps:
+        step.success = False
+    fake_llm.responses = [
+        {"episodes": [{"start": 0, "end": 3, "name": "create_note", "intent": "x"}]},
+        _card(),
+    ]
+
+    patch = CardMiner(fake_llm, CardStore(tmp_path)).mine(sample_trace)
+
+    assert patch.new_cards == []

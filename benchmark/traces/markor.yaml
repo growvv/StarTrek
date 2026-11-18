@@ -133,10 +133,14 @@ traces:
       - {action: click, target: "text=To-Do", wait: 2.0}
 
   - id: markor-open-quicknote
-    goal: Open QuickNote
+    goal: Open the QuickNote section and type into it
     reset: true
+    # A single click is not a function: the miner needs the screen the click
+    # produces, or it cannot say what the function leaves behind.
     actions:
       - {action: click, target: "desc=QuickNote", wait: 2.0}
+      - {action: input, target: "resourceId=net.gsantner.markor:id/document__fragment__edit__highlighting_editor", args: "quick idea", wait: 1.0}
+      - {action: click, target: "desc=Save", wait: 1.5}
 
   - id: markor-open-settings
     goal: Open app settings

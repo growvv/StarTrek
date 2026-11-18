@@ -428,6 +428,17 @@ class CardMiner:
                     trace.trace_id,
                 )
                 continue
+            if not succeeded:
+                # A trace whose actions all failed records what the app did
+                # *not* do.  A card mined from it would describe a function
+                # nobody has seen work, and the graph would claim coverage it
+                # cannot deliver.
+                logger.warning(
+                    "skipping episode %r of trace %s: no action succeeded",
+                    episode.get("name"),
+                    trace.trace_id,
+                )
+                continue
             if card.name in existing:
                 old = existing[card.name]
                 evidence = list(old.evidence)
