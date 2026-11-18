@@ -144,6 +144,7 @@ def run_probes(
     steps: int,
     onboarding: list[dict] | None = None,
     pipeline=None,
+    ops=None,
 ) -> dict:
     covered = {
         function.id
@@ -155,7 +156,9 @@ def run_probes(
         raise SystemExit("probes need a pipeline to compile the predicted path")
     device = pipeline.device
     device.set_app(package)
-    ops = AdbOps(serial)
+    # Injected by tests so the probe path can be checked without a device;
+    # a real run builds the adb bridge here.
+    ops = ops or AdbOps(serial)
     probes = []
     for function in missing:
         probe = build_probe(graph, function)

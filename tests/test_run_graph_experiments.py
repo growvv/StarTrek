@@ -51,6 +51,23 @@ def test_a_probe_run_with_probes_saves_its_record(tmp_path):
     assert (out / "latest.json").exists()
 
 
+class _FakeOps:
+    """The device bridge, recording instead of shelling out to adb."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+
+    def clear_app(self, package: str) -> None:
+        self.calls.append(("clear_app", package))
+
+    def launch(self, package: str) -> None:
+        self.calls.append(("launch", package))
+
+    def act(self, action: str, target: str, args: str = "") -> bool:
+        self.calls.append((action, target))
+        return True
+
+
 class _RecordingPipeline:
     """A pipeline whose plan_path and executor record how they were called."""
 
@@ -113,6 +130,9 @@ def test_the_probe_plan_carries_the_app_package(tmp_path):
         limit=1,
         steps=3,
         pipeline=pipeline,
+        # Injected: CI has no adb, and the probe's planning and execution are
+        # what this test is about, not the device bridge.
+        ops=_FakeOps(),
     )
 
     assert pipeline.plan_calls, "the probe should have planned a path"

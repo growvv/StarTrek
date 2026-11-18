@@ -205,6 +205,9 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
    （需要设备）。
 7. 探针/标定的“实际值”与预测必须指向同一件事；Task D 之前不要用旧的
    calibration 数字下结论。
+8. **CI 只装 `.[dev]`**：设备侧依赖（Pillow、uiautomator2）必须惰性导入，
+   否则收集阶段就失败。`tests/test_import_hygiene.py` 守着这条规则。新增
+   设备依赖时同时改 `device` extra。
 
 ## 10. 交接清单
 
