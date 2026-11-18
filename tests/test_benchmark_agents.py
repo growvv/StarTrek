@@ -38,13 +38,14 @@ class _Planner:
     def __init__(self, path: list[str]) -> None:
         self.path = path
         self.calls: list[tuple[str, str, str]] = []
+        self.description = ""
 
     def __call__(self, goal: str, state: str = "", app: str = ""):
         self.calls.append((goal, state, app))
         return TestPlan(
             goal=Goal(goal, app=app),
             path=list(self.path),
-            description=f"Overall goal: {goal}",
+            description=self.description or f"Overall goal: {goal}",
             app=app,
         )
 
@@ -152,3 +153,45 @@ def test_random_traversal_records_every_observed_screen():
 
     assert len(run.observed_ui) == 3
     assert run.observed_ui[0] == "state-0"
+
+
+def test_the_two_arms_differ_only_in_the_string_the_agent_receives():
+    """The ablation's whole point: same agent, same device, two strings.
+
+    If anything else differed -- a different step budget, a different app, a
+    re-plan -- the paired difference would measure that instead.
+    """
+    from specfcg.benchmark.agents import RawGoalAgent
+
+    goal = "Create a note titled Grocery list"
+    task = BenchTask(
+        id="t1",
+        app="omninotes",
+        package="it.feio.android.omninotes.foss",
+        template=goal,
+        max_steps=12,
+    )
+    agent = ScriptedAgent()
+    description = "Overall goal: " + goal
+    pipeline = _Pipeline(agent, _Planner(["create_note"]), _llm())
+    pipeline._planner.description = description
+
+    RawGoalAgent(agent)(task)
+    GraphAgent(pipeline)(task)
+
+    assert agent.tasks == [goal, description]
+    assert agent.apps == [task.package, task.package]
+    assert agent.max_steps == [task.max_steps, task.max_steps]
+
+
+def test_the_raw_arm_attributes_nothing_to_the_graph():
+    from specfcg.benchmark.agents import RawGoalAgent
+
+    agent = ScriptedAgent(
+        steps=[Step(action="click", target="text=New")]
+    )
+    run = RawGoalAgent(agent)(_task())
+
+    assert run.reached_cards == []
+    assert run.predicted_path == []
+    assert run.task_text == _task().goal

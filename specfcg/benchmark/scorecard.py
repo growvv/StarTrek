@@ -91,6 +91,9 @@ def coverage_from_disk(
 # The graph arm was called "specfcg" before Task F renamed it "graph".
 # Records keep the name they were written with, so both are read.
 _GRAPH_AGENT_NAMES = {"graph", "specfcg"}
+# The raw-goal arm is a control, never a dimension: its success is the
+# agent's competence, and only the paired difference is the graph's.
+_RAW_AGENT_NAMES = {"raw"}
 
 
 def app_score(entry: dict) -> dict[str, float]:
@@ -133,14 +136,39 @@ def app_score(entry: dict) -> dict[str, float]:
     }
 
 
+def _success_rate(rows: list[dict]) -> float:
+    if not rows:
+        return 0.0
+    return 100 * sum(1 for row in rows if row.get("success")) / len(rows)
+
+
 def control(entries: list[dict]) -> dict[str, float]:
-    """The control measurements, reported beside the score, never scored."""
-    values = [
+    """The control measurements, reported beside the score, never scored.
+
+    ``random`` is traversal without a graph.  ``raw`` is the same agent as the
+    graph arm, given the user's own words instead of the graph's description:
+    the ablation's second arm.  Neither is folded into the overall score.
+    """
+    random_values = [
         100 * float((entry.get("random") or {}).get("score_union") or 0.0)
         for entry in entries
     ]
-    values = [value for value in values if value]
-    return {"random": round(sum(values) / len(values), 1) if values else 0.0}
+    random_values = [value for value in random_values if value]
+    raw_values = []
+    for entry in entries:
+        for bench in entry.get("bench") or []:
+            if bench and bench.get("agent") in _RAW_AGENT_NAMES:
+                raw_values.append(_success_rate(bench.get("rows") or []))
+    return {
+        "random": (
+            round(sum(random_values) / len(random_values), 1)
+            if random_values
+            else 0.0
+        ),
+        "raw": (
+            round(sum(raw_values) / len(raw_values), 1) if raw_values else 0.0
+        ),
+    }
 
 
 def scorecard(entries: list[dict]) -> dict:

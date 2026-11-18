@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 from specfcg.benchmark.agents import (  # noqa: E402
     GraphAgent,
     RandomTraversalAgent,
+    RawGoalAgent,
 )
 from specfcg.benchmark.coverage_eval import path_confidence  # noqa: E402
 from specfcg.benchmark.device_ops import AdbOps  # noqa: E402
@@ -35,6 +36,7 @@ from specfcg.benchmark.suite_runner import TaskRunner  # noqa: E402
 from specfcg.cli import build_pipeline  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 from specfcg.executor.device import Uiautomator2Device  # noqa: E402
+from specfcg.executor.mobile_agent_backend import MobileAgentBackend  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--suite", default="benchmark/mobileworld/suite.yaml")
     parser.add_argument("--app", required=True)
     parser.add_argument(
-        "--agent", choices=["graph", "random"], default="graph"
+        "--agent", choices=["graph", "raw", "random"], default="graph"
     )
     parser.add_argument("--serial", default=os.getenv("ANDROID_SERIAL", ""))
     parser.add_argument("--config", default="config/llm.yaml")
@@ -85,6 +87,20 @@ def main(argv: list[str] | None = None) -> int:
 
     pipeline = None
     confidence = None
+    raw_agent = None
+    if args.agent == "raw":
+        # The same agent as the graph arm, minus the graph.  It is built
+        # straight from the config so the two arms share one model, one
+        # device and one runner; only the string differs.
+        config = load_config(ROOT / args.config)
+        raw_agent = MobileAgentBackend(
+            args.serial,
+            config.agent.model,
+            config.agent.fallback_model,
+            Path(args.out) / args.app / "bench-raw" / "agent",
+            base_url=config.llm.base_url,
+            api_key=os.environ.get(config.llm.api_key_env, ""),
+        )
     if args.agent == "graph":
         graph_root = Path(
             args.graph_root or (Path(args.out) / args.app / "graph")
@@ -107,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{index}/{len(tasks)}] {task.id}: {task.goal[:90]}", flush=True)
         if args.agent == "graph":
             agent = GraphAgent(pipeline, confidence=confidence)
+        elif args.agent == "raw":
+            agent = RawGoalAgent(raw_agent)
         else:
             agent = RandomTraversalAgent(
                 device, rng=random.Random(args.seed + index)

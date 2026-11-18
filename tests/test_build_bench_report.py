@@ -399,3 +399,45 @@ def test_the_suite_onboarding_matches_what_the_builds_show():
     assert "desc=Home" in amaze
     markor = [str(s.get("target")) for s in suites["markor"].tasks[0].onboarding]
     assert "text=OK" in markor
+
+
+def test_the_report_pairs_the_two_arms_per_task():
+    """The delta is the graph's contribution; the level is the agent's.
+
+    A report that prints two success rates invites the reader to subtract
+    them, which is not the same number: only tasks both arms attempted can be
+    paired.
+    """
+    module = _module()
+    benches = [
+        {
+            "agent": "graph",
+            "rows": [
+                {"task_id": "t1", "success": True, "task_text": "Overall goal: x"},
+                {"task_id": "t2", "success": False, "task_text": "Overall goal: y"},
+            ],
+        },
+        {
+            "agent": "raw",
+            "rows": [
+                {"task_id": "t1", "success": False, "task_text": "x"},
+                {"task_id": "t2", "success": True, "task_text": "y"},
+            ],
+        },
+    ]
+
+    section = module._ablation_section(benches)
+
+    assert "两臂对照" in section
+    assert "只有图臂通过 1" in section
+    assert "只有原始臂通过 1" in section
+    assert "配对差异 +0" in section
+    assert "Overall goal: x" in section
+
+
+def test_the_report_says_so_when_only_one_arm_was_recorded():
+    module = _module()
+    section = module._ablation_section(
+        [{"agent": "graph", "rows": [{"task_id": "t1", "success": True}]}]
+    )
+    assert "只记录了一臂" in section

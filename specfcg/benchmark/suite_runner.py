@@ -34,6 +34,9 @@ class AgentRun:
     predicted_confidence: float = 0.0
     reached_cards: list[str] = field(default_factory=list)
     observed_ui: list[str] = field(default_factory=list)
+    # The exact string handed to the agent.  The ablation compares two arms
+    # that differ in this string and nothing else, so the string is evidence.
+    task_text: str = ""
 
 
 @dataclass
@@ -53,6 +56,7 @@ class TaskOutcome:
     predicted_confidence: float
     reached_cards: list[str]
     actions: list[dict[str, Any]]
+    task_text: str = ""
     error: str = ""
 
     def as_record(self) -> dict[str, Any]:
@@ -72,6 +76,7 @@ class TaskOutcome:
             "predicted_confidence": self.predicted_confidence,
             "reached_cards": self.reached_cards,
             "actions": self.actions,
+            "task_text": self.task_text,
             "error": self.error,
         }
 
@@ -184,6 +189,7 @@ class TaskRunner:
             predicted_confidence=float(run.predicted_confidence),
             reached_cards=list(run.reached_cards),
             actions=steps,
+            task_text=run.task_text,
             error=run.error,
         )
         self._write(outcome)

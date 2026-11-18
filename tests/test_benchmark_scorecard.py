@@ -5,6 +5,7 @@ import json
 from specfcg.benchmark.scorecard import (
     DIMENSIONS,
     app_score,
+    control,
     load_history,
     record_point,
     scorecard,
@@ -268,3 +269,28 @@ def test_a_record_from_the_graph_arm_counts_under_either_name():
     old = {"bench": [{"agent": "specfcg", "rows": [{"success": True}]}]}
     new = {"bench": [{"agent": "graph", "rows": [{"success": True}]}]}
     assert app_score(old)["task"] == app_score(new)["task"]
+
+
+def test_the_task_dimension_reads_the_graph_arm_only():
+    """The raw arm is a control: its success is the agent's competence.
+
+    Folding it into the score would credit the graph with work the agent did
+    without it; the graph's contribution is the paired difference.
+    """
+    entry = {
+        "bench": [
+            {"agent": "graph", "rows": [{"success": True}, {"success": False}]},
+            {"agent": "raw", "rows": [{"success": True}, {"success": True}]},
+        ]
+    }
+    assert app_score(entry)["task"] == 50.0
+    assert control([entry])["raw"] == 100.0
+
+
+def test_both_controls_are_reported_beside_the_score():
+    entry = {
+        "random": {"score_union": 0.4},
+        "bench": [{"agent": "raw", "rows": [{"success": True}]}],
+    }
+    result = control([entry])
+    assert result == {"random": 40.0, "raw": 100.0}

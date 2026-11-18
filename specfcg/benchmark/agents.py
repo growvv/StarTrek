@@ -18,6 +18,39 @@ from specfcg.benchmark.suite_runner import AgentRun
 from specfcg.executor.device import Device
 
 
+class RawGoalAgent:
+    """The control arm: the same agent, given the raw goal.
+
+    Nothing here plans.  The agent is handed the user's own words and has to
+    work out what to do, which is exactly what a user does.  Its success is
+    the agent's competence; only the paired difference against the graph arm
+    is the graph's contribution.
+    """
+
+    def __init__(self, agent: Any) -> None:
+        self.agent = agent
+
+    def __call__(self, task: BenchTask) -> AgentRun:
+        trace = self.agent.run(task.goal, task.max_steps, app=task.package)
+        return AgentRun(
+            steps=[
+                {
+                    "action": step.action,
+                    "target": step.target,
+                    "args": step.args,
+                    "ok": bool(step.success),
+                }
+                for step in trace.steps
+            ],
+            done=trace.done,
+            observed_ui=[
+                step.before_state for step in trace.steps
+            ] + ([trace.final_ui] if trace.final_ui else []),
+            task_text=task.goal,
+            error=trace.error,
+        )
+
+
 class GraphAgent:
     """Plan with the Function Contract Graph, then let the agent execute.
 
@@ -64,6 +97,7 @@ class GraphAgent:
             predicted_path=list(plan.path),
             reached_cards=list(plan.path) if result.success else [],
             observed_ui=observed,
+            task_text=plan.description,
             error=result.error,
         )
         if self.confidence is not None:

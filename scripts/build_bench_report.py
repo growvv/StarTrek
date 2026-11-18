@@ -412,6 +412,77 @@ def _cost_cell(record: dict | None) -> str:
     return f"{calls} 次 / {minutes:.1f} 分"
 
 
+def _ablation_section(benches: list[dict]) -> str:
+    """Paired table: the graph's description against the raw goal.
+
+    The two arms share one agent, one device and one runner; the only
+    difference is the string the agent receives.  Reporting them separately
+    keeps the level (how good the agent is) apart from the delta (what the
+    graph adds), which is the only quantity that speaks for the graph.
+    """
+    arms = {
+        str(bench.get("agent")): bench
+        for bench in benches
+        if bench and bench.get("rows")
+    }
+    graph = arms.get("graph") or arms.get("specfcg")
+    raw = arms.get("raw")
+    if not graph or not raw:
+        if graph or raw:
+            return (
+                "<h3>两臂对照</h3>"
+                "<p>只记录了一臂（"
+                + html.escape("、".join(sorted(arms)))
+                + "）。图的分量来自同一批任务的配对差异，单臂只能说明 agent 的绝对水平。</p>"
+            )
+        return ""
+
+    def by_task(bench: dict) -> dict[str, dict]:
+        return {str(row.get("task_id")): row for row in bench.get("rows") or []}
+
+    graph_rows = by_task(graph)
+    raw_rows = by_task(raw)
+    task_ids = sorted(set(graph_rows) | set(raw_rows))
+    both_pass = graph_only = raw_only = both_fail = 0
+    rows_html = []
+    for task_id in task_ids:
+        g = graph_rows.get(task_id) or {}
+        r = raw_rows.get(task_id) or {}
+        g_ok = bool(g.get("success"))
+        r_ok = bool(r.get("success"))
+        if g_ok and r_ok:
+            both_pass += 1
+        elif g_ok:
+            graph_only += 1
+        elif r_ok:
+            raw_only += 1
+        else:
+            both_fail += 1
+        rows_html.append(
+            "<tr>"
+            f"<td><code>{html.escape(task_id)}</code></td>"
+            f"<td>{'通过' if g_ok else '失败'}</td>"
+            f"<td>{'通过' if r_ok else '失败'}</td>"
+            f"<td><code>{html.escape(str(g.get('task_text') or '—')[:160])}</code></td>"
+            f"<td><code>{html.escape(str(r.get('task_text') or '—')[:160])}</code></td>"
+            "</tr>"
+        )
+    delta = graph_only - raw_only
+    return (
+        "<h3>两臂对照：图生成的任务描述 vs 原始 goal</h3>"
+        "<p>同一个 agent、同一台设备、同一批任务，唯一不同的是交给它的字符串。"
+        "<b>水平</b>是 agent 的能力，<b>差异</b>才是图的分量："
+        f"两臂都通过 {both_pass}，只有图臂通过 {graph_only}，"
+        f"只有原始臂通过 {raw_only}，两臂都失败 {both_fail}；"
+        f"配对差异 {delta:+d}。</p>"
+        "<p class=\"mini\">Task F 之后 <code>task</code> 维度的含义从“编译脚本回放成功”"
+        "变成“agent 按图描述达成目标”，与旧分数不连续，曲线在这里断开。</p>"
+        "<table><thead><tr><th>任务</th><th>图臂</th><th>原始臂</th>"
+        "<th>交给图臂的字符串</th><th>交给原始臂的字符串</th></tr></thead>"
+        f"<tbody>{''.join(rows_html)}</tbody></table>"
+    )
+
+
 def _graph_section(
     apps: list[tuple[str, dict | None]],
     cost: dict | None = None,
@@ -634,6 +705,7 @@ def render(
                 f"差 {calib.get('gap', 0):+.2f}。</p>"
             )
         parts.append(_selfopt_section(entry.get("selfopt")))
+        parts.append(_ablation_section(entry.get("bench") or []))
         for bench in entry.get("bench") or []:
             if not bench:
                 continue

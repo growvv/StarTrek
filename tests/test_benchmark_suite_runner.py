@@ -206,3 +206,25 @@ def test_runner_writes_one_latest_record_per_task(tmp_path):
     assert first != second
     assert '"success": false' in second
     assert len(list((tmp_path / "tasks").glob("t1*.json"))) == 1
+
+
+def test_the_outcome_records_the_exact_string_the_agent_was_given():
+    """The ablation compares two arms that differ in this string.
+
+    If the record did not carry it, a reader could not tell what the agent
+    was actually asked, and the paired difference would be unattributable.
+    """
+    ops = FakeOps()
+    ops.ui_text = "Notes"
+    runner = TaskRunner(ops, settle_s=0.0)
+
+    outcome = runner.run(
+        _task(),
+        lambda task: AgentRun(
+            steps=[{"action": "click", "target": "x", "args": "", "ok": True}],
+            task_text="Overall goal: create a note",
+        ),
+    )
+
+    assert outcome.task_text == "Overall goal: create a note"
+    assert outcome.as_record()["task_text"] == "Overall goal: create a note"
