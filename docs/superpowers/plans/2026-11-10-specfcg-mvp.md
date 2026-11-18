@@ -2036,7 +2036,7 @@ git commit -m "feat(completion): probe a hypothesized capability with the agent"
   `"task_text"` in `as_record()` — the exact string the agent was given.
 - Consumes: `GraphAgent` (F), `GuiAgent` (F)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 def test_the_two_arms_differ_only_in_the_string_the_agent_receives():
@@ -2059,14 +2059,14 @@ def test_the_task_dimension_reads_the_graph_arm_only():
     assert control([entry])["raw"] == 100.0
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `python -m pytest tests/test_benchmark_agents.py tests/test_benchmark_scorecard.py -q`
 
 Expected: FAIL — there is no raw arm and `app_score` reads `agent == "graph"`
 with no `control()["raw"]`.
 
-- [ ] **Step 3: Implement the second arm and record the string**
+- [x] **Step 3: Implement the second arm and record the string**
 
 Both arms share one model, one device and one runner; the only difference is
 the string.  `run_mobileworld_bench.py` gains `--agent raw` and writes
@@ -2080,7 +2080,7 @@ separate a store neither arm writes to would be decoration.
 wraps the `AgentTrace` in an `AgentRun` with `reached_cards=[]` and no
 predicted path — it has no graph to attribute anything to.
 
-- [ ] **Step 4: Point the scorecard and the report at the new quantity**
+- [x] **Step 4: Point the scorecard and the report at the new quantity**
 
 `app_score` reads rows with `agent == "graph"`; `control()` returns
 `{"random": ..., "raw": ...}`.  `build_bench_report.py` gains a paired table
@@ -2088,13 +2088,13 @@ per app — both-pass, graph-only, raw-only, both-fail — and per-task rows
 showing each arm's `task_text`.  The overview states the level-versus-delta
 distinction and that the task dimension is discontinuous here.
 
-- [ ] **Step 5: Run the benchmark tests**
+- [x] **Step 5: Run the benchmark tests**
 
 Run: `python -m pytest tests/test_benchmark_agents.py tests/test_benchmark_scorecard.py tests/test_benchmark_report.py tests/test_benchmark_suite_runner.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specfcg/benchmark scripts/run_mobileworld_bench.py scripts/build_bench_report.py tests

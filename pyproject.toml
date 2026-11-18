@@ -11,7 +11,9 @@ dependencies = ["pyyaml>=6.0", "openai>=1.60"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-device = ["uiautomator2>=3.0"]
+# Pillow is imported lazily by mobile_agent.device.screenshot, so the
+# offline suite does not need it; a run that captures screenshots does.
+device = ["uiautomator2>=3.0", "pillow>=10.0"]
 
 [project.scripts]
 specfcg = "specfcg.cli:main"

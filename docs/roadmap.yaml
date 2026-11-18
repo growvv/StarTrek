@@ -98,8 +98,8 @@ groups:
         note: 探针经 AgentProbe 交给同一个 agent；包名从 goal 透传到探针计划，真机验证通过。
       - key: H
         title: 消融实验：GraphAgent vs RawGoalAgent
-        status: planned
-        note: 依赖 F；只报配对差异，不把 agent 能力算进图的分。
+        status: done
+        note: 两臂同一 agent、同一设备、只差一个字符串；task 维度只读图臂，raw 作为对照单列。
       - key: C
         title: 重复功能检测改为读契约
         status: planned

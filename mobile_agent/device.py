@@ -7,8 +7,6 @@ import re
 import time
 from pathlib import Path
 
-from PIL import Image
-
 from specfcg.executor.ui import compact_ui
 
 _BOUNDS_RE = re.compile(r"bounds='\[(\d+),(\d+)\]\[(\d+),(\d+)\]'")
@@ -106,7 +104,16 @@ class AndroidDevice:
 
         return _BOUNDS_RE.sub(repl, raw)[:max_chars]
 
-    def screenshot(self, path: Path | None = None) -> Image.Image:
+    def screenshot(self, path: Path | None = None):
+        """Capture a screenshot, scaled to the agent's working width.
+
+        Pillow is imported here rather than at module scope: the package is
+        part of the offline test suite, and importing it must not require a
+        device-side dependency.  A run that never takes a screenshot -- every
+        offline test -- never loads it.
+        """
+        from PIL import Image
+
         image = self._d().screenshot(format="pillow")
         if not isinstance(image, Image.Image):
             image = Image.open(image)
