@@ -18,7 +18,7 @@ def _card(name: str) -> FunctionCard:
         preconditions="",
         postconditions="",
         effects_outputs="",
-        steps=[],
+
         success_count=1,
         attempt_count=1,
     )

@@ -58,8 +58,8 @@ def test_successful_task_records_steps_and_oracle_evidence():
     ops.ui_text = "Grocery list\nNotes"
     runner = TaskRunner(ops, settle_s=0.0)
 
-    def agent(goal: str, max_steps: int) -> AgentRun:
-        assert goal == "Create a note titled Grocery list."
+    def agent(task) -> AgentRun:
+        assert task.goal == "Create a note titled Grocery list."
         return AgentRun(
             steps=[
                 {"action": "click", "target": "fab", "args": "", "ok": True},
@@ -87,7 +87,7 @@ def test_step_limit_is_a_failure_not_a_silent_stop():
         for i in range(20)
     ]
 
-    outcome = runner.run(_task(), lambda goal, cap: AgentRun(steps=steps))
+    outcome = runner.run(_task(), lambda task: AgentRun(steps=steps))
 
     assert outcome.success is False
     assert outcome.failure_type == "step_limit"
@@ -103,7 +103,7 @@ def test_loop_is_detected_and_labelled():
         for _ in range(6)
     ]
 
-    outcome = runner.run(_task(), lambda goal, cap: AgentRun(steps=steps))
+    outcome = runner.run(_task(), lambda task: AgentRun(steps=steps))
 
     assert outcome.failure_type == "loop_detected"
     assert "menu" in outcome.reason
@@ -114,7 +114,7 @@ def test_action_failure_is_labelled():
     ops.ui_text = "Notes"
     runner = TaskRunner(ops, settle_s=0.0)
 
-    def agent(goal: str, cap: int) -> AgentRun:
+    def agent(task) -> AgentRun:
         return AgentRun(
             steps=[{"action": "click", "target": "x", "args": "", "ok": False}]
         )
@@ -128,7 +128,7 @@ def test_no_plan_is_labelled():
     ops.ui_text = "Notes"
     runner = TaskRunner(ops, settle_s=0.0)
     outcome = runner.run(
-        _task(), lambda goal, cap: AgentRun(steps=[], no_plan=True)
+        _task(), lambda task: AgentRun(steps=[], no_plan=True)
     )
     assert outcome.failure_type == "no_plan"
 
@@ -139,7 +139,7 @@ def test_oracle_failure_is_the_default_for_a_completed_but_wrong_run():
     runner = TaskRunner(ops, settle_s=0.0)
     outcome = runner.run(
         _task(),
-        lambda goal, cap: AgentRun(
+        lambda task: AgentRun(
             steps=[{"action": "click", "target": "x", "args": "", "ok": True}],
             done=True,
         ),
@@ -154,7 +154,7 @@ def test_timeout_from_the_agent_is_labelled():
     runner = TaskRunner(ops, settle_s=0.0)
     outcome = runner.run(
         _task(),
-        lambda goal, cap: AgentRun(
+        lambda task: AgentRun(
             steps=[{"action": "back", "target": "", "args": "", "ok": True}],
             error="timeout after 180s",
         ),
@@ -168,7 +168,7 @@ def test_agent_crash_is_labelled():
     runner = TaskRunner(ops, settle_s=0.0)
     outcome = runner.run(
         _task(),
-        lambda goal, cap: AgentRun(
+        lambda task: AgentRun(
             steps=[{"action": "back", "target": "", "args": "", "ok": True}],
             error="Process crashed: java.lang.RuntimeException",
         ),
@@ -185,7 +185,7 @@ def test_init_error_is_labelled_and_agent_is_not_run():
     runner = TaskRunner(BrokenOps(), settle_s=0.0)
     outcome = runner.run(
         _task(init={"clear_app": True}),
-        lambda goal, cap: calls.append(goal) or AgentRun(steps=[]),
+        lambda task: calls.append(goal) or AgentRun(steps=[]),
     )
     assert outcome.failure_type == "init_failure"
     assert calls == []
@@ -197,10 +197,10 @@ def test_runner_writes_one_latest_record_per_task(tmp_path):
     ops.ui_text = "Grocery list"
     runner = TaskRunner(ops, settle_s=0.0, out_dir=tmp_path)
 
-    runner.run(_task(), lambda goal, cap: AgentRun(steps=[], done=True))
+    runner.run(_task(), lambda task: AgentRun(steps=[], done=True))
     first = (tmp_path / "tasks" / "t1.json").read_text(encoding="utf-8")
     ops.ui_text = "Notes"
-    runner.run(_task(), lambda goal, cap: AgentRun(steps=[], done=True))
+    runner.run(_task(), lambda task: AgentRun(steps=[], done=True))
     second = (tmp_path / "tasks" / "t1.json").read_text(encoding="utf-8")
 
     assert first != second

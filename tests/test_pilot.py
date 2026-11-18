@@ -2,7 +2,7 @@ import json
 
 from specfcg.benchmark.cases import NLTestCase
 from specfcg.benchmark.pilot import Pilot
-from specfcg.models import Goal, PlanStep, RunResult, TestPlan
+from specfcg.models import Goal, RunResult, TestPlan
 
 
 class _Device:
@@ -59,13 +59,7 @@ def _plan() -> TestPlan:
     return TestPlan(
         goal=Goal("create a note"),
         path=["create_note"],
-        steps=[
-            PlanStep(
-                card="create_note",
-                action="click",
-                target="resourceId=app:id/fab",
-            )
-        ],
+        description="Overall goal: create a note",
     )
 
 
@@ -75,8 +69,8 @@ def _result(success: bool, goal_success: bool) -> RunResult:
         success=success,
         goal_success=goal_success,
         step_results=[
-            {"card": "create_note", "action": "click", "success": True},
-            {"card": "create_note", "action": "input", "success": False},
+            {"action": "click", "target": "text=+", "success": True},
+            {"action": "input", "target": "text=Title", "success": False},
         ],
     )
 

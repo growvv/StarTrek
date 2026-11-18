@@ -40,22 +40,23 @@ _GENERIC_FIELD_WORDS = frozenset(
 )
 _CARD_PROMPT = (
     "Write one reusable Markdown function card for this user-level episode. "
+    "A card is a contract, not a script: describe what the function requires "
+    "and what it leaves behind. Name no UI action, no tap, no key press, and "
+    "no coordinate. "
     "Generalize trace-specific values: declare them as named inputs and "
-    "refer to them as {name} in Steps, Intent, and Postconditions. Do not "
-    "bake the single observed values into the card, and do not mention "
-    "unrelated existing data from the trace. "
+    "refer to them as {name} in Intent, Preconditions, Postconditions and "
+    "Effects/Outputs. Do not bake the single observed values into the card, "
+    "and do not mention unrelated existing data from the trace. "
     "Use exactly these headings, each followed by a colon: **Intent**, "
     "**Inputs**, **Preconditions**, **Postconditions**, **Effects/Outputs**, "
-    "**Steps**, **Evidence**. "
+    "**Evidence**. Do not write a Steps section. "
     "Write Inputs as one bullet per parameter in the form "
     "'- name (required|optional): description'. "
     "The first line must be '# <function_name>' using a reusable "
-    "snake_case name. Steps are numbered and must be reusable actions, not "
-    "a transcript of this one run. Keep one physical UI action per step: if "
-    "the trace pressed Back twice, write two Back steps instead of "
-    "'repeat as needed'; if it pressed Enter or the keyboard Search key, "
-    "write that as its own step. Name the concrete resource id or visible label "
-    "for each control shown in the trace. Write Evidence exactly as "
+    "snake_case name. State preconditions as the screen or state the "
+    "function needs, and postconditions as what is observably true after it "
+    "succeeds; both must be reusable across runs, not a transcript of this "
+    "one. Write Evidence exactly as "
     "'traces <trace_id>; <success>/<attempt> successes' with no prose. "
     "Use the trace evidence. Return only the Markdown card."
 )
@@ -89,80 +90,101 @@ def _input_name(target: str, index: int) -> str:
     return "_".join(tokens) or f"value_{index}"
 
 
-def _ground_inputs(
+def _ground_contract(
     card: FunctionCard, steps: list[Step], start_state: str = ""
 ) -> FunctionCard:
-    """Make every trace value a declared input of the card.
+    """Make every value the contract names a declared input of the card.
 
-    Models routinely drop the typed values from a trace (``**Inputs**: none``
-    with bare ``input resourceId=...`` steps).  A card like that can be
-    planned but not parameterised, so the planner emits empty ``args`` and
-    the task fails even though the plan is right.
+    The contract is what the card promises: intent, preconditions,
+    postconditions and effects.  Two kinds of value can hide in it.
 
-    The same is true of a tap that names its object by the value this run
-    happened to show: ``long_click text=bench_new.txt`` is a function only if
-    the name is an input.  A card that keeps the literal can act on that one
-    file and no other.  ``start_state`` is what tells the two apart: a value
-    the run already showed before the function began is that run's data,
-    while one that only the function's own screens reveal is the build's
-    wording for a control.
+    A ``{name}`` the model wrote is already a parameter; it only has to be
+    declared, or the planner has nothing to bind.
+
+    A literal the trace happened to carry is the harder case.  The model
+    sometimes writes the run's own file or note name into the postcondition
+    instead of a placeholder -- ``bench_new.txt now exists`` -- and a card
+    like that promises one run's outcome and no other.  ``start_state`` is
+    what tells data from vocabulary: a value the launch screen already showed
+    as content is this run's data, so it becomes ``{item_label}``.
+
+    The trace's steps are still read here, as evidence of what the screen
+    showed.  That is what grounding is; it is not a replay.
     """
     declared = {item.split()[0] for item in card.inputs if item.split()}
-    new_steps: list[str] = []
     added: list[str] = []
-    # Labels the trace observed on the controls a card names.  The card keeps
-    # the placeholder -- the caller may choose a different control, and that
-    # is what makes the function general -- but records what the build
-    # actually showed, so a binder with no value from the goal can use the
-    # observed one instead of guessing the build's wording ("Delete" where
-    # the build says "Delete note").
-    observed: dict[str, str] = {}
-    for index, line in enumerate(card.steps):
-        step = steps[index] if index < len(steps) else None
-        if step is None:
-            new_steps.append(line)
-            continue
-        placeholders = _PLACEHOLDER_RE.findall(line)
-        if placeholders:
-            literal = _control_label(step, start_state)
-            if literal is not None:
-                for name in placeholders:
-                    observed.setdefault(name, literal)
-            for name in placeholders:
-                declared.add(name)
-            new_steps.append(line)
-            continue
-        if step.action == "input" and step.args:
-            name = _input_name(step.target, index)
+
+    contract_fields = ("intent", "preconditions", "postconditions", "effects_outputs")
+
+    # (1) placeholders in the contract must be declared inputs
+    for field in contract_fields:
+        for name in _PLACEHOLDER_RE.findall(getattr(card, field) or ""):
+            if name in declared:
+                continue
+            declared.add(name)
+            added.append(f"{name} (required): value named by the contract")
+
+    # (2) a trace value written literally into the contract is data
+    for field in contract_fields:
+        text = getattr(card, field) or ""
+        for step in steps:
+            baked = _contract_trace_value(step, text, start_state)
+            if baked is None:
+                continue
+            name = "item_label"
             suffix = 2
             while name in declared:
-                name = f"{_input_name(step.target, index)}_{suffix}"
+                name = f"item_label_{suffix}"
                 suffix += 1
             declared.add(name)
-            added.append(f"{name} (required): value typed into {step.target}")
-            new_steps.append(f"{line.rstrip()} {{{name}}}")
+            added.append(
+                f"{name} (required): visible label of the item this function acts on"
+            )
+            text = text.replace(baked, "{" + name + "}", 1)
+        setattr(card, field, text)
+
+    # (3) a declared control input records the label the build actually showed
+    observed: dict[str, str] = {}
+    for step in steps:
+        literal = _control_label(step, start_state)
+        if literal is None:
             continue
-        baked = _trace_value(step, line, start_state)
-        if baked is None:
-            new_steps.append(line)
-            continue
-        name = "item_label"
-        suffix = 2
-        while name in declared:
-            name = f"item_label_{suffix}"
-            suffix += 1
-        declared.add(name)
-        added.append(
-            f"{name} (required): visible label of the item this step acts on"
-        )
-        new_steps.append(line.replace(baked, "{" + name + "}", 1))
+        for name in declared:
+            if name in (card.intent or "") + (card.preconditions or "") + (card.postconditions or "") + (card.effects_outputs or ""):
+                observed.setdefault(name, literal)
+
     if not added and not observed:
         return card
-    card.steps = new_steps
     card.inputs = [
         _with_observed_label(item, observed) for item in card.inputs
     ] + added
     return card
+
+
+def _contract_trace_value(
+    step: Step, text: str, start_state: str = ""
+) -> str | None:
+    """A value this step carried that the contract now writes literally.
+
+    The candidates are the values a step touched: a ``text=``/``desc=``
+    target, or the value it typed.  A candidate is this run's data -- and so
+    belongs in the contract as ``{item_label}`` rather than a literal -- when
+    it appears in the contract *and* the launch screen already showed it as
+    content.  A resource id names a widget, never data.
+    """
+    candidates: list[str] = []
+    match = _TARGET_VALUE_RE.search(step.target)
+    if match:
+        value = match.group("value").strip()
+        if value and ":id/" not in value and not value.startswith("resourceId="):
+            candidates.append(value)
+    if step.args and step.args.strip():
+        candidates.append(step.args.strip())
+
+    for value in candidates:
+        if value and value in text and _screen_shows_text(start_state, value):
+            return value
+    return None
 
 
 def _with_observed_label(declaration: str, observed: dict[str, str]) -> str:
@@ -338,22 +360,6 @@ class CardMiner:
             return _fallback_episode(trace)
         return parsed
 
-    def _fallback_card(
-        self, episode: dict[str, Any], trace: Trace, steps: list[Step]
-    ) -> FunctionCard:
-        return FunctionCard(
-            name=str(episode["name"]),
-            intent=str(episode.get("intent", "")),
-            inputs=[],
-            preconditions="",
-            postconditions="",
-            effects_outputs="",
-            steps=[f"{step.action} {step.target}".strip() for step in steps],
-            evidence=[trace.trace_id],
-            success_count=1 if all(step.success for step in steps) else 0,
-            attempt_count=1,
-        )
-
     def _enrich(
         self, card: FunctionCard, trace: Trace, steps: list[Step]
     ) -> FunctionCard:
@@ -368,7 +374,15 @@ class CardMiner:
 
     def draft(
         self, episode: dict[str, Any], trace: Trace
-    ) -> FunctionCard:
+    ) -> FunctionCard | None:
+        """Draft one card, or None when the model produced no contract.
+
+        There is no fallback card.  A card built from the trace's actions is
+        a transcript with a name, not a contract: it has no intent, no
+        preconditions and no postconditions, so the planner can only replay
+        it.  An episode the model cannot describe is skipped, and ``mine``
+        says which trace it skipped.
+        """
         start = episode["start"]
         end = episode["end"]
         steps = trace.steps[start : end + 1]
@@ -383,14 +397,14 @@ class CardMiner:
             )
             card = parse_card(_strip_fence(raw))
         except (CardParseError, LLMParseError) as exc:
-            logger.warning("card draft parse failed: %s", exc)
-            return _ground_inputs(
-                self._fallback_card(episode, trace, steps),
-                steps,
-                trace.start_state,
+            logger.warning(
+                "card draft for %s produced no contract: %s",
+                trace.trace_id,
+                exc,
             )
+            return None
         return self._enrich(
-            _ground_inputs(card, steps, trace.start_state), trace, steps
+            _ground_contract(card, steps, trace.start_state), trace, steps
         )
 
     def mine(self, trace: Trace) -> CardPatch:
@@ -407,6 +421,13 @@ class CardMiner:
             steps = trace.steps[episode["start"] : episode["end"] + 1]
             succeeded = all(step.success for step in steps)
 
+            if card is None:
+                logger.warning(
+                    "skipping episode %r of trace %s: no contract drafted",
+                    episode.get("name"),
+                    trace.trace_id,
+                )
+                continue
             if card.name in existing:
                 old = existing[card.name]
                 evidence = list(old.evidence)

@@ -2,7 +2,6 @@ from specfcg.models import (
     Edge,
     Graph,
     GraphPatch,
-    PlanStep,
     RunResult,
     Step,
     TestPlan as Plan,
@@ -66,6 +65,12 @@ def test_run_result_records_partial_trace():
     assert result.plan is plan
 
 
-def test_plan_step_keeps_card_provenance():
-    step = PlanStep(card="create_note", action="click", target="text=Save")
-    assert step.card == "create_note"
+def test_plan_carries_a_description_not_a_step_list():
+    """A plan is a path plus the text an agent acts on."""
+    plan = Plan(
+        goal=Goal("create a note"),
+        path=["create_note"],
+        description="Overall goal: create a note",
+    )
+    assert plan.description == "Overall goal: create a note"
+    assert not hasattr(plan, "steps")

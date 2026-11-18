@@ -1,6 +1,5 @@
 from specfcg.models import Edge, FunctionCard, Goal, Graph
 from specfcg.planner.binding import ParamBinder
-from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.planner import Planner
 from specfcg.planner.retrieval import CardRetriever
 
@@ -13,7 +12,6 @@ def _single_card_graph() -> Graph:
         preconditions="",
         postconditions="done",
         effects_outputs="",
-        steps=['Tap "Go"'],
     )
     return Graph(cards={"act": card}, edges=[])
 
@@ -27,7 +25,6 @@ def _cyclic_graph() -> Graph:
             preconditions="",
             postconditions=f"{name} done",
             effects_outputs="",
-            steps=["Tap `text=Go`"],
         )
         for name in ("A", "B")
     }
@@ -46,7 +43,6 @@ def _planner(graph, llm):
         llm,
         CardRetriever(llm),
         ParamBinder(llm),
-        StepCompiler(llm),
     )
 
 
@@ -68,16 +64,16 @@ def test_plan_finds_path_and_steps(fake_llm, sample_graph):
         },
         {"is_goal": True},
         {"bindings": {"title": "Trip"}},
-        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
         {"bindings": {}},
-        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
     ]
     plan = _planner(sample_graph, fake_llm).plan(
         Goal("create and share a note"), "start"
     )
     assert plan is not None
     assert plan.path == ["create_note", "share_note"]
-    assert len(plan.steps) == 2
+    assert plan.description.startswith("Overall goal: create and share a note")
+    assert "1. create_note" in plan.description
+    assert "2. share_note" in plan.description
 
 
 def test_plan_classifies_all_cards_in_one_llm_call(fake_llm, sample_graph):
@@ -98,9 +94,7 @@ def test_plan_classifies_all_cards_in_one_llm_call(fake_llm, sample_graph):
         },
         {"is_goal": True},
         {"bindings": {"title": "Trip"}},
-        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
         {"bindings": {}},
-        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
     ]
     plan = _planner(sample_graph, fake_llm).plan(
         Goal("create and share a note"), "start"
@@ -120,9 +114,7 @@ def test_batch_classification_falls_back_per_card_on_malformed_output(
         {"is_goal": True},
         {"is_goal": True},
         {"bindings": {"title": "Trip"}},
-        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
         {"bindings": {}},
-        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
     ]
     plan = _planner(sample_graph, fake_llm).plan(
         Goal("create and share a note"), "start"
@@ -139,11 +131,11 @@ def test_plan_prompt_states_the_rule_the_validator_applies(fake_llm):
         cards={
             "start": FunctionCard(
                 name="start", intent="start", inputs=[], preconditions="",
-                postconditions="", effects_outputs="", steps=["click text=Go"],
+                postconditions="", effects_outputs="",
             ),
             "open": FunctionCard(
                 name="open", intent="open", inputs=[], preconditions="",
-                postconditions="", effects_outputs="", steps=["click text=Go"],
+                postconditions="", effects_outputs="",
             ),
         },
         edges=[],
@@ -175,7 +167,7 @@ def test_plan_accepts_a_step_the_current_state_already_enables(fake_llm):
     def card(name: str) -> FunctionCard:
         return FunctionCard(
             name=name, intent=f"do {name}", inputs=[], preconditions="",
-            postconditions="", effects_outputs="", steps=["click text=Go"],
+            postconditions="", effects_outputs="",
         )
 
     graph = Graph(
@@ -214,7 +206,7 @@ def test_planning_expands_candidates_with_graph_connectors(fake_llm):
     def card(name: str) -> FunctionCard:
         return FunctionCard(
             name=name, intent=f"do {name}", inputs=[], preconditions="",
-            postconditions="", effects_outputs="", steps=["click text=Go"],
+            postconditions="", effects_outputs="",
         )
 
     graph = Graph(
@@ -265,9 +257,7 @@ def test_proposal_is_planned_over_the_graph_edges(fake_llm, sample_graph):
             ],
         },
         {"bindings": {"title": "Trip"}},
-        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
         {"bindings": {}},
-        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
     ]
 
     plan = _planner(sample_graph, fake_llm).plan(
@@ -300,9 +290,7 @@ def test_batch_proposal_is_not_certified_again_by_the_same_model(
             ],
         },
         {"bindings": {"title": "Trip"}},
-        {"steps": [{"action": "click", "target": "text=+", "args": ""}]},
         {"bindings": {}},
-        {"steps": [{"action": "click", "target": "text=Share", "args": ""}]},
     ]
 
     plan = _planner(sample_graph, fake_llm).plan(
@@ -310,7 +298,9 @@ def test_batch_proposal_is_not_certified_again_by_the_same_model(
     )
 
     assert plan is not None and plan.path == ["create_note", "share_note"]
-    assert fake_llm.calls == 5  # batch + 2 binds + 2 compiles, no extra check
+    # batch + one bind per card; there is no compile call and no second
+    # certification of the same model's own plan.
+    assert fake_llm.calls == 3
 
 
 def test_plan_returns_none_when_no_path(fake_llm, sample_graph):
@@ -381,7 +371,6 @@ def _chain_graph() -> Graph:
             preconditions="",
             postconditions=f"{name} done",
             effects_outputs="",
-            steps=["Tap `text=Go`"],
         )
         for name in ("A", "B", "C")
     }
@@ -403,7 +392,6 @@ def _omninotes_graph() -> Graph:
             preconditions="The notes list is visible.",
             postconditions="The note is archived.",
             effects_outputs="Returns to the notes list.",
-            steps=["Tap `text=归档`"],
         ),
         "create_note": FunctionCard(
             name="create_note",
@@ -412,7 +400,6 @@ def _omninotes_graph() -> Graph:
             preconditions="On the notes list.",
             postconditions="The note is visible in the list.",
             effects_outputs="Returns to the notes list.",
-            steps=["Tap `text=New`"],
         ),
         "invoke_share_chooser_for_note": FunctionCard(
             name="invoke_share_chooser_for_note",
@@ -421,7 +408,6 @@ def _omninotes_graph() -> Graph:
             preconditions="The note detail screen is open.",
             postconditions="The share chooser is open.",
             effects_outputs="",
-            steps=["Tap `text=共享`"],
         ),
         "open_note_by_title": FunctionCard(
             name="open_note_by_title",
@@ -430,7 +416,6 @@ def _omninotes_graph() -> Graph:
             preconditions="The notes list is visible.",
             postconditions="The note detail screen is open.",
             effects_outputs="",
-            steps=["Tap `text={note_title}`"],
         ),
         "search_notes_by_keyword": FunctionCard(
             name="search_notes_by_keyword",
@@ -439,7 +424,6 @@ def _omninotes_graph() -> Graph:
             preconditions="The notes list is visible.",
             postconditions="The list is filtered.",
             effects_outputs="",
-            steps=["Tap `text=搜索`"],
         ),
     }
     edges = [
@@ -577,7 +561,6 @@ def test_plan_proposal_uses_subgoal_for_each_binding(fake_llm):
         preconditions="",
         postconditions="note exists",
         effects_outputs="",
-        steps=["Tap `text={title}`"],
     )
     fake_llm.responses = [
         {
@@ -603,7 +586,8 @@ def test_plan_proposal_uses_subgoal_for_each_binding(fake_llm):
     assert plan is not None
     assert plan.path == ["A", "B", "C"]
     assert "create note Alpha" in fake_llm.prompts[2]
-    assert plan.steps[0].target == "text=Alpha"
+    assert "title = Alpha" in plan.description
+    assert plan.description.index("1. A") < plan.description.index("2. B")
 
 
 def test_proposal_can_repeat_a_card_with_distinct_subgoals(fake_llm):
@@ -616,7 +600,6 @@ def test_proposal_can_repeat_a_card_with_distinct_subgoals(fake_llm):
                 preconditions="",
                 postconditions="note exists",
                 effects_outputs="",
-                steps=["Tap `text={title}`"],
             ),
             "B": FunctionCard(
                 name="B",
@@ -625,7 +608,6 @@ def test_proposal_can_repeat_a_card_with_distinct_subgoals(fake_llm):
                 preconditions="",
                 postconditions="done",
                 effects_outputs="",
-                steps=["Tap `text=Done`"],
             ),
         },
         edges=[Edge(from_card="A", to_card="B", type="enables")],
@@ -653,11 +635,11 @@ def test_proposal_can_repeat_a_card_with_distinct_subgoals(fake_llm):
 
     assert plan is not None
     assert plan.path == ["A", "A", "B"]
-    assert [step.target for step in plan.steps] == [
-        "text=Alpha",
-        "text=Beta",
-        "text=Done",
-    ]
+    # The same card twice, with the value each instance was bound to.
+    assert plan.description.count("1. A") == 1
+    assert "2. A" in plan.description
+    assert "title = Alpha" in plan.description
+    assert "title = Beta" in plan.description
     assert "create note Beta" in fake_llm.prompts[3]
 
 
@@ -765,10 +747,11 @@ def test_compile_path_plans_exactly_the_path_it_is_given(fake_llm):
 
     assert plan is not None
     assert plan.path == ["create_note", "invoke_share_chooser_for_note"]
-    assert [step.card for step in plan.steps] == [
-        "create_note",
-        "invoke_share_chooser_for_note",
-    ]
+    assert "1. create_note" in plan.description
+    assert "2. invoke_share_chooser_for_note" in plan.description
+    # No action is named: the agent decides how.
+    assert "click" not in plan.description.lower()
+    assert "tap" not in plan.description.lower()
 
 
 def test_compile_path_returns_none_for_a_card_the_graph_does_not_have(

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-EdgeType = Literal["enables", "dataflow", "sequence", "calls"]
+EdgeType = Literal["enables", "dataflow", "sequence"]
 FailureType = Literal[
     "precondition_mismatch",
     "widget_failure",
@@ -16,7 +16,7 @@ FailureType = Literal[
     "check_error",
 ]
 
-EDGE_PRIORITY: tuple[str, ...] = ("enables", "dataflow", "sequence", "calls")
+EDGE_PRIORITY: tuple[str, ...] = ("enables", "dataflow", "sequence")
 
 
 def as_bool(value: Any) -> bool:
@@ -56,7 +56,6 @@ class FunctionCard:
     preconditions: str
     postconditions: str
     effects_outputs: str
-    steps: list[str]
     evidence: list[str] = field(default_factory=list)
     success_count: int = 0
     attempt_count: int = 0
@@ -97,19 +96,10 @@ class Goal:
 
 
 @dataclass
-class PlanStep:
-    card: str
-    action: str
-    target: str = ""
-    args: str = ""
-    instance: int = 0
-
-
-@dataclass
 class TestPlan:
     goal: Goal
     path: list[str] = field(default_factory=list)
-    steps: list[PlanStep] = field(default_factory=list)
+    description: str = ""
     assertions: list[str] = field(default_factory=list)
     app: str = ""
 
@@ -149,6 +139,5 @@ class MissingCapability:
     preconditions: str = ""
     postconditions: str = ""
     inputs: list[str] = field(default_factory=list)
-    probe: list[str] = field(default_factory=list)
     confidence: float = 0.0
     evidence: str = ""

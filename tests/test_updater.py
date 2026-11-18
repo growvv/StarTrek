@@ -70,12 +70,17 @@ def test_failure_patch_rejects_intent_only_changes(
     assert patch.reason == "invalid patch rejected"
 
 
-def test_failure_patch_prompt_includes_card_steps_and_actions(
+def test_failure_patch_prompt_includes_the_contract_and_actions(
     fake_llm, graph_store, failed_result
 ):
+    """The patch is proposed from the contract and what actually ran.
+
+    A card names no steps now, so the prompt carries what the card promises
+    -- preconditions, postconditions, effects -- plus the actions the agent
+    took, which is where a wrong assumption shows up.
+    """
     failed_result.step_results = [
         {
-            "card": "create_note",
             "action": "back",
             "target": "",
             "success": True,
@@ -88,9 +93,10 @@ def test_failure_patch_prompt_includes_card_steps_and_actions(
     )
 
     prompt = fake_llm.prompts[0]
-    assert 'Tap "+"' in prompt
-    assert "Enter the title" in prompt
+    assert "Postconditions:" in prompt
+    assert "Effects/Outputs:" in prompt
     assert "action=back" in prompt
+    assert "**Steps**" not in prompt
 
 
 def test_malformed_failure_patch_returns_empty(

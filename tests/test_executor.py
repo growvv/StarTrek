@@ -1,149 +1,139 @@
-from specfcg.executor.device import FakeDevice
 from specfcg.executor.executor import Executor
-from specfcg.executor.summarizer import StateSummarizer
+from specfcg.models import Goal, TestPlan
+from tests.fakes import ScriptedAgent
 
 
-def _executor(device, llm, graph):
-    return Executor(device, llm, StateSummarizer(llm), graph)
+def _llm(achieved: bool = True, fake_llm=None):
+    fake_llm.responses = [{"achieved": achieved, "reason": "checked"}]
+    return fake_llm
 
 
-def test_execute_success_returns_goal_success(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": True, "reason": "ok"},
-        {"achieved": True, "reason": "ok"},
-    ]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert result.success and result.goal_success
-    assert len(result.step_results) == 2
+def _graph(sample_graph):
+    return sample_graph
 
 
-def test_execute_records_partial_trace_on_step_failure(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1"], [True, False])
-    fake_llm.responses = ["Current screen: start"]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert not result.success
-    assert result.failure_type == "widget_failure"
-    assert result.new_trace is not None
-    assert len(result.new_trace.steps) == 2
-
-
-def test_execute_check_error_does_not_crash(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = ["Current screen: start", "not json", "not json"]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert result.failure_type == "check_error"
-
-
-def test_execute_postcondition_failure(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": False, "reason": "no note"},
-    ]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert result.failure_type == "postcondition_failure"
-    assert not result.success
-
-
-def test_execute_checks_each_repeated_card_occurrence(
-    fake_device, fake_llm, sample_graph, sample_card
-):
-    from specfcg.models import Goal, PlanStep, TestPlan
-
-    plan = TestPlan(
-        goal=Goal("create two notes"),
-        path=["create_note", "create_note"],
-        steps=[
-            PlanStep(
-                card="create_note",
-                action="click",
-                target="text=New",
-                instance=0,
-            ),
-            PlanStep(
-                card="create_note",
-                action="click",
-                target="text=New",
-                instance=1,
-            ),
-        ],
+def _plan(description: str = "Overall goal: create a note") -> TestPlan:
+    return TestPlan(
+        goal=Goal("create a note", app="it.feio.android.omninotes.foss"),
+        path=["create_note"],
+        description=description,
+        assertions=["create a note"],
+        app="it.feio.android.omninotes.foss",
     )
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": True, "reason": "first"},
-        {"satisfied": True, "reason": "second"},
-        {"achieved": True, "reason": "ok"},
-    ]
-
-    result = _executor(fake_device, fake_llm, sample_graph).execute(plan)
-
-    assert result.success
-    assert len(fake_llm.prompts) == 4
 
 
-def test_checks_include_compiled_steps(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": True, "reason": "ok"},
-        {"achieved": True, "reason": "ok"},
-    ]
-    _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
+def test_the_agent_receives_the_plan_description(fake_llm, sample_graph):
+    from specfcg.models import Step
 
-    assert "click text=+" in fake_llm.prompts[1]
-    assert "input text=Title args=Trip" in fake_llm.prompts[2]
+    agent = ScriptedAgent(steps=[Step(action="click", target="text=+")])
+    plan = _plan()
+    Executor(agent, _llm(True, fake_llm), sample_graph, max_steps=20).execute(plan)
+
+    assert agent.tasks == [plan.description]
+    assert agent.apps == [plan.app]
+    assert agent.max_steps == [20]
 
 
-def test_execute_string_false_postcondition_is_failure(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": "false", "reason": "no note"},
-    ]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert result.failure_type == "postcondition_failure"
-    assert not result.success
+def test_the_goal_check_not_the_agent_decides_success(fake_llm, sample_graph):
+    """The agent says done; the goal check sees no note and refuses."""
+    agent = ScriptedAgent(steps=[], done=True, final_ui="notes list, empty")
+    plan = _plan()
+    result = Executor(
+        agent, _llm(False, fake_llm), sample_graph
+    ).execute(plan)
 
-
-def test_execute_string_false_goal_is_failure(
-    fake_device, fake_llm, sample_graph, sample_plan
-):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": True, "reason": "ok"},
-        {"achieved": "false", "reason": "no shared note"},
-    ]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
+    assert result.success is False
     assert result.failure_type == "goal_failure"
-    assert not result.goal_success
+    assert result.new_trace.metadata["task_description"] == plan.description
+    assert result.new_trace.metadata["agent_done"] is True
 
 
-def test_execute_goal_failure(
-    fake_device, fake_llm, sample_graph, sample_plan
+def test_a_crashing_agent_yields_a_trace_not_an_exception(fake_llm, sample_graph):
+    agent = ScriptedAgent(error="adb disconnected")
+    result = Executor(agent, _llm(True, fake_llm), sample_graph).execute(_plan())
+
+    assert result.success is False
+    assert result.failure_type == "environment_failure"
+    assert "adb disconnected" in result.error
+    assert result.new_trace is not None
+
+
+def test_an_explicit_max_steps_overrides_the_configured_budget(
+    fake_llm, sample_graph
 ):
-    fake_device = FakeDevice(["start", "after1", "after2"], [True, True])
-    fake_llm.responses = [
-        "Current screen: start",
-        {"satisfied": True, "reason": "ok"},
-        {"achieved": False, "reason": "no shared note"},
-    ]
-    result = _executor(fake_device, fake_llm, sample_graph).execute(sample_plan)
-    assert result.failure_type == "goal_failure"
-    assert not result.success
-    assert not result.goal_success
+    agent = ScriptedAgent()
+    Executor(agent, _llm(True, fake_llm), sample_graph, max_steps=20).execute(
+        _plan(), max_steps=5
+    )
+    assert agent.max_steps == [5]
+
+
+def test_step_results_carry_no_card_key(fake_llm, sample_graph):
+    """Attribution is whole-path now; a step no longer names a card."""
+    from specfcg.models import Step
+
+    agent = ScriptedAgent(
+        steps=[Step(action="click", target="text=+", success=True)]
+    )
+    result = Executor(agent, _llm(True, fake_llm), sample_graph).execute(_plan())
+
+    assert result.step_results
+    assert all("card" not in item for item in result.step_results)
+
+
+def test_the_trace_keeps_the_agents_steps(fake_llm, sample_graph):
+    from specfcg.models import Step
+
+    agent = ScriptedAgent(
+        steps=[
+            Step(action="click", target="text=+", before_state="a", after_state="b"),
+        ]
+    )
+    result = Executor(agent, _llm(True, fake_llm), sample_graph).execute(_plan())
+
+    assert [s.target for s in result.new_trace.steps] == ["text=+"]
+    assert result.new_trace.start_state == "notes list"
+
+
+def test_the_backend_carries_its_endpoint_not_the_agent_default():
+    """VLM defaults to the Magpie gateway; a local model is not served there."""
+    from specfcg.executor.mobile_agent_backend import MobileAgentBackend
+
+    backend = MobileAgentBackend(
+        "emulator-5600",
+        "Qwen3.8-27B-FP8",
+        "Qwen3.8-27B-FP8",
+        "runs/smoke",
+        base_url="http://127.0.0.1:8002/v1",
+        api_key="local",
+    )
+    assert backend.endpoint == "http://127.0.0.1:8002/v1"
+    assert backend.models == ("Qwen3.8-27B-FP8", "Qwen3.8-27B-FP8")
+
+
+def test_the_backend_carries_the_screen_before_and_after_each_step():
+    from specfcg.executor.mobile_agent_backend import MobileAgentBackend
+
+    trace = MobileAgentBackend._convert(
+        type(
+            "R",
+            (),
+            {
+                "step_records": [
+                    {
+                        "tool": "tap",
+                        "args": {"text": "+"},
+                        "ok": True,
+                        "ui_before": "notes list",
+                        "ui_after": "editor",
+                    }
+                ],
+                "initial_ui": "notes list",
+                "final_ui": "editor",
+                "error": "",
+            },
+        )()
+    )
+
+    assert trace.steps[0].before_state == "notes list"
+    assert trace.steps[0].after_state == "editor"

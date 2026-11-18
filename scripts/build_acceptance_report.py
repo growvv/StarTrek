@@ -773,8 +773,8 @@ footer {{ color:var(--muted); font-size:12.5px; text-align:center; margin-top:28
     <li><strong>与论文基线的对照：</strong>当前是方法可行性验证，不是与 ProphetAgent / FuncDroid
     在相同 benchmark 上的对照实验；复杂任务成功只能说明组合链路可用，不能据此声称优于基线。
     下一步需要在相同 app / 任务集上统计 completion、action accuracy 与调用成本。</li>
-    <li><strong>多实例：</strong>重复卡片 + <code>PlanStep.instance</code> 已实现并有单测，
-    但尚未在真机上跑“同一张卡出现两次”的任务。</li>
+    <li><strong>多实例：</strong>同一张卡在一条路径上出现两次时，任务描述会为每个
+    实例分别写出它绑定的值；尚未在真机上跑“同一张卡出现两次”的任务。</li>
     <li><strong>能力补全：</strong>当图中没有可用卡片时，completer 尚未在真机上验证；
     目前所有成功任务都落在已有 5 张卡的能力范围内。</li>
     <li><strong>状态隔离：</strong>重复运行会在列表留下多张同名笔记；pilot 每例前已 <code>pm clear</code>，

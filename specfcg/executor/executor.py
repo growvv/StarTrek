@@ -1,4 +1,4 @@
-"""Execute a TestPlan on a device and validate contracts."""
+"""Execute a TestPlan by handing its description to a GUI agent."""
 
 from __future__ import annotations
 
@@ -6,59 +6,39 @@ import logging
 import uuid
 from typing import Any
 
-from specfcg.executor.device import Device
+from specfcg.executor.agent import AgentTrace, GuiAgent
 from specfcg.executor.summarizer import StateSummarizer
 from specfcg.llm.client import LLMClient, LLMParseError
-from specfcg.models import (
-    Graph,
-    PlanStep,
-    RunResult,
-    Step,
-    TestPlan,
-    Trace,
-    as_bool,
-)
+from specfcg.models import Graph, RunResult, Step, TestPlan, Trace, as_bool
 
 logger = logging.getLogger(__name__)
 
-_POST_SCHEMA = '{"satisfied": true, "reason": "why"}'
 _GOAL_SCHEMA = '{"achieved": true, "reason": "why"}'
 
 
 class Executor:
+    """Hand a plan's description to the agent, then judge the outcome.
+
+    The executor owns no device and sends no action.  The plan is a
+    description; the agent reads it and decides what to do; the executor
+    records what happened and asks whether the goal was reached.  That split
+    is the point of the round: a plan that could be replayed would measure
+    the recorder, not the map.
+    """
+
     def __init__(
         self,
-        device: Device,
+        agent: GuiAgent,
         llm: LLMClient,
-        summarizer: StateSummarizer,
         graph: Graph,
+        summarizer: StateSummarizer | None = None,
+        max_steps: int = 20,
     ) -> None:
-        self.device = device
+        self.agent = agent
         self.llm = llm
-        self.summarizer = summarizer
         self.graph = graph
-
-    @staticmethod
-    def _step_line(step: PlanStep) -> str:
-        line = f"- {step.action} {step.target}".rstrip()
-        if step.args:
-            line += f" args={step.args}"
-        return line
-
-    @staticmethod
-    def _groups(
-        steps: list[PlanStep],
-    ) -> list[tuple[str, list[PlanStep]]]:
-        groups: list[tuple[str, list[PlanStep]]] = []
-        keys: list[tuple[str, int]] = []
-        for step in steps:
-            key = (step.card, step.instance)
-            if not groups or keys[-1] != key:
-                groups.append((step.card, [step]))
-                keys.append(key)
-            else:
-                groups[-1][1].append(step)
-        return groups
+        self.summarizer = summarizer
+        self.max_steps = max_steps
 
     def _result(
         self,
@@ -81,100 +61,70 @@ class Executor:
             error=error,
         )
 
-    def execute(self, plan: TestPlan) -> RunResult:
+    def _start_state(self, initial_ui: str) -> str:
+        if self.summarizer is not None:
+            return self.summarizer.summarize(initial_ui)
+        return initial_ui[:2000]
+
+    @staticmethod
+    def _step_results(agent_trace: AgentTrace) -> list[dict[str, Any]]:
+        return [
+            {
+                "action": step.action,
+                "target": step.target,
+                "args": step.args,
+                "success": step.success,
+                "before": step.before_state,
+                "after": step.after_state,
+            }
+            for step in agent_trace.steps
+        ]
+
+    @staticmethod
+    def _action_log(agent_trace: AgentTrace) -> str:
+        return "\n".join(
+            f"- {step.action} {step.target}".rstrip()
+            + (f" args={step.args}" if step.args else "")
+            for step in agent_trace.steps
+        )
+
+    def execute(
+        self, plan: TestPlan, max_steps: int | None = None
+    ) -> RunResult:
         app = plan.app or plan.goal.app
-        self.device.start_app(app)
-        initial_ui = self.device.dump_ui()
-        initial_summary = self.summarizer.summarize(initial_ui)
+        budget = self.max_steps if max_steps is None else max_steps
+        agent_trace = self.agent.run(
+            plan.description, budget, app=app
+        )
 
         trace = Trace(
             trace_id=f"run-{uuid.uuid4().hex}",
             app=app,
-            start_state=initial_summary,
+            start_state=self._start_state(agent_trace.initial_ui),
             goal=plan.goal.description,
+            steps=list(agent_trace.steps),
+            metadata={
+                "task_description": plan.description,
+                "agent_done": agent_trace.done,
+            },
         )
-        step_results: list[dict[str, Any]] = []
-        state = initial_ui
+        step_results = self._step_results(agent_trace)
 
-        for card_name, steps in self._groups(plan.steps):
-            for step in steps:
-                before = self.device.dump_ui()
-                ok = self.device.execute(step.action, step.target, step.args)
-                after = self.device.dump_ui()
-                state = after
-                trace.steps.append(
-                    Step(
-                        action=step.action,
-                        target=step.target,
-                        args=step.args,
-                        before_state=before,
-                        after_state=after,
-                        success=ok,
-                    )
-                )
-                step_results.append(
-                    {
-                        "card": card_name,
-                        "action": step.action,
-                        "target": step.target,
-                        "args": step.args,
-                        "success": ok,
-                        "before": before,
-                        "after": after,
-                    }
-                )
-                if not ok:
-                    return self._result(
-                        plan,
-                        trace,
-                        step_results,
-                        success=False,
-                        failure_type="widget_failure",
-                        error=f"action failed: {step.action} {step.target}",
-                    )
-
-            card = self.graph.cards.get(card_name)
-            if card is None:
-                continue
-            executed = "\n".join(
-                self._step_line(step) for step in steps
+        if agent_trace.error:
+            return self._result(
+                plan,
+                trace,
+                step_results,
+                success=False,
+                failure_type="environment_failure",
+                error=agent_trace.error,
             )
-            prompt = (
-                f"Card: {card.name}\nIntent: {card.intent}\n"
-                f"Postconditions: {card.postconditions}\n"
-                f"Executed steps:\n{executed}\n\n"
-                f"Observed UI after the last step:\n{state[:4000]}\n\n"
-                "Are the postconditions satisfied?"
-            )
-            try:
-                check = self.llm.complete_json(prompt, _POST_SCHEMA)
-            except LLMParseError as exc:
-                return self._result(
-                    plan,
-                    trace,
-                    step_results,
-                    success=False,
-                    failure_type="check_error",
-                    error=f"postcondition check failed: {exc}",
-                )
-            if not as_bool(check.get("satisfied", False)):
-                return self._result(
-                    plan,
-                    trace,
-                    step_results,
-                    success=False,
-                    failure_type="postcondition_failure",
-                    error=str(check.get("reason", "")),
-                )
 
-        executed_plan = "\n".join(
-            self._step_line(step) for step in plan.steps
-        )
         goal_prompt = (
             f"Goal: {plan.goal.description}\n"
             f"Assertions: {plan.assertions}\n"
-            f"Executed plan:\n{executed_plan}\n\n"
-            f"Final UI state:\n{state[:4000]}\n\n"
+            f"Actions taken:\n{self._action_log(agent_trace)}\n\n"
+            f"Final UI state:\n{agent_trace.final_ui[:4000]}\n\n"
             "Is the goal achieved?"
         )
         try:

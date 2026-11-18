@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from specfcg.executor.agent import AgentTrace, ScriptedAgent
 from specfcg.llm.client import LLMParseError
-from specfcg.models import MissingCapability, Trace
+from specfcg.models import MissingCapability, Step, Trace
 
 
 class FakeLLMClient:
@@ -56,9 +57,11 @@ class FakeProbe:
     def __init__(self) -> None:
         self.trace: Trace | None = None
         self.calls: list[tuple[str, str]] = []
+        self.apps: list[str] = []
 
     def run(
-        self, capability: MissingCapability, state: str
+        self, capability: MissingCapability, state: str, app: str = ""
     ) -> Trace | None:
         self.calls.append((capability.name, state))
+        self.apps.append(app)
         return self.trace

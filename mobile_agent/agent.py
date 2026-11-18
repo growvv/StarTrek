@@ -48,6 +48,11 @@ class TaskResult:
     expect_text: list[str]
     expect_absent: list[str]
     screenshot_dir: str
+    initial_ui: str = ""
+    final_ui: str = ""
+    # The per-step record, so a caller can convert the run without reading
+    # steps.json back from disk.
+    step_records: list[dict[str, Any]] = field(default_factory=list)
     error: str = ""
 
 
@@ -82,12 +87,17 @@ class MobileAgent:
         memory: ExperienceStore,
         out_root: Path,
         reflect_every: int = 6,
+        verify: bool = True,
     ) -> None:
         self.device = device
         self.llm = llm
         self.memory = memory
         self.out_root = Path(out_root)
         self.reflect_every = reflect_every
+        # With verify=False the agent reports what it did and stops: the caller
+        # judges the run.  One VLM call per task is saved, and no memory entry
+        # is written, because a lesson learned from an unjudged run is a guess.
+        self.verify = verify
 
     def _observation(
         self,
@@ -255,12 +265,17 @@ class MobileAgent:
         done_summary = ""
         last_signature = ""
         stall = 0
+        initial_ui = ""
         final_ui = ""
 
         try:
-            self.device.start_app()
+            # The agent acts from the screen it finds.  Launching is the
+            # caller's job: app_start(stop=True) restarts the process and wipes
+            # the state the benchmark or a probe just prepared.
             plan_shot = out / "00_plan.jpg"
             image = self.device.screenshot(plan_shot)
+            initial_ui = self.device.ui_text()
+            (out / "initial_ui.txt").write_text(initial_ui, encoding="utf-8")
             memory_hits = self.memory.retrieve(task.goal, task.app)
             memory_text = ExperienceStore.format(memory_hits)
             (out / "memory.json").write_text(
@@ -277,6 +292,9 @@ class MobileAgent:
                 before = out / f"step_{step:02d}_before.jpg"
                 image = self.device.screenshot(before)
                 ui = self.device.ui_text()
+                (out / f"step_{step:02d}_before.txt").write_text(
+                    ui, encoding="utf-8"
+                )
                 ui_hash = hashlib.sha1(ui.encode("utf-8")).hexdigest()[:16]
                 observation = self._observation(
                     task, plan, history, memory_text, step, ui
@@ -325,6 +343,9 @@ class MobileAgent:
                 after = out / f"step_{step:02d}_after.jpg"
                 self.device.screenshot(after)
                 after_ui = self.device.ui_text()
+                (out / f"step_{step:02d}_after.txt").write_text(
+                    after_ui, encoding="utf-8"
+                )
                 after_hash = hashlib.sha1(
                     after_ui.encode("utf-8")
                 ).hexdigest()[:16]
@@ -338,6 +359,8 @@ class MobileAgent:
                     "result": result,
                     "before": before.name,
                     "after": after.name,
+                    "ui_before": ui,
+                    "ui_after": after_ui,
                     "ui_hash_before": ui_hash,
                     "ui_hash_after": after_hash,
                 }
@@ -389,18 +412,23 @@ class MobileAgent:
                 text.lower() not in final_ui.lower()
                 for text in task.expect_absent
             )
-            verified, reason = self._verify(
-                task, plan, history, final_shot, final_ui, deterministic_ok
-            )
-            success = bool(verified and deterministic_ok)
-            lessons = self._lessons(task, success, reason, history)
-            self.memory.add(
-                goal=task.goal,
-                app=task.app,
-                success=success,
-                steps=len(step_records),
-                lessons=lessons,
-            )
+            if not self.verify:
+                verified = False
+                success = False
+                reason = "verification deferred to the caller"
+            else:
+                verified, reason = self._verify(
+                    task, plan, history, final_shot, final_ui, deterministic_ok
+                )
+                success = bool(verified and deterministic_ok)
+                lessons = self._lessons(task, success, reason, history)
+                self.memory.add(
+                    goal=task.goal,
+                    app=task.app,
+                    success=success,
+                    steps=len(step_records),
+                    lessons=lessons,
+                )
         except Exception as exc:
             verified = False
             success = False
@@ -432,6 +460,9 @@ class MobileAgent:
             expect_text=list(task.expect_text),
             expect_absent=list(task.expect_absent),
             screenshot_dir=str(out),
+            initial_ui=initial_ui,
+            final_ui=final_ui,
+            step_records=step_records,
             error=error,
         )
         (out / "result.json").write_text(

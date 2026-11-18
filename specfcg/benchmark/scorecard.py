@@ -88,6 +88,11 @@ def coverage_from_disk(
     return graph_coverage(load_inventory(inventory), graph)
 
 
+# The graph arm was called "specfcg" before Task F renamed it "graph".
+# Records keep the name they were written with, so both are read.
+_GRAPH_AGENT_NAMES = {"graph", "specfcg"}
+
+
 def app_score(entry: dict) -> dict[str, float]:
     """Per-app scores, each 0-100 and computed from its saved records."""
     coverage = entry.get("coverage") or {}
@@ -97,7 +102,7 @@ def app_score(entry: dict) -> dict[str, float]:
         (
             bench.get("rows") or []
             for bench in entry.get("bench") or []
-            if bench and bench.get("agent") == "specfcg"
+            if bench and bench.get("agent") in _GRAPH_AGENT_NAMES
         ),
         [],
     )

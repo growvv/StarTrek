@@ -14,7 +14,6 @@ from specfcg.models import (
     FunctionCard,
     Goal,
     Graph,
-    PlanStep,
     RunResult,
     Step,
     TestPlan,
@@ -37,7 +36,6 @@ def sample_card() -> FunctionCard:
         preconditions="Logged in; on the notes list screen.",
         postconditions="A note with the given title appears in the notes list.",
         effects_outputs="Adds a note to the list; the new note is identified by its title.",
-        steps=['Tap "+".', "Enter the title.", "Enter the content.", 'Tap "Save".'],
         evidence=["t1", "t2"],
         success_count=2,
         attempt_count=3,
@@ -53,7 +51,6 @@ def another_card() -> FunctionCard:
         preconditions="A note exists and is open.",
         postconditions="The note is shared through the chosen channel.",
         effects_outputs="Sends the note; returns to the note screen.",
-        steps=['Tap "Share".', "Choose a channel."],
         evidence=["t1"],
         success_count=1,
         attempt_count=1,
@@ -73,7 +70,6 @@ def _card(name: str) -> FunctionCard:
         preconditions="",
         postconditions="",
         effects_outputs="",
-        steps=[],
     )
 
 
@@ -169,17 +165,10 @@ def sample_plan(sample_card) -> TestPlan:
     return TestPlan(
         goal=Goal("create a note", app="omninotes"),
         path=[sample_card.name],
-        steps=[
-            PlanStep(
-                card=sample_card.name, action="click", target="text=+"
-            ),
-            PlanStep(
-                card=sample_card.name,
-                action="input",
-                target="text=Title",
-                args="Trip",
-            ),
-        ],
+        description=(
+            "Overall goal: create a note\n\nSubgoals, in order:\n"
+            f"1. {sample_card.name} — {sample_card.intent}"
+        ),
         assertions=[
             "create a note",
             sample_card.postconditions,

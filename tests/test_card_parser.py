@@ -28,8 +28,6 @@ def test_parse_evidence_ignores_backticked_resource_ids_in_prose():
 **Preconditions**: On the list.
 **Postconditions**: A note exists.
 **Effects/Outputs**: A note card.
-**Steps**:
-1. Tap the button `app:id/fab`.
 **Evidence**: Trace evidence: `omninotes-create-note-2`. Flow uses `app:id/fab` and `app:id/title`; 1/1 successes
 """
     )
@@ -46,8 +44,6 @@ def test_parse_evidence_extracts_backticked_trace_id_from_prose():
 **Preconditions**: On the list.
 **Postconditions**: A note exists.
 **Effects/Outputs**: A note card.
-**Steps**:
-1. Tap the plus button
 **Evidence**: Trace evidence: `omninotes-create-note-2`. The trace shows the flow; 1/1 successes
 """
     )
@@ -68,8 +64,6 @@ def test_parse_card_accepts_bullet_inputs_with_backticks():
 **Preconditions**: On the list.
 **Postconditions**: A note exists.
 **Effects/Outputs**: A new note card.
-**Steps**:
-1. Tap the plus button
 **Evidence**: traces t1; 1/1 successes
 """
     )
@@ -90,8 +84,6 @@ def test_parse_card_keeps_commas_inside_a_single_bullet_input():
 **Preconditions**: On the list.
 **Postconditions**: The note is archived.
 **Effects/Outputs**: The note leaves the list.
-**Steps**:
-1. Tap the note
 **Evidence**: traces t1; 1/1 successes
 """
     )
@@ -126,11 +118,6 @@ A note exists.
 
 A new note card.
 
-**Steps**
-
-1. Tap the plus button
-2. Enter the title
-
 **Evidence**
 
 Trace: t1; 1/1 successes
@@ -140,7 +127,6 @@ Trace: t1; 1/1 successes
     assert card.name == "create_note"
     assert card.intent == "Create a note with a title."
     assert card.preconditions == "On the notes list."
-    assert card.steps == ["Tap the plus button", "Enter the title"]
     assert card.evidence == ["t1"]
     assert card.success_count == 1
     assert card.attempt_count == 1
@@ -163,8 +149,6 @@ def test_parse_inputs_does_not_split_a_description_at_its_commas():
 **Preconditions**: On a folder listing.
 **Postconditions**: The file exists.
 **Effects/Outputs**: A new file.
-**Steps**:
-1. Tap the create button
 **Evidence**: traces t1; 1/1 successes
 """
     )
@@ -185,8 +169,6 @@ def test_parse_inputs_splits_a_plain_list_of_names():
 **Preconditions**: On the diary.
 **Postconditions**: Switched.
 **Effects/Outputs**: None.
-**Steps**:
-1. Tap the target card
 **Evidence**: traces t1; 1/1 successes
 """
     )
@@ -202,8 +184,7 @@ def test_parse_card_accepts_a_colon_inside_the_bold_heading():
 
     A model that writes the colon inside the bold markers produces a card
     whose every section is unreadable, so the whole card silently degrades to
-    the fallback -- a card with no intent, no preconditions, and steps copied
-    from one trace.
+    the fallback -- a card with no intent and no preconditions.
     """
     card = parse_card(
         """# create_note
@@ -213,12 +194,32 @@ def test_parse_card_accepts_a_colon_inside_the_bold_heading():
 **Preconditions:** On the notes list.
 **Postconditions:** A note exists.
 **Effects/Outputs:** A note card.
-**Steps:**
-1. Tap the plus button
 **Evidence:** traces t1; 1/1 successes
 """
     )
 
     assert card.intent == "Create a note."
-    assert card.steps == ["Tap the plus button"]
     assert card.evidence == ["t1"]
+
+
+def test_card_with_a_steps_section_is_rejected():
+    """A card that still carries recorded taps must fail loudly.
+
+    Task F removes ``steps`` from the card: the card names what a function
+    does, never how it was done once.  An old card whose Steps section is
+    silently folded into the preceding section would keep its recorded taps
+    alive as prose, so the parser refuses it instead.
+    """
+    text = (
+        "# create_note\n\n**Intent**: Create a note.\n"
+        "**Inputs**: none\n**Preconditions**: The list is open.\n"
+        "**Postconditions**: The note exists.\n**Effects/Outputs**: none\n"
+        "**Steps**:\n1. Tap '+'. 2. Tap 'Save'.\n**Evidence**: traces t1\n"
+    )
+    with pytest.raises(CardParseError, match="Steps"):
+        parse_card(text)
+
+
+def test_rendered_card_round_trips_without_steps(sample_card):
+    assert "**Steps**" not in render_card(sample_card)
+    assert parse_card(render_card(sample_card)) == sample_card

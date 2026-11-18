@@ -7,9 +7,9 @@ from dataclasses import dataclass
 
 from specfcg.graph.search import search
 from specfcg.llm.client import LLMClient, LLMParseError
-from specfcg.models import Goal, Graph, TestPlan, as_bool
+from specfcg.models import FunctionCard, Goal, Graph, TestPlan, as_bool
 from specfcg.planner.binding import ParamBinder
-from specfcg.planner.compiler import StepCompiler
+from specfcg.planner.describer import TaskDescriber
 from specfcg.planner.retrieval import CardRetriever
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class Planner:
         llm: LLMClient,
         retriever: CardRetriever,
         binder: ParamBinder,
-        compiler: StepCompiler,
+        describer: TaskDescriber | None = None,
         strategy: str = "astar",
         max_depth: int = 8,
     ) -> None:
@@ -45,7 +45,7 @@ class Planner:
         self.llm = llm
         self.retriever = retriever
         self.binder = binder
-        self.compiler = compiler
+        self.describer = describer or TaskDescriber()
         self.strategy = strategy
         self.max_depth = max_depth
         self._can_cache: dict[tuple[str, str], bool] = {}
@@ -376,19 +376,22 @@ class Planner:
         subgoals: list[str],
         state: str,
     ) -> TestPlan | None:
-        """Compile a chosen card path into steps.
+        """Turn a chosen card path into a task description.
 
-        A plan is a path plus the bindings and steps for each card on it.
-        Choosing the path is the search; turning it into steps is the same
-        work whoever chose it, so a probe that predicted a path can execute
-        exactly that path instead of re-searching for one.
+        A plan is a path plus the values each card on it needs.  Choosing the
+        path is the search; describing it is the same work whoever chose it,
+        so a probe that predicted a path describes exactly that path instead
+        of re-searching for one.
+
+        A card the binder cannot fully bind does not abort the plan: its
+        unbound inputs are named in the description, and the agent, which can
+        see the screen, decides what to put there.  A compiled step could not
+        carry a gap; a description can.
         """
         prior_outputs: dict[str, str] = {}
-        steps = []
+        described: list[tuple[FunctionCard, dict[str, str]]] = []
         assertions = [goal.description]
-        for instance, (name, subgoal) in enumerate(
-            zip(path, subgoals)
-        ):
+        for name, subgoal in zip(path, subgoals):
             card_obj = self.graph.cards.get(name)
             if card_obj is None:
                 return None
@@ -397,11 +400,8 @@ class Planner:
                 card_obj, step_goal, state, prior_outputs
             )
             if bindings is None:
-                return None
-            compiled = self.compiler.compile(card_obj, bindings)
-            for step in compiled:
-                step.instance = instance
-            steps.extend(compiled)
+                bindings = {}
+            described.append((card_obj, dict(bindings)))
             if subgoal and subgoal != goal.description:
                 assertions.append(subgoal)
 
@@ -419,7 +419,7 @@ class Planner:
         return TestPlan(
             goal=goal,
             path=path,
-            steps=steps,
+            description=self.describer.describe(goal.description, described),
             assertions=assertions,
             app=goal.app,
         )

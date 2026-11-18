@@ -25,8 +25,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from specfcg.benchmark.agents import (  # noqa: E402
+    GraphAgent,
     RandomTraversalAgent,
-    SpecFCGAgent,
 )
 from specfcg.benchmark.coverage_eval import path_confidence  # noqa: E402
 from specfcg.benchmark.device_ops import AdbOps  # noqa: E402
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--suite", default="benchmark/mobileworld/suite.yaml")
     parser.add_argument("--app", required=True)
     parser.add_argument(
-        "--agent", choices=["specfcg", "random"], default="specfcg"
+        "--agent", choices=["graph", "random"], default="graph"
     )
     parser.add_argument("--serial", default=os.getenv("ANDROID_SERIAL", ""))
     parser.add_argument("--config", default="config/llm.yaml")
@@ -85,7 +85,7 @@ def main(argv: list[str] | None = None) -> int:
 
     pipeline = None
     confidence = None
-    if args.agent == "specfcg":
+    if args.agent == "graph":
         graph_root = Path(
             args.graph_root or (Path(args.out) / args.app / "graph")
         )
@@ -105,10 +105,8 @@ def main(argv: list[str] | None = None) -> int:
     rows = []
     for index, task in enumerate(tasks, 1):
         print(f"[{index}/{len(tasks)}] {task.id}: {task.goal[:90]}", flush=True)
-        if args.agent == "specfcg":
-            agent = SpecFCGAgent(
-                pipeline, device, set(), confidence=confidence
-            )
+        if args.agent == "graph":
+            agent = GraphAgent(pipeline, confidence=confidence)
         else:
             agent = RandomTraversalAgent(
                 device, rng=random.Random(args.seed + index)

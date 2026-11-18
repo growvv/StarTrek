@@ -261,3 +261,10 @@ def test_the_graph_dimension_is_recomputed_from_the_graph_not_read_back():
     assert report.covered == 11
     assert report.total == 15
     assert report.hint_dependence > 0.2
+
+
+def test_a_record_from_the_graph_arm_counts_under_either_name():
+    """The arm was renamed; records keep the name they were written with."""
+    old = {"bench": [{"agent": "specfcg", "rows": [{"success": True}]}]}
+    new = {"bench": [{"agent": "graph", "rows": [{"success": True}]}]}
+    assert app_score(old)["task"] == app_score(new)["task"]

@@ -20,7 +20,7 @@ def _card(name: str, success: int = 1, attempts: int = 1) -> FunctionCard:
         preconditions="",
         postconditions="",
         effects_outputs="",
-        steps=[],
+
         success_count=success,
         attempt_count=attempts,
     )

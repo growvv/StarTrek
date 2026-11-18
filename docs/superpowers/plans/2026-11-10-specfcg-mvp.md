@@ -1506,7 +1506,7 @@ contribution.
 - Consumes: `mobile_agent.MobileAgent`, `mobile_agent.VLM`,
   `mobile_agent.memory.ExperienceStore`
 
-- [ ] **Step 1: Write the failing parser tests**
+- [x] **Step 1: Write the failing parser tests**
 
 ```python
 def test_card_with_a_steps_section_is_rejected():
@@ -1525,14 +1525,14 @@ def test_rendered_card_round_trips_without_steps(sample_card):
     assert parse_card(render_card(sample_card)) == sample_card
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `python -m pytest tests/test_card_parser.py -q`
 
 Expected: FAIL — Steps is a required section today, so the first test parses
 without raising and the renderer emits the section.
 
-- [ ] **Step 3: Remove `steps` from the model, the format and the store**
+- [x] **Step 3: Remove `steps` from the model, the format and the store**
 
 Delete the field from `FunctionCard`.  Drop `"Steps"` from `_REQUIRED` and
 `_SECTION_RE`, and add `_RETIRED = ("Steps",)`: a card that still declares
@@ -1548,7 +1548,7 @@ Then the store and the updater: drop `GraphStore._FIELD_ALIASES["steps"]`, the
 example, `_card_detail`'s `Steps:` block, and the `steps=` argument in
 `_new_cards`'s `FunctionCard(...)`.
 
-- [ ] **Step 4: Write the failing miner tests**
+- [x] **Step 4: Write the failing miner tests**
 
 ```python
 def test_card_prompt_asks_for_a_contract_not_a_script(fake_llm, sample_trace):
@@ -1578,14 +1578,14 @@ def test_a_trace_value_baked_into_the_contract_becomes_an_input(
     assert any(i.startswith("item_label") for i in card.inputs)
 ```
 
-- [ ] **Step 5: Run them to verify they fail**
+- [x] **Step 5: Run them to verify they fail**
 
 Run: `python -m pytest tests/test_miner.py -q`
 
 Expected: FAIL — the prompt demands Steps, `draft` falls back to a card built
 from trace actions, and grounding walks `card.steps`.
 
-- [ ] **Step 6: Rewrite the prompt and ground the contract**
+- [x] **Step 6: Rewrite the prompt and ground the contract**
 
 `_CARD_PROMPT` asks for Intent, Inputs, Preconditions, Postconditions,
 Effects/Outputs, Evidence, and states the rule the format now enforces:
@@ -1605,7 +1605,7 @@ control input records the label the build actually showed (`; observed: '...'`).
 The trace's steps are still read here — as evidence of what the screen showed,
 which is what grounding is.
 
-- [ ] **Step 7: Write the failing migration test**
+- [x] **Step 7: Write the failing migration test**
 
 ```python
 LEGACY = """# copy_file
@@ -1630,14 +1630,14 @@ def test_migration_removes_only_the_steps_section():
     assert migrate(migrated) == migrated          # idempotent
 ```
 
-- [ ] **Step 8: Implement `migrate` and the script wrapper**
+- [x] **Step 8: Implement `migrate` and the script wrapper**
 
 `migrate` drops a line matching `^\*\*Steps\*\*` and every following line up
 to the next `^\*\*` heading or end of file; it rewrites nothing else, which is
 what makes it idempotent.  The script takes one or more graph roots, migrates
 every `cards/*.md`, and prints the count per root.
 
-- [ ] **Step 9: Write the failing describer tests**
+- [x] **Step 9: Write the failing describer tests**
 
 ```python
 def test_description_states_the_goal_then_each_subgoal_in_order(
@@ -1669,13 +1669,13 @@ def test_an_unbound_input_is_a_named_gap_not_a_failure(sample_card):
     assert "title = <unbound: not named in the goal or earlier outputs>" in text
 ```
 
-- [ ] **Step 10: Run them to verify they fail**
+- [x] **Step 10: Run them to verify they fail**
 
 Run: `python -m pytest tests/test_describer.py -q`
 
 Expected: FAIL with `ModuleNotFoundError: specfcg.planner.describer`.
 
-- [ ] **Step 11: Implement `TaskDescriber`**
+- [x] **Step 11: Implement `TaskDescriber`**
 
 Fixed layout, five fields per subgoal:
 
@@ -1696,7 +1696,7 @@ Input names come from the card's declarations, split the way `ParamBinder`
 splits them; any the plan did not bind render as the unbound marker.  The
 describer emits no action verb, and a test asserts it.
 
-- [ ] **Step 12: Replace the compiler in `TestPlan` and `compile_path`**
+- [x] **Step 12: Replace the compiler in `TestPlan` and `compile_path`**
 
 `TestPlan.steps` becomes `description: str = ""`; delete `PlanStep`.
 `compile_path` binds each card with `ParamBinder`, collects `(card, bindings)`
@@ -1750,7 +1750,7 @@ def test_a_probe_that_acts_nothing_yields_no_trace():
     ) is None
 ```
 
-- [ ] **Step 13: Write the failing executor tests**
+- [x] **Step 13: Write the failing executor tests**
 
 ```python
 def test_the_agent_receives_the_plan_description():
@@ -1777,13 +1777,13 @@ def test_a_crashing_agent_yields_a_trace_not_an_exception():
     assert result.success is False and result.failure_type == "environment_failure"
 ```
 
-- [ ] **Step 14: Run them to verify they fail**
+- [x] **Step 14: Run them to verify they fail**
 
 Run: `python -m pytest tests/test_executor.py -q`
 
 Expected: FAIL — `Executor` takes a device and replays `plan.steps`.
 
-- [ ] **Step 15: Write the protocol, the backend and the executor**
+- [x] **Step 15: Write the protocol, the backend and the executor**
 
 `GuiAgent` is a two-method protocol and no policy.  `MobileAgentBackend` holds
 the serial, the two model names and an output root, plus one
@@ -1845,7 +1845,7 @@ the executor's launch, and the caller owning the launch is exactly the
 correction.  The offline path passes `fake_device`, where `start_app` is a
 no-op on the fake.
 
-- [ ] **Step 16: Rewrite the benchmark adapter**
+- [x] **Step 16: Rewrite the benchmark adapter**
 
 `agents.py` keeps `RandomTraversalAgent` and gains `GraphAgent(pipeline)`: a
 callable on the `BenchTask` —
@@ -1867,7 +1867,7 @@ it holds is the task's app, set once per run by the script).  Delete
 `graph` and `random`, and the summary records `"agent": "graph"`, so script
 and scorecard agree on the name now and in H.
 
-- [ ] **Step 17: Update the offline stand-in, the config and the spec**
+- [x] **Step 17: Update the offline stand-in, the config and the spec**
 
 `_OfflineLLM` loses the "Convert these function-card steps" and "Are the
 postconditions satisfied" branches, and `_OFFLINE_CARD` loses its Steps
@@ -1896,7 +1896,7 @@ Steps; §6.3 drops the `calls` edge (a card can no longer contain another
 card's steps); §6.4 step 5 becomes "把路径上的卡片契约按参数串成任务描述"; §6.5 states that
 the executor is a GUI agent, not a script.
 
-- [ ] **Step 18: Migrate the four graphs and run the suite**
+- [x] **Step 18: Migrate the four graphs and run the suite**
 
 ```
 python -m pytest tests/test_card_parser.py tests/test_miner.py tests/test_migrate_cards.py tests/test_describer.py tests/test_planner.py tests/test_executor.py tests/test_benchmark_agents.py tests/test_updater.py tests/test_graph_store.py -q
@@ -1908,7 +1908,7 @@ Expected: 93 cards migrated, every card still parses, and the full suite green
 with a `ScriptedAgent` where the device-backed one would go.  No test asserts
 on a replayed step or on `card.steps`.
 
-- [ ] **Step 19: Smoke one task on the device**
+- [x] **Step 19: Smoke one task on the device**
 
 ```
 PYTHONPATH=. python -c "
@@ -1925,7 +1925,7 @@ print(len(t.steps), t.done, t.error, t.initial_ui[:80])
 Expected: non-empty `t.steps`, each with a `before_state`; `done` is the
 agent's claim and no code path uses it as the verdict.
 
-- [ ] **Step 20: Commit**
+- [x] **Step 20: Commit**
 
 ```bash
 git add specfcg mobile_agent/agent.py scripts/migrate_cards.py tests config/llm.bench.yaml docs/superpowers/specs

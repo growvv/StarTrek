@@ -8,14 +8,14 @@
 
 ## 1. 一句话状态
 
-MVP（计划 Task 1–17）已实现并在真机上验证，当前 **448 个测试通过**
-（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张 Function Contract
-Graph，`runs/mobileworld/score-history.json` 记录了 7 次迭代的分数，最新
-综合 **71.7**。
+MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F 已完成**，
+当前 **417 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
+Function Contract Graph，`runs/mobileworld/score-history.json` 记录了 7 次
+迭代的分数，最新综合 **71.7**（这批分数由旧架构产出，见第 7 节）。
 
-代码**尚未**进入下一轮架构调整，计划已写好并提交（`5da1862`），下一步是
-Task F。README 里“卡片含 Steps / 编译成动作”描述的是**旧架构**，正是
-Next Round 要删除的部分，不要把它当最终形态。
+Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
+下一步是 **Task G**（探针与能力补全走 agent）。README 里“卡片含 Steps /
+编译成动作”的描述已经过期，重写它属于文档收尾。
 
 ## 2. 现在系统怎么工作（as built）
 
@@ -23,8 +23,8 @@ Next Round 要删除的部分，不要把它当最终形态。
 
 ```
 轨迹采集 (traces/) → 卡片归纳 (maintainer/miner) → 建边 (maintainer/builder)
-    → 图存储 (graph/store) → 规划 (planner: retrieval + binding + A* + compiler)
-    → 执行 (executor: 真机 + LLM 状态判断) → 失败修补 (maintainer/updater)
+    → 图存储 (graph/store) → 规划 (planner: retrieval + binding + A* + describer)
+    → 执行 (executor: 任务描述交给 GUI agent) → 失败修补 (maintainer/updater)
     → 能力补全 (completion: 预测缺失能力 + 设备探针)
 ```
 
@@ -34,8 +34,8 @@ Next Round 要删除的部分，不要把它当最终形态。
 | `specfcg/cards/` | function card 的 Markdown 解析与落盘 | `parser.py`, `store.py` |
 | `specfcg/maintainer/` | LLM 归纳卡片、建边、失败后修补图 | `miner.py`, `builder.py`, `updater.py` |
 | `specfcg/graph/` | 图存储、BFS/DFS/A* 搜索 | `store.py`, `search.py` |
-| `specfcg/planner/` | 卡片检索、参数绑定、路径规划、动作编译 | `retrieval.py`, `binding.py`, `planner.py`, `compiler.py` |
-| `specfcg/executor/` | 设备抽象、状态摘要、执行计划 | `device.py`, `summarizer.py`, `executor.py` |
+| `specfcg/planner/` | 卡片检索、参数绑定、路径规划、任务描述 | `retrieval.py`, `binding.py`, `planner.py`, `describer.py` |
+| `specfcg/executor/` | 设备抽象、状态摘要、GUI agent 与执行 | `device.py`, `summarizer.py`, `agent.py`, `mobile_agent_backend.py`, `executor.py` |
 | `specfcg/completion/` | 缺失能力预测与探针验证 | `completer.py`, `probe.py` |
 | `specfcg/benchmark/` | 任务套件、agent、oracle、分数卡、报告 | `suite_runner.py`, `agents.py`, `scorecard.py` |
 | `mobile_agent/` | 仓库内的 GUI agent（截图优先的 VLM 工具调用） | `agent.py`, `device.py`, `prompts.py` |
@@ -100,7 +100,7 @@ steps / evidence`；`TestPlan` 含卡片路径与编译出的 `steps`；边类�
 
 ```bash
 # 测试（无设备）
-python -m pytest -q                      # 448 passed
+python -m pytest -q                      # 417 passed
 
 # 无设备的端到端冒烟
 python -m specfcg.cli plan --config config/llm.yaml --fake-llm --fake-device \
@@ -114,9 +114,17 @@ PYTHONPATH=. python scripts/build_app_graph.py --app omninotes --skip-collect \
 PYTHONPATH=. python scripts/run_graph_experiments.py --app omninotes \
     --serial <serial> --config config/llm.bench.yaml
 
-# 跑 benchmark 的一个 app（当前是 specfcg / random）
+# 跑 benchmark 的一个 app（graph / random）
 PYTHONPATH=. python scripts/run_mobileworld_bench.py --app omninotes \
-    --config config/llm.bench.yaml --agent specfcg
+    --config config/llm.bench.yaml --agent graph
+
+# 模拟器池：只管 startrek_*，端口 5600–5699
+python scripts/emulator_pool.py status
+python scripts/emulator_pool.py start --count 4
+python scripts/emulator_pool.py install
+
+# 把旧卡片迁移成契约（只删 Steps 段，幂等）
+PYTHONPATH=. python scripts/migrate_cards.py runs/mobileworld/omninotes/graph
 
 # 把磁盘上的实验记录算成一个分数点
 python scripts/record_score.py --label <label>
@@ -181,27 +189,29 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
 
 ## 9. 已知坑
 
-1. `mobile_agent.run()` 目前会自己 `start_app()`（`app_start(..., stop=True)`
-   + onboarding 点击），会清掉 benchmark 准备好的状态。Task F 删除这段，
-   启动 app 交给调用方（`prepare_state` / `fresh_app` / 脚本）。
-2. 解析器当前把 `Steps` 当必填段落；Task F 后旧卡片必须先用
-   `scripts/migrate_cards.py` 迁移，解析器会显式拒绝 `**Steps**`（抛
-   `CardParseError`），不会静默吞掉。
-3. `granularity.py` / `scripts/measure_granularity.py` 依赖编译后的动作集，
-   Task F 会删除，由 C 的契约级重复检测替代。
-4. 模型名现在指向本地 vLLM 的 `Qwen3.8-27B-FP8`（:8002）；旧的 Magpie 路由名
+1. `mobile_agent.run()` 不再启动 app：它从当前屏幕开始行动，启动由调用方
+   负责（`prepare_state` / `fresh_app` / CLI 的 `--app`）。自己启动会清掉
+   刚准备好的状态。
+2. 解析器显式拒绝 `**Steps**`（抛 `CardParseError`）。旧卡片必须先用
+   `scripts/migrate_cards.py` 迁移；迁移只删该段，幂等。
+3. `granularity.py` / `scripts/measure_granularity.py` 已随 compiler 删除，
+   契约级重复检测由 Task C 提供。
+4. `MobileAgentBackend` 必须显式带 `base_url`：`mobile_agent.VLM` 的默认端点
+   是 Magpie 网关，本地 vLLM 的模型名在那里不存在。
+5. 模型名现在指向本地 vLLM 的 `Qwen3.8-27B-FP8`（:8002）；旧的 Magpie 路由名
    只保留在历史记录里。换环境要同步改 `config/llm*.yaml`。
-5. `runs/` 不入库：新机器 clone 后没有图。要么连同本机 `runs/` 一起交接，
+6. `runs/` 不入库：新机器 clone 后没有图。要么连同本机 `runs/` 一起交接，
    要么按 `scripts/build_app_graph.py`（不带 `--skip-collect`）重新采集
    （需要设备）。
-6. 探针/标定的“实际值”与预测必须指向同一件事；Task D 之前不要用旧的
+7. 探针/标定的“实际值”与预测必须指向同一件事；Task D 之前不要用旧的
    calibration 数字下结论。
 
 ## 10. 交接清单
 
-- [x] MVP 代码与测试（448 passed）
+- [x] MVP 代码与测试（417 passed）
 - [x] 设计文档、实施计划、Next Round 路线图（commit `5da1862`）
 - [x] 公开报告、证据副本、Pages 站点
 - [x] 本交接文档
-- [ ] Task F → G → H → C → A → B → D → E（见计划）
+- [x] Task F：卡片是契约、计划是描述、agent 执行（93 张卡已迁移，真机 smoke 通过）
+- [ ] Task G → H → C → A → B → D → E（见计划）
 - [ ] 设备、网关、`OPENAI_API_KEY`、`config/llm.yaml` 访问权限移交

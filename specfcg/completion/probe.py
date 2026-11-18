@@ -1,75 +1,55 @@
-"""Execute capability probe plans on a device and record a trace."""
+"""Probe a hypothesized capability by handing it to the GUI agent."""
 
 from __future__ import annotations
 
 import uuid
 
-from specfcg.executor.device import Device
-from specfcg.models import FunctionCard, MissingCapability, Step, Trace
-from specfcg.planner.compiler import StepCompiler
+from specfcg.executor.agent import GuiAgent
+from specfcg.models import MissingCapability, Trace
 
 
-class DeviceProbe:
-    """Walks a hypothesized probe plan on the device and records the trace.
+def render_probe_task(capability: MissingCapability, state: str) -> str:
+    """Render the hypothesis as a task description.
 
-    A probe is a walk, not a script written in advance.  Its later steps act
-    on screens that do not exist yet ("open the dialog", then "tap OK"
-    inside it), so compiling the whole plan against the starting screen
-    names controls that are not there.  Each step is compiled against the
-    screen it will actually run on, and a miss ends the walk -- the steps
-    that did run are evidence of real behavior, so they are kept.
+    The capability is a claim about what the app can do: an intent, what must
+    hold first, what must hold after.  The probe asks the agent to establish
+    that claim from the current screen.  It says nothing about how -- naming
+    controls before anyone has seen the screen was the mistake the old
+    compiled probe made.
     """
+    lines = [
+        f"Overall goal: {capability.intent or capability.name}",
+        "",
+        f"Preconditions: {capability.preconditions or 'none stated'}",
+        f"Postconditions: {capability.postconditions or 'none stated'}",
+    ]
+    if state:
+        lines.extend(["", "Current state:", state[:2000]])
+    return "\n".join(lines)
 
-    def __init__(self, device: Device, compiler: StepCompiler) -> None:
-        self.device = device
-        self.compiler = compiler
+
+class AgentProbe:
+    """Walk a capability hypothesis with the agent and record the trace."""
+
+    def __init__(self, agent: GuiAgent, max_steps: int = 10) -> None:
+        self.agent = agent
+        self.max_steps = max_steps
 
     def run(
-        self, capability: MissingCapability, state: str
+        self, capability: MissingCapability, state: str, app: str = ""
     ) -> Trace | None:
-        if not capability.probe:
+        task = render_probe_task(capability, state)
+        result = self.agent.run(task, self.max_steps, app=app)
+        if not result.steps:
             return None
-
-        trace = Trace(
+        return Trace(
             trace_id=f"probe-{uuid.uuid4().hex}",
-            app="",
+            app=app,
             start_state=state,
             goal=capability.intent or capability.name,
+            steps=list(result.steps),
+            metadata={
+                "final_state": result.final_ui,
+                "probe_task": task,
+            },
         )
-        current_state = state
-        for line in capability.probe:
-            card = FunctionCard(
-                name=capability.name,
-                intent=capability.intent or capability.name,
-                inputs=list(capability.inputs),
-                preconditions=capability.preconditions,
-                postconditions=capability.postconditions,
-                effects_outputs="",
-                steps=[line],
-            )
-            actions = self.compiler.compile(card, {}, state=current_state)
-            if not actions:
-                break
-            action = actions[0]
-            before = current_state
-            succeeded = self.device.execute(
-                action.action, action.target, action.args
-            )
-            after = self.device.dump_ui()
-            trace.steps.append(
-                Step(
-                    action=action.action,
-                    target=action.target,
-                    args=action.args,
-                    before_state=before,
-                    after_state=after,
-                    success=succeeded,
-                )
-            )
-            current_state = after
-            if not succeeded:
-                break
-        if not trace.steps:
-            return None
-        trace.metadata["final_state"] = current_state
-        return trace

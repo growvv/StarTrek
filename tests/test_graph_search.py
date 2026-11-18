@@ -111,11 +111,10 @@ def test_dataflow_only_edges_do_not_authorize_execution():
             "A": FunctionCard(
                 name="A", intent="a", inputs=[], preconditions="",
                 postconditions="", effects_outputs="output",
-                steps=[],
             ),
             "B": FunctionCard(
                 name="B", intent="b", inputs=["value"], preconditions="",
-                postconditions="", effects_outputs="", steps=[],
+                postconditions="", effects_outputs="",
             ),
         },
         edges=[Edge(from_card="A", to_card="B", type="dataflow")],

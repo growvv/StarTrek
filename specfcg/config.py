@@ -25,6 +25,15 @@ class DeviceConfig:
 
 
 @dataclass
+class AgentConfig:
+    """The GUI agent that carries out a plan's description."""
+
+    model: str = "auto/deepseek-v4.1-flash"
+    fallback_model: str = "auto/deepseek-v4.1-flash"
+    max_steps: int = 20
+
+
+@dataclass
 class PathConfig:
     root: str = "."
     cards: str = "cards"
@@ -39,6 +48,7 @@ class PathConfig:
 class AppConfig:
     llm: LLMConfig = field(default_factory=LLMConfig)
     device: DeviceConfig = field(default_factory=DeviceConfig)
+    agent: AgentConfig = field(default_factory=AgentConfig)
     paths: PathConfig = field(default_factory=PathConfig)
 
 
@@ -57,5 +67,6 @@ def load_config(path: Path) -> AppConfig:
     return AppConfig(
         llm=_build(LLMConfig, raw.get("llm")),
         device=_build(DeviceConfig, raw.get("device")),
+        agent=_build(AgentConfig, raw.get("agent")),
         paths=_build(PathConfig, raw.get("paths")),
     )

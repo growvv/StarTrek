@@ -400,49 +400,8 @@ def collect(runs: Path) -> dict:
     """The page's shape: {"apps": [...]}, from the shared scorecard reader."""
     return {
         "apps": collect_entries(runs),
-        "granularity": _load(runs / "granularity.json") or {},
         "cost": _load(runs / "graph-cost.json") or {},
     }
-
-
-def _granularity_cell(record: dict | None) -> str:
-    if not record:
-        return "—"
-    score = record.get("score")
-    if score is None:
-        return "—"
-    return (
-        f"{record.get('distinct', 0)}/{record.get('measured', 0)}"
-        f"（{score:.0%}）"
-    )
-
-
-def _granularity_groups(apps, granularity: dict) -> str:
-    """Cards that send the device the same actions, per app."""
-    rows: list[list[str]] = []
-    for app, entry in apps:
-        if not entry:
-            continue
-        record = granularity.get(app) or {}
-        for group in record.get("duplicate_groups") or []:
-            rows.append([app, "、".join(group)])
-    if not rows:
-        return ""
-    body = "".join(
-        "<tr>"
-        + "".join(f"<td>{html.escape(str(cell))}</td>" for cell in row)
-        + "</tr>"
-        for row in rows
-    )
-    return (
-        "<h3>动作面相同的卡片组</h3>"
-        "<p>同一张卡片组里的卡片编译出的 UI 动作与控件完全相同。它可能是一张卡片"
-        "被挖了两遍（omninotes 的三张 open_note），也可能是同一处点击在不同状态下"
-        "的不同功能（activitydiary 的四个卡片都点活动卡片，靠前置条件区分）。"
-        "这一步只负责把它们指出来，不做合并。</p>"
-        f"<table><thead><tr><th>App</th><th>卡片组</th></tr></thead>"
-        f"<tbody>{body}</tbody></table>"
-    )
 
 
 def _cost_cell(record: dict | None) -> str:
@@ -455,18 +414,15 @@ def _cost_cell(record: dict | None) -> str:
 
 def _graph_section(
     apps: list[tuple[str, dict | None]],
-    granularity: dict | None = None,
     cost: dict | None = None,
 ) -> str:
     """Per-app link to the animated construction journal."""
-    granularity = granularity or {}
     cost = cost or {}
     rows = [
         [
             app,
             f"{entry.get('cards', 0)} 张卡片 / {entry.get('edges', 0)} 条边",
             f"{entry.get('covered', 0)}/{entry.get('functions', 0)}",
-            _granularity_cell(granularity.get(app)),
             _cost_cell(cost.get(app)),
             f'<a href="../graph/{html.escape(app)}.html">构建过程 →</a>',
         ]
@@ -504,7 +460,6 @@ def _graph_section(
         "同一份轨迹也只挖一次：记录图里 omninotes 的 "
         "<code>merge_notes</code> 与 <code>merge_two_notes</code> 就是"
         "<code>omni-merge</code> 被挖了两遍的结果，重建后只会留下一张。</p>"
-        + _granularity_groups(apps, granularity)
     )
 
 
@@ -604,7 +559,6 @@ def render(
     sections.append(
         _graph_section(
             [(entry["app"], entry.get("coverage")) for entry in data["apps"]],
-            data.get("granularity") or {},
             data.get("cost") or {},
         )
     )

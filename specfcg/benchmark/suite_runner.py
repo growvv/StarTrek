@@ -116,7 +116,7 @@ class TaskRunner:
     def run(
         self,
         task: BenchTask,
-        agent: Callable[[str, int], AgentRun],
+        agent: Callable[[BenchTask], AgentRun],
     ) -> TaskOutcome:
         init_error = ""
         try:
@@ -127,7 +127,7 @@ class TaskRunner:
         run = AgentRun()
         if not init_error:
             try:
-                run = agent(task.goal, task.max_steps)
+                run = agent(task)
             except Exception as exc:  # noqa: BLE001
                 run = AgentRun(error=f"agent error: {exc!r}")
 

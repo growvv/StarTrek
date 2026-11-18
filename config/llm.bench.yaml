@@ -11,8 +11,14 @@ llm:
   temperature: 0.0
   cache_dir: .cache/llm-bench-qwen38
 device:
-  serial: 47261FDAS00DTQ
+  serial: emulator-5600
   timeout_s: 30
+# The GUI agent that executes a plan's description. It is the same local model
+# as the planner until the ablation (Task H) compares arms.
+agent:
+  model: Qwen3.8-27B-FP8
+  fallback_model: Qwen3.8-27B-FP8
+  max_steps: 20
 paths:
   root: runs/mobileworld/work
   cards: cards

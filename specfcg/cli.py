@@ -13,9 +13,11 @@ from typing import Any
 
 from specfcg.cards.store import CardStore
 from specfcg.completion.completer import CapabilityCompleter
-from specfcg.completion.probe import DeviceProbe
+from specfcg.completion.probe import AgentProbe
 from specfcg.config import AppConfig, load_config
 from specfcg.executor.device import FakeDevice, Uiautomator2Device
+from specfcg.executor.agent import ScriptedAgent
+from specfcg.executor.mobile_agent_backend import MobileAgentBackend
 from specfcg.executor.executor import Executor
 from specfcg.executor.summarizer import PlainStateSummarizer
 from specfcg.graph.store import GraphStore
@@ -26,7 +28,6 @@ from specfcg.maintainer.miner import CardMiner
 from specfcg.maintainer.updater import GraphUpdater
 from specfcg.pipeline import Pipeline
 from specfcg.planner.binding import ParamBinder
-from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.planner import Planner
 from specfcg.planner.retrieval import CardRetriever
 from specfcg.traces.recorder import TraceParseError, trace_from_dict
@@ -40,8 +41,6 @@ _OFFLINE_CARD = """# create_note
 **Preconditions**: On the notes list.
 **Postconditions**: A note exists.
 **Effects/Outputs**: A new note in the list.
-**Steps**:
-1. Tap Next
 **Evidence**: traces offline; 1/1 successes
 """
 
@@ -56,7 +55,7 @@ class _OfflineLLM:
         system: str | None = None,
         temperature: float = 0.0,
     ) -> str:
-        if "Write one Markdown function card" in prompt:
+        if "Write one reusable Markdown function card" in prompt:
             return _OFFLINE_CARD
         return "screen: notes list; visible: notes and a plus button"
 
@@ -111,14 +110,6 @@ class _OfflineLLM:
                 if name:
                     bound[name] = value
             return {"bindings": bound}
-        if "Convert these function-card steps" in prompt:
-            return {
-                "steps": [
-                    {"action": "click", "target": "text=Next", "args": ""}
-                ]
-            }
-        if "Are the postconditions satisfied" in prompt:
-            return {"satisfied": True}
         if "Is the goal achieved" in prompt:
             return {"achieved": True}
         if "Infer directed semantic edges" in prompt:
@@ -156,20 +147,32 @@ def build_pipeline(
     )
     builder = EdgeBuilder(llm)
     miner = CardMiner(llm, card_store)
-    compiler = StepCompiler(llm)
     graph = store.load()
-    planner = Planner(
-        graph, llm, CardRetriever(llm), ParamBinder(llm), compiler
-    )
+    planner = Planner(graph, llm, CardRetriever(llm), ParamBinder(llm))
     summarizer = PlainStateSummarizer()
-    executor = Executor(device, llm, summarizer, graph)
+    if fake_device:
+        agent = ScriptedAgent(
+            steps=[], initial_ui="offline state", final_ui="offline state"
+        )
+    else:
+        agent = MobileAgentBackend(
+            config.device.serial,
+            config.agent.model,
+            config.agent.fallback_model,
+            root / "agent",
+            base_url=config.llm.base_url,
+            api_key=os.environ.get(config.llm.api_key_env, ""),
+        )
+    executor = Executor(
+        agent, llm, graph, summarizer, max_steps=config.agent.max_steps
+    )
     updater = GraphUpdater(llm, store, builder)
     completer = CapabilityCompleter(
         llm,
         store,
         miner,
         builder,
-        DeviceProbe(device, compiler),
+        AgentProbe(agent),
     )
     return Pipeline(
         config,
@@ -270,6 +273,13 @@ def main(argv: list[str] | None = None) -> int:
                 Path(args.segments) if args.segments else None
             )
             return _cmd_build_graph(pipeline, segments_path)
+        # The executor no longer launches the app: the caller owns the
+        # screen.  Every command that plans or executes starts it first, and
+        # the fake device's start_app is a no-op.
+        if args.command in {"plan", "execute", "refine", "run", "complete"}:
+            if args.app:
+                pipeline.device.start_app(args.app)
+
         if args.command == "plan":
             plan = pipeline.plan(args.goal, args.state, args.app)
             _print_json(asdict(plan) if plan is not None else None)

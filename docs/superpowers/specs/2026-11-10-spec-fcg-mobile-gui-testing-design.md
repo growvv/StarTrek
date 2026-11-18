@@ -38,7 +38,7 @@
 ## 2. 核心主张与贡献
 
 1. **Function card 作为可组合单元**：每个用户级任务（如 `create_note`、`attach_photo`、`share_note`）用自然语言 contract 描述，带最小结构字段（inputs/outputs/pre/post/steps/evidence）。
-2. **Function Contract Graph（FCG）**：节点是 function card，边是 `enables` / `dataflow` / `sequence`（可选 `calls`），边用自然语言描述语义，只用 type tag 支持遍历排序。
+2. **Function Contract Graph（FCG）**：节点是 function card，边是 `enables` / `dataflow` / `sequence`，边用自然语言描述语义，只用 type tag 支持遍历排序。
 3. **Goal-driven graph traversal**：给定自然语言 goal，Planner 在 FCG 上做 BFS/DFS/A\*；LLM 只判断“当前状态能否执行该 function、参数是什么、是否推进 goal”，全局路径搜索由算法完成。
 4. **LLM-native graph maintenance**：执行结果直接触发卡片/边的 patch；图随使用变强，而不是一次性构建。
 5. **Abductive capability completion**：目标不可达时，LLM 推断缺失能力，生成 probe，执行验证后补图；失败记为 negative capability。
@@ -69,11 +69,6 @@
 **Preconditions**: Logged in; on the notes list screen.
 **Postconditions**: A note with the given title appears in the notes list.
 **Effects/Outputs**: Adds a note to the list; the new note is identified by its title.
-**Steps**:
-1. Tap "+".
-2. Enter the title.
-3. Enter the content.
-4. Tap "Save".
 **Evidence**: traces t1, t2; 2/2 successes.
 ```
 
@@ -86,8 +81,10 @@
 | `Preconditions` | Planner 判断能否执行 |
 | `Postconditions` | 执行后校验、目标判定 |
 | `Effects/Outputs` | 数据流边、参数传递 |
-| `Steps` | 合成测试步骤 |
 | `Evidence` | 路径排序、置信度（成功数/总数 + trace 引用） |
+
+卡片**不含 UI 动作**：它描述一个函数需要什么、产出什么，不记录某一次是怎么点出来的。
+带 `**Steps**` 段的旧卡片会被解析器显式拒绝（`CardParseError`），迁移脚本只删该段。
 
 ### 4.2 Function Contract Graph（FCG）
 
@@ -98,7 +95,6 @@
   - `enables`：执行 from 后，to 的 preconditions 更可能满足；
   - `dataflow`：from 的 outputs 被 to 的 inputs/preconditions 使用；
   - `sequence`：轨迹中观测到 from 后紧接 to；
-  - `calls`（可选）：from 的 steps 内部包含 to；用户级粒度下较少使用。
 
 边的 `description` 是自然语言，例如：
 
@@ -161,7 +157,7 @@ Recent actions: opened app, tapped "+"
 
 ### 4.7 术语与度量定义
 
-- **Card validity**：人工判定卡片的 Intent / Preconditions / Postconditions / Steps 是否正确且可执行。
+- **Card validity**：人工判定卡片的 Intent / Preconditions / Postconditions 是否正确且可执行。
 - **Path recall**：held-out trace 的 function 序列能否在 FCG 中重建为一条路径；按 trace 比例计算。
 - **Evidence success rate**：`Evidence` 中成功次数 / 总尝试次数，用于路径排序。
 - **Goal relevance**：LLM 对“该 function 是否推进当前 goal”的 0–1 评分。
@@ -186,8 +182,8 @@ Recent actions: opened app, tapped "+"
 | **Trace Collector** | 用 ProphetAgent/Droidbot 执行用例或探索；记录状态、动作、截图、view tree、日志 | `collect(app, policy) -> Trace[]` |
 | **Graph Maintainer** | LLM 读轨迹/执行结果，写/改 function card 和边；拆分/合并；处理补全 | `mine(trace) -> CardPatch`；`update(result) -> GraphPatch` |
 | **Graph Store** | 存 cards + edges；提供 BFS/DFS/A\*、邻接查询、版本备份 | `load()`, `neighbors(card)`, `search(goal, ...)`, `apply(patch)` |
-| **Planner** | goal + state summary → 图搜索 → function 序列 + 参数绑定 + 测试步骤 | `plan(goal, state) -> TestPlan` |
-| **Executor** | 把步骤落地成 UI 动作；执行；生成 state summary；校验 postcondition/goal | `execute(plan) -> RunResult` |
+| **Planner** | goal + state summary → 图搜索 → function 序列 + 参数绑定 + 任务描述 | `plan(goal, state) -> TestPlan` |
+| **Executor** | 把任务描述交给 GUI agent 执行；校验 goal 与 postcondition | `execute(plan) -> RunResult` |
 
 ### 5.2 数据流
 
@@ -195,7 +191,7 @@ Recent actions: opened app, tapped "+"
 2. Maintainer 把 Trace 变成 `CardPatch`（新增/更新卡片、边）。
 3. Store 应用 patch，更新 FCG。
 4. Planner 读 goal + state summary + FCG，产出 `TestPlan`。
-5. Executor 执行 `TestPlan`，产出 `RunResult` + 新 Trace。
+5. Executor 把 `TestPlan.description` 交给 GUI agent，产出 `RunResult` + 新 Trace；没有任何录制的动作被回放。
 6. Maintainer 读 `RunResult`，产出 `GraphPatch`；必要时触发 capability completion，回到 1。
 
 ### 5.3 目录结构
@@ -247,7 +243,7 @@ project/
 步骤：
 
 1. **切分**：LLM 根据页面变化、动作语义、目标完成信号，把 trace 切成用户级 function episode。
-2. **写卡**：每个 episode 生成一张 function card（Intent / Inputs / Pre / Post / Effects / Steps / Evidence）。
+2. **写卡**：每个 episode 生成一张 function card（Intent / Inputs / Pre / Post / Effects / Evidence）；模型写不出契约就不产出卡片，不再用轨迹动作兜底。
 3. **合并**：与已有卡片比较；同一 function 则合并 evidence、保留 steps 变体。
 4. **拆分**：若一张卡片的 evidence 内部差异大，拆成多张。
 5. **校验**：重放步骤；成功才写入图；失败则降低 evidence 或丢弃。
@@ -262,7 +258,6 @@ Trace ──► LLM segmentation ──► per-episode card draft ──► merg
   - `enables`：LLM 读 `f.Postconditions` 与 `g.Preconditions`，判断是否满足/可能满足；
   - `dataflow`：LLM 读 `f.Effects/Outputs` 与 `g.Inputs`，判断是否有数据依赖；
   - `sequence`：trace 中相邻出现；
-  - `calls`（可选）：`f.Steps` 包含 `g.Steps`。
 - 边写入 `edges.jsonl`，带 `description` 和 `evidence`。
 - 无证据的边不入图；`sequence` 边可作为低优先级先验。
 - 定期人工抽检边的 precision。
@@ -277,19 +272,20 @@ Trace ──► LLM segmentation ──► per-episode card draft ──► merg
    只有“能执行且（推进 goal 或解锁后续能力）”才扩展。
 3. **路径排序**：按 evidence 成功率、路径长度、LLM 评分排序；取 top-k。
 4. **参数绑定**：优先用 goal 中的值；其次用前序卡片的 `Effects/Outputs`；再次用 state summary 中的实体；最后 LLM 生成合理值。
-5. **步骤合成**：把路径上各卡片的 `Steps` 按参数拼接；必要时让 LLM 做平滑/补充。
+5. **任务描述**：把路径上的卡片契约按参数串成一段任务描述（整体 goal + 有序 subgoals），由确定性的 `TaskDescriber` 渲染，不调用 LLM，也不点名任何 UI 动作。
 6. **无路径**：触发 capability completion。
-7. **输出**：`TestPlan`（JSON）+ 可执行步骤。
+7. **输出**：`TestPlan`（JSON）+ `description`（交给 agent 的任务描述）。
 
 ### 6.5 Execution
 
-- 复用 ProphetAgent 的 CUTG/事件匹配与 uiautomator2 执行。
-- 每步之后：
-  - 生成新的 state summary；
-  - 记录实际动作、截图、日志；
-  - 若控件找不到，尝试 CUTG 匹配/回滚，或触发重新规划。
-- 每个 function 之后：LLM 读 state summary + card.Postconditions，判断是否满足。
-- 整条路径之后：LLM 读 goal + state summary，判断 goal 是否达成。
+- Executor 把 `TestPlan.description` 交给 GUI agent（`GuiAgent.run`），由 agent 自己观察屏幕并决定动作。
+  没有任何录制的动作被回放。
+- agent 从当前屏幕开始行动，不自己启动 app：启动由调用方负责（benchmark 的 `prepare_state`、
+  `fresh_app`、CLI 的 `--app`），否则会清掉刚准备好的状态。
+- 每步记录动作、动作前后的 UI 文本与截图。
+- 整条路径之后：LLM 读 goal + assertions + 动作日志 + 最终 UI，判断 goal 是否达成。
+  agent 自报的 `done` 只记录，不作为判定。
+- agent 抛错时产出带 `error` 的 trace 和 `environment_failure`，不抛异常打断批量实验。
 - 产出 `RunResult` + 新 trace。
 
 ### 6.6 Graph maintenance

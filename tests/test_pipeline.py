@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from specfcg.cards.store import CardStore
 from specfcg.completion.completer import CapabilityCompleter
-from specfcg.completion.probe import DeviceProbe
+from specfcg.completion.probe import AgentProbe
 from specfcg.config import AppConfig
 from specfcg.executor.device import FakeDevice
+from specfcg.executor.agent import ScriptedAgent
 from specfcg.executor.executor import Executor
 from specfcg.executor.summarizer import StateSummarizer
 from specfcg.graph.store import GraphStore
@@ -16,10 +17,10 @@ from specfcg.models import (
     FunctionCard,
     GraphPatch,
     MissingCapability,
+    Step,
 )
 from specfcg.pipeline import Pipeline
 from specfcg.planner.binding import ParamBinder
-from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.planner import Planner
 from specfcg.planner.retrieval import CardRetriever
 from tests.fakes import FakeProbe
@@ -31,8 +32,6 @@ CARD_MARKDOWN = """# create_note
 **Preconditions**: On the notes list.
 **Postconditions**: A note exists.
 **Effects/Outputs**: A new note in the list.
-**Steps**:
-1. Tap Next
 **Evidence**: traces t1; 1/1 successes
 """
 
@@ -43,8 +42,6 @@ SHARE_MARKDOWN = """# share_note
 **Preconditions**: A note exists.
 **Postconditions**: The note is shared.
 **Effects/Outputs**: The note leaves the app.
-**Steps**:
-1. Tap Share
 **Evidence**: traces t1; 1/1 successes
 """
 
@@ -71,7 +68,6 @@ def _card(name: str) -> FunctionCard:
         preconditions="",
         postconditions=f"{name} done",
         effects_outputs="",
-        steps=['Tap "Next"'],
     )
 
 
@@ -83,6 +79,7 @@ def _pipeline(
     cards=(),
     edges=(),
     probe=None,
+    agent=None,
 ) -> Pipeline:
     card_store = CardStore(tmp_path)
     for card in cards:
@@ -113,9 +110,9 @@ def _pipeline(
         llm,
         CardRetriever(llm),
         ParamBinder(llm),
-        StepCompiler(llm),
     )
-    executor = Executor(device, llm, StateSummarizer(llm), graph)
+    agent = agent or ScriptedAgent()
+    executor = Executor(agent, llm, graph, StateSummarizer(llm))
     updater = GraphUpdater(llm, store, builder)
     completer = CapabilityCompleter(
         llm,
@@ -252,7 +249,8 @@ def test_plan_wraps_goal_text(tmp_path, fake_llm, fake_device):
     assert plan is not None
     assert plan.goal.description == "create a note"
     assert plan.path == ["create_note"]
-    assert plan.steps[0].action == "click"
+    assert plan.description.startswith("Overall goal: create a note")
+    assert "1. create_note" in plan.description
 
 
 def test_plan_uses_app_package(tmp_path, fake_llm, fake_device):
@@ -289,6 +287,8 @@ def test_execute_goal_starts_target_package(
         tmp_path, fake_llm, fake_device, cards=[_card("create_note")]
     )
 
+    # The executor no longer launches: the caller owns the screen.
+    pipeline.device.start_app("com.example.omninotes")
     result = pipeline.execute_goal(
         "create a note",
         "Notes list",
@@ -304,12 +304,11 @@ def test_execute_goal_starts_target_package(
 def test_run_goal_executes_and_applies_success_patch(
     tmp_path, fake_llm, fake_device
 ):
-    # The card names its target ('Tap "Next"'), so it compiles without an
-    # LLM round trip; the queue starts at the post-plan summarize call.
+    # A plan is a description now, so there is no compile call.  The queue
+    # is the batch classification, the initial-state summary, the goal check.
     fake_llm.responses = [
         _batch(True, True),
         "Notes list with a plus button",
-        {"satisfied": True},
         {"achieved": True},
     ]
     pipeline = _pipeline(
@@ -337,16 +336,13 @@ def test_run_goal_completes_missing_capability_and_retries(
                 {
                     "name": "create_note",
                     "intent": "create a note",
-                    "probe": ["tap +"],
                     "confidence": 0.9,
                 }
             ]
         },
         CARD_MARKDOWN,
         _batch(True, True),
-        {"steps": [{"action": "click", "target": "text=Next"}]},
         "Notes list with a plus button",
-        {"satisfied": True},
         {"achieved": True},
     ]
     probe = FakeProbe()
@@ -377,85 +373,42 @@ def test_run_goal_reports_failure_when_no_plan_and_no_completion(
     assert summary["path"] == []
 
 
-def test_device_probe_compiles_and_executes(fake_llm, fake_device):
-    fake_llm.responses = [
-        {"steps": [{"action": "click", "target": "text=Attach"}]}
-    ]
-    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
-    capability = MissingCapability(
-        name="attach_photo",
-        intent="attach a photo",
-        probe=["Tap Attach"],
+def test_a_hypothesis_is_probed_by_the_agent_not_by_compiled_lines():
+    agent = ScriptedAgent(steps=[Step(action="click", target="text=New")])
+    trace = AgentProbe(agent).run(
+        MissingCapability(name="add_tag", intent="Add a tag"), "",
+        app="it.feio.android.omninotes.foss",
     )
-
-    trace = probe.run(capability, "note open")
-
-    assert trace is not None
-    assert trace.trace_id.startswith("probe-")
-    assert trace.steps[0].action == "click"
-    assert fake_device.calls == [("click", "text=Attach", "")]
+    assert "Add a tag" in agent.tasks[0]
+    assert agent.apps == ["it.feio.android.omninotes.foss"]
+    assert [step.target for step in trace.steps] == ["text=New"]
 
 
-def test_device_probe_grounds_each_step_in_the_screen_it_runs_on(
-    fake_llm, fake_device
-):
-    """A probe is a walk, not a script written in advance.
+def test_a_probe_that_acts_nothing_yields_no_trace():
+    assert AgentProbe(ScriptedAgent(steps=[])).run(
+        MissingCapability(name="add_tag", intent="Add a tag"), ""
+    ) is None
 
-    A capability's later steps act on screens that do not exist yet ("open
-    the dialog", then "tap OK" inside it).  Compiling all of them against
-    the starting screen names controls that are not there, and aborting on
-    the first miss discards the walk before the screen it needed appears.
-    Each step is compiled against the screen it will actually run on.
-    """
-    fake_device.states = ["home", "menu open", "dialog open"]
-    fake_llm.responses = [
-        {"steps": [{"action": "click", "target": "text=Menu"}]},
-        {"steps": [{"action": "click", "target": "text=New"}]},
-    ]
-    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
-    capability = MissingCapability(
-        name="create_type",
-        intent="create a type",
-        probe=["Tap Menu", "Tap New"],
+
+def test_the_probe_task_states_the_contract_and_the_current_screen():
+    agent = ScriptedAgent(steps=[Step(action="click", target="text=New")])
+    AgentProbe(agent).run(
+        MissingCapability(
+            name="add_tag",
+            intent="Add a tag",
+            preconditions="a note is open",
+            postconditions="the note carries a tag",
+        ),
+        "note detail",
     )
-
-    trace = probe.run(capability, "home")
-
-    assert trace is not None
-    assert [step.target for step in trace.steps] == ["text=Menu", "text=New"]
-    # The second step's prompt sees the screen the first step produced.
-    assert "menu open" in fake_llm.prompts[1]
-
-
-def test_device_probe_keeps_what_it_learned_before_a_miss(
-    fake_llm, fake_device
-):
-    """A miss ends the walk, not the evidence: the steps that ran are a
-    trace of real behavior and are returned."""
-    fake_device.states = ["home"]
-    fake_device.action_results = [True, False]
-    fake_llm.responses = [
-        {"steps": [{"action": "click", "target": "text=Menu"}]},
-        {"steps": [{"action": "click", "target": "text=Missing"}]},
-    ]
-    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
-
-    trace = probe.run(
-        MissingCapability(name="x", probe=["Tap Menu", "Tap Missing"]),
-        "home",
-    )
-
-    assert trace is not None
-    assert [step.success for step in trace.steps] == [True, False]
-
-
-def test_device_probe_with_no_probe_plan_returns_none(fake_llm, fake_device):
-    probe = DeviceProbe(fake_device, StepCompiler(fake_llm))
-    capability = MissingCapability(name="attach_photo", probe=[])
-
-    assert probe.run(capability, "note open") is None
-    assert fake_llm.calls == 0
-    assert fake_device.calls == []
+    task = agent.tasks[0]
+    assert "Overall goal: Add a tag" in task
+    assert "Preconditions: a note is open" in task
+    assert "Postconditions: the note carries a tag" in task
+    assert "Current state:" in task
+    assert "note detail" in task
+    # No UI action is named: the agent finds the controls.
+    assert "click" not in task.lower() and "tap" not in task.lower()
 
 
 def test_journal_reason_names_the_trace_and_what_it_added(

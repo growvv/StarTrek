@@ -21,13 +21,10 @@ _FIELD_ALIASES = {
     "preconditions": "preconditions",
     "postconditions": "postconditions",
     "effects_outputs": "effects_outputs",
-    "steps": "steps",
     "evidence": "evidence",
     "success_count": "success_count",
     "attempt_count": "attempt_count",
 }
-
-_FIELD_SPLIT_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+")
 
 
 def _normalize_field(key: str) -> str | None:
@@ -35,22 +32,16 @@ def _normalize_field(key: str) -> str | None:
     return _FIELD_ALIASES.get(normalized)
 
 
-def _split_values(value: str, *, numbered: bool) -> list[str]:
-    if numbered:
-        items = [
-            _FIELD_SPLIT_RE.sub("", line).strip()
-            for line in value.splitlines()
-        ]
-    else:
-        items = [item.strip() for item in value.split(",")]
+def _split_values(value: str) -> list[str]:
+    items = [item.strip() for item in value.split(",")]
     return [item for item in items if item]
 
 
 def _coerce(attr: str, value: Any) -> Any:
-    if attr in {"inputs", "steps", "evidence"}:
+    if attr in {"inputs", "evidence"}:
         if isinstance(value, list):
             return [str(item) for item in value]
-        return _split_values(str(value), numbered=attr == "steps")
+        return _split_values(str(value))
     if attr in {"success_count", "attempt_count"}:
         return int(value)
     return str(value)

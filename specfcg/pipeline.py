@@ -135,6 +135,14 @@ class Pipeline:
         )
         return edges
 
+    def observe(self, app: str) -> str:
+        """The screen the agent sees, for planning a plan it will execute.
+
+        Planning from the same client the agent acts through is what keeps
+        the state a plan is made from equal to the state it acts on.
+        """
+        return self.executor.agent.observe(app)
+
     def plan(
         self, goal_text: str, state: str = "", app: str = ""
     ) -> TestPlan | None:

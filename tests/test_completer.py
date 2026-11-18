@@ -45,14 +45,13 @@ def test_complete_adds_card_on_successful_probe(
                     "preconditions": "note exists",
                     "postconditions": "photo attached",
                     "inputs": ["note", "photo"],
-                    "probe": ["open note", "tap attach"],
                     "confidence": 0.8,
                 }
             ]
         },
         "# attach_photo\n\n**Intent**: attach a photo\n**Inputs**: note, photo\n"
         "**Preconditions**: note exists\n**Postconditions**: photo attached\n"
-        "**Effects/Outputs**: note has photo\n**Steps**:\n1. Tap attach\n"
+        "**Effects/Outputs**: note has photo\n1. Tap attach\n"
         "**Evidence**: traces t9; 1/1 successes",
         {"edges": []},
     ]
@@ -79,13 +78,12 @@ def test_complete_adds_semantic_edges_for_new_card(
                 {
                     "name": "attach_photo",
                     "intent": "attach a photo",
-                    "probe": ["tap attach"],
                 }
             ]
         },
         "# attach_photo\n\n**Intent**: attach a photo\n**Inputs**: none\n"
         "**Preconditions**: note exists\n**Postconditions**: photo attached\n"
-        "**Effects/Outputs**: photo attached\n**Steps**:\n1. Tap attach\n"
+        "**Effects/Outputs**: photo attached\n1. Tap attach\n"
         "**Evidence**: traces t9; 1/1 successes",
         {
             "edges": [
@@ -128,13 +126,12 @@ def test_complete_merges_existing_card_on_name_collision(
                 {
                     "name": "create_note",
                     "intent": "create a note",
-                    "probe": ["tap plus"],
                 }
             ]
         },
         "# create_note\n\n**Intent**: Create a note.\n**Inputs**: none\n"
         "**Preconditions**: note exists\n**Postconditions**: created\n"
-        "**Effects/Outputs**: note\n**Steps**:\n1. Tap plus\n"
+        "**Effects/Outputs**: note\n1. Tap plus\n"
         "**Evidence**: traces t9; 1/1 successes",
         {"edges": []},
     ]
@@ -197,13 +194,16 @@ def test_empty_hypotheses_returns_none(
     )
 
 
-def test_hypotheses_probe_may_walk_onto_later_screens(
+def test_hypotheses_name_no_controls(
     fake_llm, graph_store, card_miner, edge_builder, fake_probe
 ):
-    """The probe executes step by step and grounds each step on the screen
-    it runs on, so a later step may name a control that only appears after
-    an earlier one.  The prompt must say so, or the model confines itself to
-    controls already visible and proposes one-step probes."""
+    """A hypothesis states a contract; the agent finds the controls.
+
+    The old prompt asked for a probe plan whose first step named a visible
+    control.  That made the model guess this build's wording before anyone
+    had seen the screen, which is exactly the failure a screen-seeing agent
+    avoids.
+    """
     fake_llm.responses = [{"gap": "need checklist"}, {"capabilities": []}]
 
     _completer(
@@ -216,8 +216,8 @@ def test_hypotheses_probe_may_walk_onto_later_screens(
     )
 
     prompt = fake_llm.prompts[-1]
-    assert "first step" in prompt.lower()
-    assert "later step" in prompt.lower()
+    assert "do not write a step-by-step plan" in prompt.lower()
+    assert "do not name controls" in prompt.lower()
 
 
 def test_hypotheses_are_grounded_in_the_observed_screen(

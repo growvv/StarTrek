@@ -32,7 +32,6 @@ sys.path.insert(0, str(ROOT))
 
 from specfcg.benchmark.agents import (  # noqa: E402
     RandomTraversalAgent,
-    execute_plan,
 )
 from specfcg.benchmark.suite_runner import AgentRun  # noqa: E402
 from specfcg.benchmark.coverage_eval import (  # noqa: E402
@@ -174,15 +173,29 @@ def run_probes(
         plan = pipeline.plan_path(probe.goal, probe.predicted_path)
         if plan is None:
             run = AgentRun(steps=[], no_plan=True)
-            observed = device.dump_ui()
+            observed = pipeline.observe(package)
         else:
-            run = execute_plan(
-                device,
-                plan,
-                max_steps=steps,
-                reached_cards=set(),
+            # The probe predicted a path; the walk that tests the prediction
+            # executes exactly that plan, through the same agent the
+            # benchmark uses.
+            result = pipeline.executor.execute(plan, max_steps=steps)
+            run = AgentRun(
+                steps=[
+                    {
+                        "action": item.get("action", ""),
+                        "target": item.get("target", ""),
+                        "args": item.get("args", ""),
+                        "ok": bool(item.get("success")),
+                    }
+                    for item in result.step_results
+                ],
+                done=bool(result.success),
+                predicted_path=list(plan.path),
+                reached_cards=list(plan.path) if result.success else [],
+                observed_ui=[item.get("before", "") for item in result.step_results],
+                error=result.error,
             )
-            observed = "\n".join(run.observed_ui) + "\n" + device.dump_ui()
+            observed = "\n".join(run.observed_ui)
         probe.reached = evidence_hit(function, observed)
         probe.observed_evidence = (
             next(

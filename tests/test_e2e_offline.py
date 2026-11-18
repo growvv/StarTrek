@@ -6,15 +6,16 @@ from specfcg.cards.store import CardStore
 from specfcg.completion.completer import CapabilityCompleter
 from specfcg.config import AppConfig
 from specfcg.executor.device import FakeDevice
+from specfcg.executor.agent import ScriptedAgent
 from specfcg.executor.executor import Executor
 from specfcg.executor.summarizer import StateSummarizer
 from specfcg.graph.store import GraphStore
 from specfcg.maintainer.builder import EdgeBuilder
 from specfcg.maintainer.miner import CardMiner
 from specfcg.maintainer.updater import GraphUpdater
+from specfcg.models import Step
 from specfcg.pipeline import Pipeline
 from specfcg.planner.binding import ParamBinder
-from specfcg.planner.compiler import StepCompiler
 from specfcg.planner.planner import Planner
 from specfcg.planner.retrieval import CardRetriever
 from tests.fakes import FakeLLMClient, FakeProbe
@@ -26,8 +27,6 @@ CARD_MARKDOWN = """# create_note
 **Preconditions**: On the notes list.
 **Postconditions**: A note exists and is shared.
 **Effects/Outputs**: A new shared note.
-**Steps**:
-1. Tap Next
 **Evidence**: traces t1; 1/1 successes
 """
 
@@ -50,9 +49,7 @@ def _fixture_env(tmp_path, sample_trace):
                     }
                 ]
             },
-            {"steps": [{"action": "click", "target": "text=Next"}]},
             "Notes list with a plus button",
-            {"satisfied": True},
             {"achieved": True},
         ]
     )
@@ -67,9 +64,13 @@ def _fixture_env(tmp_path, sample_trace):
         llm,
         CardRetriever(llm),
         ParamBinder(llm),
-        StepCompiler(llm),
     )
-    executor = Executor(device, llm, StateSummarizer(llm), graph)
+    agent = ScriptedAgent(
+        steps=[Step(action="click", target="text=Next")],
+        initial_ui="Notes list",
+        final_ui="Editor",
+    )
+    executor = Executor(agent, llm, graph, StateSummarizer(llm))
     updater = GraphUpdater(llm, store, builder)
     completer = CapabilityCompleter(
         llm, store, miner, builder, FakeProbe()

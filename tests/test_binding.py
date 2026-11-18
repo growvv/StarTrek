@@ -191,5 +191,4 @@ def _delete_card():
         preconditions="a note is open",
         postconditions="the note is gone",
         effects_outputs="note deleted",
-        steps=["Tap the menu item text='{delete_note_label}'."],
     )

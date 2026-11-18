@@ -25,14 +25,14 @@ _GAP_SCHEMA = '{"gap": "missing capability or null", "blocked_precondition": "..
 _CAPABILITY_SCHEMA = (
     '{"capabilities": [{"name": "attach_photo", '
     '"intent": "attach a photo", "preconditions": "...", '
-    '"postconditions": "...", "inputs": [], "probe": [], '
+    '"postconditions": "...", "inputs": [], '
     '"confidence": 0.5}]}'
 )
 
 
 class ProbeRunner(Protocol):
     def run(
-        self, capability: MissingCapability, state: str
+        self, capability: MissingCapability, state: str, app: str = ""
     ) -> Trace | None: ...
 
 
@@ -89,12 +89,12 @@ class CapabilityCompleter:
             f"Goal: {goal.description}\nMissing capability: {gap}\n\n"
             f"Current screen:\n{state[:4000]}\n\n"
             f"Propose up to {max_hypotheses} missing capabilities as "
-            "concrete user-level functions with pre/postconditions and a "
-            "short probe plan. The first step must name a control that is "
-            "visible on the current screen, exactly as written there -- the "
-            "build's own language, not a translation. A later step may act "
-            "on a screen an earlier step opens; name its control by the "
-            "visible label the build uses, never by an invented resource id."
+            "concrete user-level functions: an intent, what must hold "
+            "before, and what must hold after. Do not write a step-by-step "
+            "plan and do not name controls: a probe is handed to a GUI "
+            "agent that can see the screen, and guessing the controls "
+            "before anyone has seen it is how a hypothesis becomes a "
+            "guess about this build's wording."
         )
         try:
             data = self.llm.complete_json(prompt, _CAPABILITY_SCHEMA)
@@ -113,7 +113,6 @@ class CapabilityCompleter:
             if not isinstance(name, str) or not name.strip():
                 continue
             raw_inputs = item.get("inputs") or []
-            raw_probe = item.get("probe") or []
             confidence = item.get("confidence", 0.0)
             capabilities.append(
                 MissingCapability(
@@ -124,11 +123,6 @@ class CapabilityCompleter:
                     inputs=(
                         [str(value) for value in raw_inputs]
                         if isinstance(raw_inputs, list)
-                        else []
-                    ),
-                    probe=(
-                        [str(value) for value in raw_probe]
-                        if isinstance(raw_probe, list)
                         else []
                     ),
                     confidence=(
@@ -174,6 +168,15 @@ class CapabilityCompleter:
             "intent": capability.intent or capability.name,
         }
         card = self.miner.draft(episode, trace)
+        if card is None:
+            # No contract means no card: a card built from the probe's actions
+            # would be a transcript, and the hypothesis' own pre/postconditions
+            # would be the only thing distinguishing it from a replay.
+            logger.warning(
+                "probe for %s produced no contract; no card added",
+                capability.name,
+            )
+            return None
         if not card.preconditions and capability.preconditions:
             card.preconditions = capability.preconditions
         if not card.postconditions and capability.postconditions:
@@ -206,7 +209,6 @@ class CapabilityCompleter:
                 "preconditions",
                 "postconditions",
                 "effects_outputs",
-                "steps",
             ):
                 if not getattr(existing, attr) and getattr(card, attr):
                     fields[attr] = getattr(card, attr)
@@ -266,7 +268,9 @@ class CapabilityCompleter:
                 hypotheses_used += 1
                 probes_used += 1
 
-                trace = self.probe.run(capability, state)
+                trace = self.probe.run(
+                    capability, state, app=goal.app
+                )
                 if trace is None:
                     self._record_negative(
                         goal, capability, "probe returned no trace"

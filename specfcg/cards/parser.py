@@ -17,16 +17,21 @@ _REQUIRED = (
     "Preconditions",
     "Postconditions",
     "Effects/Outputs",
-    "Steps",
     "Evidence",
 )
+
+# A section a card used to carry and must no longer carry.  Rejecting it is
+# deliberate: without a rule the heading is unrecognised and its prose is
+# silently absorbed into the section above it, so a card would keep its
+# recorded taps alive as preconditions.
+_RETIRED = ("Steps",)
 
 _NAME_RE = re.compile(r"^#\s+(.+?)\s*$")
 _SECTION_RE = re.compile(
     r"^\*\*(Intent|Inputs|Preconditions|Postconditions|Effects/Outputs|"
-    r"Steps|Evidence)\s*:?\*\*\s*:?\s*(.*)$"
+    r"Evidence)\s*:?\*\*\s*:?\s*(.*)$"
 )
-_STEP_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
+_RETIRED_RE = re.compile(r"^\*\*(Steps)\s*:?\*\*\s*:?\s*(.*)$")
 _BULLET_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s+(.*)$")
 # A declaration starts with `name (required|optional)`.  Only that shape
 # starts a new input: every other comma belongs to the description of the
@@ -129,13 +134,6 @@ def _parse_inputs(lines: list[str]) -> list[str]:
     ]
 
 
-def _parse_steps(lines: list[str]) -> list[str]:
-    steps = [match.group(1) for line in lines if (match := _STEP_RE.match(line))]
-    if steps:
-        return steps
-    return [line.strip() for line in lines if line.strip()]
-
-
 def _parse_evidence(text: str) -> tuple[list[str], int, int]:
     refs_match = re.search(r"traces?\s*:?\s*(.*?)(?:;|$)", text, re.IGNORECASE)
     refs = refs_match.group(1).strip() if refs_match else ""
@@ -188,7 +186,14 @@ def parse_card(text: str) -> FunctionCard:
             rest = match.group(2).strip()
             if rest:
                 sections[current].append(rest)
-        elif current is not None:
+            continue
+        retired = _RETIRED_RE.match(line)
+        if retired:
+            raise CardParseError(
+                f"the {retired.group(1)} section was removed: "
+                "a card is a contract, not a script"
+            )
+        if current is not None:
             sections[current].append(line)
         elif line.strip():
             raise CardParseError(f"content outside a section: {line!r}")
@@ -212,7 +217,6 @@ def parse_card(text: str) -> FunctionCard:
         preconditions=_section_text(sections, "Preconditions"),
         postconditions=_section_text(sections, "Postconditions"),
         effects_outputs=_section_text(sections, "Effects/Outputs"),
-        steps=_parse_steps(sections["Steps"]),
         evidence=evidence,
         success_count=success_count,
         attempt_count=attempt_count,
@@ -234,8 +238,6 @@ def render_card(card: FunctionCard) -> str:
         f"**Preconditions**: {card.preconditions}",
         f"**Postconditions**: {card.postconditions}",
         f"**Effects/Outputs**: {card.effects_outputs}",
-        "**Steps**:",
+        f"**Evidence**: {evidence}",
     ]
-    lines.extend(f"{index}. {step}" for index, step in enumerate(card.steps, 1))
-    lines.append(f"**Evidence**: {evidence}")
     return "\n".join(lines) + "\n"

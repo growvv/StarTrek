@@ -30,14 +30,14 @@ _FAILURE_TYPES = {
 }
 
 _PATCH_SCHEMA = (
-    '{"card_updates": [{"name": "create_note", "fields": {"Steps": ["..."]}}], '
+    '{"card_updates": [{"name": "create_note", "fields": '
+    '{"Preconditions": "..."}}], '
     '"new_cards": [], "edge_updates": [{"from": "a", "to": "b", '
     '"type": "enables", "action": "add", "description": "..."}], '
     '"split": [], "merge": [], "reason": "..."}'
 )
 
 _EXECUTABLE_FIELDS = {
-    "steps",
     "preconditions",
     "postconditions",
     "inputs",
@@ -176,20 +176,13 @@ class GraphUpdater:
 
     @staticmethod
     def _card_detail(card: FunctionCard) -> str:
-        steps = (
-            "\n".join(
-                f"  {index}. {step}"
-                for index, step in enumerate(card.steps, 1)
-            )
-            or "  (none)"
-        )
         return (
             f"# {card.name}\n"
             f"Intent: {card.intent}\n"
             f"Inputs: {', '.join(card.inputs) or 'none'}\n"
             f"Preconditions: {card.preconditions}\n"
             f"Postconditions: {card.postconditions}\n"
-            f"Steps:\n{steps}"
+            f"Effects/Outputs: {card.effects_outputs}"
         )
 
     @staticmethod
@@ -237,11 +230,10 @@ class GraphUpdater:
         prompt = (
             f"{summary}\n"
             "Propose the smallest patch that fixes the behavior after this "
-            "failure. Do not only reword Intent or Evidence: add or fix "
-            "executable Steps (or pre/postconditions/inputs) that change what "
-            "runs. Write one Step per physical action; if the fix needs two "
-            "Back presses, add two Back steps. You may update cards, add "
-            "cards/edges, split a card "
+            "failure. Do not only reword Intent or Evidence: change the "
+            "preconditions, postconditions, inputs or effects that decide what "
+            "the card promises, so a future run knows what must hold. You may "
+            "update cards, add cards/edges, split a card "
             "(delete it; replacements go in new_cards), or merge two cards "
             "(keep the first, delete the second). Return JSON."
         )
@@ -317,7 +309,6 @@ class GraphUpdater:
                             item.get("Effects/Outputs", ""),
                         )
                     ),
-                    steps=_as_list(item.get("steps")),
                     evidence=_as_list(item.get("evidence")),
                     success_count=int(item.get("success_count", 0) or 0),
                     attempt_count=int(item.get("attempt_count", 0) or 0),
