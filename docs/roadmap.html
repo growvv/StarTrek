@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="SpecFCG 的路线图：Stage 1 MVP 与 Next Round 的完成状态与执行顺序。">
+<title>路线图 — SpecFCG</title>
+<link rel="stylesheet" href="assets/vendor/aos.css">
+<noscript><style>[data-aos]{opacity:1!important;transform:none!important}</style></noscript>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap");
+:root{
+  --paper:#f7f9fc; --surface:#fff; --ink:#172033; --muted:#647086; --quiet:#8d9aad;
+  --line:#dfe7f0; --blue:#246bfe; --teal:#008c83; --violet:#7a48cf; --gold:#c7831b;
+  --shadow:0 18px 46px rgba(42,65,100,.10); --radius:18px;
+  --mono:"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+  --display:"Fraunces",Georgia,serif;
+  --sans:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);font-family:var(--sans);line-height:1.65;
+  background:linear-gradient(180deg,#eef6ff 0,var(--paper) 620px),var(--paper)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(36,107,254,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(36,107,254,.045) 1px,transparent 1px);
+  background-size:36px 36px;mask-image:linear-gradient(180deg,#000 0,transparent 780px)}
+a{color:var(--teal);text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:4px}
+img{max-width:100%}
+.site-nav{position:fixed;top:0;left:0;right:0;z-index:30;
+  border-bottom:1px solid rgba(223,231,240,.66);background:rgba(255,255,255,.78);
+  backdrop-filter:blur(18px) saturate(160%)}
+.nav-inner{width:min(1220px,calc(100% - 40px));min-height:66px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{color:var(--ink);font-family:var(--display);font-size:1.3rem;font-weight:780;line-height:1}
+.brand span{color:var(--violet)}
+.nav-links{display:flex;gap:20px;flex-wrap:wrap;justify-content:flex-end}
+.nav-links a{color:#40506a;font-family:var(--mono);font-size:.76rem;font-weight:700}
+.nav-links a:hover{color:var(--violet);text-decoration:none}
+.nav-links a.current{color:var(--violet)}
+.nav-links a.current::after{transform:scaleX(1)}
+.version-badge{display:inline-block;padding:2px 10px;border-radius:999px;
+  border:1px solid rgba(122,72,207,.3);background:#f4f0ff;color:#5d39b8;
+  font-family:var(--mono);font-size:.7rem;font-weight:700;text-decoration:none}
+.version-badge:hover{text-decoration:none;background:#ebe3ff}
+.release-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 22px}
+.release-meta code{font-size:.8rem}
+.bullets{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:.88rem}
+.bullets li{margin:6px 0}
+.tasks{display:grid;gap:12px}
+.task{background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:12px;padding:14px 18px;box-shadow:0 8px 22px rgba(42,65,100,.05)}
+.task.done{border-left-color:#12b76a}
+.task.in_progress{border-left-color:var(--gold)}
+.task.planned{border-left-color:#c7d7e6}
+.task-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+.task-head code{font-size:.74rem;color:var(--quiet);background:#eef2f6;
+  padding:1px 7px;border-radius:5px}
+.task-head b{font-size:.95rem;color:#1f2937}
+.task p{margin:6px 0 0;color:var(--muted);font-size:.84rem}
+.hero{padding:112px 0 12px}
+.hero-inner{width:min(1120px,calc(100% - 48px));margin:0 auto;text-align:center}
+.eyebrow,.kicker{margin:0 0 14px;color:var(--violet);font-family:var(--mono);
+  font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+h1{max-width:1080px;margin:0 auto;font-family:var(--display);
+  font-size:clamp(2.3rem,3vw,2.95rem);font-weight:780;line-height:1.08}
+.hero-sub{margin:14px auto 0;color:#354258;font-size:1.08rem;max-width:800px}
+.hero-authors{max-width:900px;margin:16px auto 0;color:#40506a;font-size:.95rem;font-weight:650}
+.hero-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;
+  margin:24px auto 0;max-width:900px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:42px;padding:11px 20px;border:1px solid var(--line);border-radius:999px;
+  background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(15,23,42,.05);
+  font-family:var(--mono);font-size:.76rem;font-weight:700;line-height:1;
+  transition:transform .18s ease,box-shadow .18s ease}
+.button:hover{text-decoration:none;transform:translateY(-2px);box-shadow:0 12px 24px rgba(122,72,207,.16)}
+.button.primary{border-color:var(--ink);background:var(--ink);color:#fff}
+.button.accent{border-color:rgba(122,72,207,.28);background:#f4f0ff;color:#5d39b8}
+.button.teal{border-color:rgba(0,140,131,.24);background:#e9fbf8;color:#08766f}
+.stats{width:min(1120px,calc(100% - 48px));margin:34px auto 0;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:16px;
+  padding:18px 20px;box-shadow:var(--shadow)}
+.stat b{display:block;font-family:var(--display);font-size:2rem;line-height:1.1}
+.stat span{color:var(--muted);font-size:.8rem}
+.section{padding:82px 0}
+.section.alt{background:rgba(238,246,249,.72)}
+section[id]{scroll-margin-top:84px}
+.wrap{width:min(1180px,calc(100% - 40px));margin:0 auto}
+.section-head{display:grid;grid-template-columns:minmax(0,.9fr) minmax(320px,.72fr);
+  gap:52px;align-items:end;margin-bottom:28px}
+h2{margin:0;font-family:var(--display);font-size:clamp(2.1rem,2.7rem,2.8rem);
+  font-weight:780;line-height:1.08}
+.lead{margin:0;color:var(--muted);font-size:1.04rem}
+.grid{display:grid;gap:18px}
+.grid.two{grid-template-columns:repeat(2,1fr)}
+.grid.three{grid-template-columns:repeat(3,1fr)}
+.card{background:rgba(255,255,255,.9);border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 26px}
+.card h3{margin:0 0 8px;font-size:1.1rem}
+.card p{margin:0;color:var(--muted)}
+.card .mini{color:var(--quiet);font-family:var(--mono);font-size:.74rem}
+.quote{border-left:4px solid var(--violet);background:#faf7ff;padding:14px 18px;
+  border-radius:0 10px 10px 0;color:#3d3352;margin:16px 0}
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0 26px}
+.step{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:16px;box-shadow:0 8px 22px rgba(42,65,100,.06)}
+.step .n{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;
+  justify-content:center;background:var(--ink);color:#fff;font-family:var(--mono);
+  font-size:.72rem;font-weight:700;margin-bottom:8px}
+.step b{display:block;font-size:.92rem;margin-bottom:4px}
+.step span{color:var(--muted);font-size:.78rem;line-height:1.45;display:block}
+.step:not(:last-child)::after{content:"→";position:absolute;right:-11px;top:50%;
+  transform:translateY(-50%);color:var(--quiet);font-weight:700}
+pre{margin:10px 0;padding:14px 16px;border-radius:10px;background:#0f1720;color:#e6edf3;
+  font:12px/1.6 var(--mono);overflow:auto;white-space:pre-wrap;word-break:break-word}
+code{font-family:var(--mono);font-size:.9em;background:#eef2f6;padding:1px 5px;border-radius:4px}
+pre code{background:none;padding:0;font-size:inherit}
+.card-doc{background:#fff;border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);padding:22px 24px;margin:16px 0}
+.card-doc h3{margin:0 0 6px;font-size:1.05rem}
+.field{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:.84rem;
+  padding:6px 0;border-bottom:1px dashed #e8eef5}
+.field:last-child{border-bottom:none}
+.field b{color:var(--quiet);font-family:var(--mono);font-size:.72rem;
+  letter-spacing:.04em;text-transform:uppercase;padding-top:2px}
+.field span{color:#334155;white-space:pre-wrap}
+.patch-diff{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
+.patch-diff > div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.patch-diff b{display:block;font-family:var(--mono);font-size:.7rem;color:var(--quiet);
+  letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.patch-diff p{margin:0;font-size:.82rem;color:#334155;line-height:1.55}
+.graph-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;
+  box-shadow:var(--shadow);margin-top:16px;overflow:hidden}
+.graph-wrap summary{padding:14px 18px;cursor:pointer;display:flex;gap:14px;
+  align-items:baseline;flex-wrap:wrap;list-style:none}
+.graph-wrap summary::-webkit-details-marker{display:none}
+.graph-wrap summary::before{content:"▸";color:var(--violet);font-weight:700}
+.graph-wrap[open] summary::before{content:"▾"}
+.graph-wrap summary b{font-family:var(--mono);font-size:.8rem}
+.graph-wrap[open] summary{border-bottom:1px dashed #e8eef5}
+.graph{padding:6px 18px 14px}
+.edge{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;
+  padding:8px 0;border-bottom:1px dashed #e8eef5;font-size:.82rem}
+.edge:last-child{border-bottom:none}
+.edge .from,.edge .to{font-family:var(--mono);font-size:.78rem;color:#1f2937}
+.edge .type{font-family:var(--mono);font-size:.68rem;font-weight:700;padding:2px 8px;
+  border-radius:999px;white-space:nowrap}
+.type.enables{background:#e9fbf8;color:#08766f}
+.type.dataflow{background:#eef4ff;color:#315fd3}
+.type.sequence{background:#f4f0ff;color:#5d39b8}
+.type.calls{background:#fff4e5;color:#b54708}
+table{width:100%;border-collapse:collapse;margin:14px 0;background:#fff;
+  border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;
+  font-size:.85rem;vertical-align:top}
+th{background:#f4f8fc;color:#334155;font-family:var(--mono);font-size:.7rem;
+  letter-spacing:.03em;text-transform:uppercase}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-family:var(--mono);
+  font-size:.68rem;font-weight:700;white-space:nowrap}
+.pill.ok{background:#e7f6ec;color:#067647}
+.pill.bad{background:#fff7f6;color:#b42318}
+.pill.wait{background:#fff4e5;color:#b54708}
+.note{background:#fffaf0;border:1px solid #f3d9a8;border-left:5px solid var(--gold);
+  border-radius:10px;padding:14px 18px;margin:16px 0;color:#5b4420}
+.note b{color:#8a5a00}
+body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
+.shot-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}
+.shot-strip figure{margin:0;background:#fff;border:1px solid var(--line);
+  border-radius:14px;padding:8px;box-shadow:0 8px 22px rgba(42,65,100,.06)}
+.shot-strip img{border-radius:8px;border:1px solid var(--line);display:block}
+.shot-strip figcaption{color:var(--muted);font-size:.7rem;margin-top:6px;
+  font-family:var(--mono);line-height:1.35}
+.cta{background:linear-gradient(135deg,#172033,#2c3e63);color:#fff;border-radius:20px;
+  padding:34px 38px;display:flex;flex-wrap:wrap;gap:20px;align-items:center;
+  justify-content:space-between;box-shadow:0 22px 50px rgba(23,32,51,.25)}
+.cta h3{margin:0 0 6px;font-family:var(--display);font-size:1.6rem}
+.cta p{margin:0;color:#c9d5e8;font-size:.92rem}
+.cta .button{background:#fff;border-color:#fff;color:var(--ink)}
+.footer{padding:46px 0 60px;color:var(--quiet);font-size:.8rem;text-align:center}
+.footer a{color:var(--muted)}
+
+/* ---- motion layer ----
+   The vocabulary is borrowed rather than invented: AOS (scroll reveal) and
+   CountUp (stat counters), both MIT, plus the usual landing-page plumbing —
+   a load bar, a reading-progress bar, staggered groups, image skeletons. */
+.loadbar{position:fixed;top:0;left:0;height:3px;width:0;z-index:60;
+  border-radius:0 3px 3px 0;
+  background:linear-gradient(90deg,var(--blue),var(--violet) 55%,var(--teal));
+  box-shadow:0 0 14px rgba(122,72,207,.45);
+  transition:width .32s ease,opacity .5s ease}
+.loadbar.done{opacity:0}
+.scrollbar{position:absolute;left:0;right:0;bottom:-1px;height:2px;width:0;
+  background:linear-gradient(90deg,var(--blue),var(--violet),var(--teal));
+  transition:width .1s linear}
+.hero{position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:-10% 0 auto;height:125%;z-index:0;pointer-events:none}
+.hero-glow i{position:absolute;display:block;border-radius:50%;
+  filter:blur(52px);opacity:.55;animation:drift 16s ease-in-out infinite alternate}
+.hero-glow i:nth-child(1){width:460px;height:460px;left:4%;top:-150px;background:#cfe0ff}
+.hero-glow i:nth-child(2){width:380px;height:380px;right:6%;top:-80px;background:#e8ddff;
+  animation-delay:-6s}
+.hero-glow i:nth-child(3){width:320px;height:320px;left:44%;top:110px;background:#d5f5f1;
+  animation-delay:-11s}
+.hero-inner,.scroll-cue{position:relative;z-index:1}
+.scroll-cue{display:inline-flex;align-items:center;gap:8px;margin-top:22px;
+  color:var(--quiet);font-family:var(--mono);font-size:.7rem}
+.scroll-cue span{display:inline-block;animation:bob 1.9s ease-in-out infinite}
+@keyframes drift{
+  from{transform:translate3d(0,0,0) scale(1)}
+  to{transform:translate3d(46px,30px,0) scale(1.14)}
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes shimmer{from{background-position:180% 0}to{background-position:-80% 0}}
+@keyframes sweep{from{left:-60%}to{left:130%}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.16);color:var(--violet)}
+  100%{transform:scale(1)}}
+
+/* AOS ships a 100px travel; 36px reads calmer on a paper-like page. */
+[data-aos="fade-up"]{transform:translate3d(0,36px,0)}
+/* Nav underline + button shine: the standard product-page micro-interactions. */
+.nav-links a{position:relative}
+.nav-links a::after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:2px;
+  border-radius:2px;background:currentColor;transform:scaleX(0);transform-origin:left;
+  transition:transform .22s ease}
+.nav-links a:hover::after{transform:scaleX(1)}
+.button{position:relative;overflow:hidden}
+.button.primary::after{content:"";position:absolute;top:0;bottom:0;width:45%;left:-60%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.34),transparent);
+  transform:skewX(-18deg);pointer-events:none}
+.button.primary:hover::after{animation:sweep .8s ease}
+.card,.stat,.step,.shot-strip figure{transition:transform .26s cubic-bezier(.2,.7,.2,1),
+  box-shadow .26s ease,border-color .26s ease}
+[data-aos].card:hover,[data-aos].stat:hover,[data-aos].step:hover,
+[data-aos].shot-strip figure:hover{transform:translateY(-4px);
+  box-shadow:0 22px 48px rgba(42,65,100,.16);
+  transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s ease}
+.shot-strip figure{position:relative}
+/* Reserve the phone aspect ratio before the JPEG lands, so the strip never
+   collapses and then jumps, and the shimmer covers exactly the image. */
+.shot-strip figure::after{content:"";position:absolute;left:8px;right:8px;top:8px;
+  aspect-ratio:540/1202;border-radius:8px;pointer-events:none;
+  background:linear-gradient(100deg,#e9eff7 20%,#fafcff 47%,#e9eff7 74%);
+  background-size:220% 100%;animation:shimmer 1.15s linear infinite;
+  transition:opacity .45s ease}
+.shot-strip figure.loaded::after{opacity:0}
+.shot-strip img{width:100%;aspect-ratio:540/1202;opacity:0;transition:opacity .5s ease}
+.shot-strip img.loaded{opacity:1}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;
+    animation-iteration-count:1!important;transition-duration:.001ms!important;
+    scroll-behavior:auto!important}
+  [data-aos]{opacity:1!important;transform:none!important}
+}
+/* demo page */
+.demo-shell{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:26px;
+  align-items:start;margin-top:18px}
+.phone{background:#fff;border:1px solid var(--line);border-radius:26px;padding:12px;
+  box-shadow:var(--shadow);position:sticky;top:88px}
+.phone img{border-radius:18px;display:block;width:100%}
+.phone .bar{display:flex;gap:8px;justify-content:space-between;align-items:center;
+  margin-top:10px;font-family:var(--mono);font-size:.7rem;color:var(--quiet)}
+.step-list{display:grid;gap:10px}
+.step-item{background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease;
+  display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+.step-item:hover{border-color:var(--line-strong,#c7d7e6);box-shadow:0 8px 20px rgba(42,65,100,.08)}
+.step-item.active{border-color:var(--violet);box-shadow:0 10px 26px rgba(122,72,207,.16)}
+.step-item .idx{width:26px;height:26px;border-radius:50%;background:#eef2f6;
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+  font-size:.7rem;font-weight:700;color:#52627a}
+.step-item.active .idx{background:var(--violet);color:#fff}
+.step-item b{display:block;font-size:.86rem;color:#1f2937}
+.step-item span{display:block;font-size:.76rem;color:var(--muted);font-family:var(--mono)}
+.controls{display:flex;gap:8px;margin-top:12px}
+.controls button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:9px;font-family:var(--mono);font-size:.72rem;font-weight:700;cursor:pointer}
+.controls button:hover{background:#f4f8fc}
+.demo-note{background:#fbfdff;border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;font-size:.84rem;color:#334155;margin-top:14px}
+/* demo motion: screenshot shimmer, sliding step accent, snappy buttons */
+.phone{position:relative}
+.phone::after{content:"";position:absolute;left:12px;right:12px;top:12px;
+  aspect-ratio:540/1202;border-radius:18px;pointer-events:none;
+  background:linear-gradient(100deg,#e9eff7 20%,#fafcff 47%,#e9eff7 74%);
+  background-size:220% 100%;animation:shimmer 1.15s linear infinite;
+  transition:opacity .45s ease}
+.phone.loaded::after{opacity:0}
+.phone img{aspect-ratio:540/1202;opacity:0;transition:opacity .5s ease}
+.phone img.loaded{opacity:1}
+.step-item{position:relative;overflow:hidden;
+  transition:border-color .15s ease,box-shadow .15s ease,transform .18s ease}
+.step-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--violet);transform:scaleY(0);transform-origin:top;
+  transition:transform .25s ease}
+.step-item:hover{transform:translateX(2px)}
+.step-item.active::before{transform:scaleY(1)}
+.controls button{transition:background .15s ease,transform .15s ease}
+.controls button:active{transform:scale(.97)}
+@media (max-width:1000px){
+  .patch-diff{grid-template-columns:minmax(0,1fr)}
+  .section-head,.grid.two,.grid.three,.stats,.pipeline,.shot-strip,.demo-shell{
+    grid-template-columns:1fr}
+  .step:not(:last-child)::after{display:none}
+  .nav-links{display:none}
+  .phone{position:static}
+  /* Wide tables scroll inside their own box instead of widening the page. */
+  table{display:block;overflow-x:auto;white-space:nowrap}
+  td,th{white-space:normal}
+  .hero-inner,.wrap,.stats{width:calc(100% - 32px)}
+  .hero{padding-top:92px}
+  h1{font-size:clamp(1.8rem,7.2vw,2.4rem)}
+  h2{font-size:clamp(1.6rem,6.4vw,2.1rem)}
+}
+</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
+<div class="loadbar" id="pageload"></div>
+<nav class="site-nav"><div class="nav-inner"><a class="brand" href="index.html">Spec<span>FCG</span></a><div class="nav-links"><a href="index.html#why">背景</a><a href="index.html#method">方法</a><a href="index.html#results">效果</a><a href="graph/">建图动画</a><a href="demo/">执行演示</a><a href="releases.html">Release</a><a href="roadmap.html" class="current">Roadmap</a></div></div><div class="scrollbar" id="scrollbar"></div></nav>
+
+<header class="hero" style="padding-top:96px">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+  <p class="eyebrow" data-aos="fade-up">Roadmap</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">哪些做完了，哪些在计划中</h1>
+  <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">
+  状态来自 <code>docs/roadmap.yaml</code>，与
+  <a href="https://github.com/growvv/StarTrek/blob/main/docs/superpowers/plans/2026-11-10-specfcg-mvp.md">实施计划</a>
+  一一对应。Next Round 的顺序是执行顺序：F 必须先落地，其余按依赖排列。</p>
+  <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
+    <a class="button primary" href="releases.html">看版本记录 →</a>
+    <a class="button accent" href="https://github.com/growvv/StarTrek/blob/main/docs/handoff.md" target="_blank" rel="noopener">交接文档</a>
+  </div>
+</div></header>
+
+<section class="section" id="stage1">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">stage1</p>
+        <h2>Stage 1 MVP</h2>
+      </div>
+      <p class="lead">从轨迹归纳卡片、建图、按目标规划、真机执行、失败回写，全部在真机上跑通。 已完成 17/17。</p>
+    </div>
+    <div class="tasks"><div class="task done"><div class="task-head"><code>1</code><b>配置与 LLM 客户端</b><span class="pill ok">已完成</span></div><p>配置加载、OpenAI 兼容客户端、回复缓存与离线 fake。</p></div><div class="task done"><div class="task-head"><code>2</code><b>共享模型与卡片解析</b><span class="pill ok">已完成</span></div><p>FunctionCard / Edge / Graph 与 Markdown 卡片格式。</p></div><div class="task done"><div class="task-head"><code>3</code><b>卡片与图的存储</b><span class="pill ok">已完成</span></div><p>卡片落盘、边落盘、图版本与补丁日志。</p></div><div class="task done"><div class="task-head"><code>4</code><b>图搜索</b><span class="pill ok">已完成</span></div><p>BFS / DFS / A*，供规划器取可达路径。</p></div><div class="task done"><div class="task-head"><code>5</code><b>轨迹采集</b><span class="pill ok">已完成</span></div><p>脚本化采集、录制与 ProphetAgent 输出适配。</p></div><div class="task done"><div class="task-head"><code>6</code><b>卡片归纳</b><span class="pill ok">已完成</span></div><p>LLM 切分 episode 并写卡片，输入参数做 grounding。</p></div><div class="task done"><div class="task-head"><code>7</code><b>边构建</b><span class="pill ok">已完成</span></div><p>enables / dataflow 由 LLM 判断，sequence 来自轨迹。</p></div><div class="task done"><div class="task-head"><code>8</code><b>设备抽象与状态摘要</b><span class="pill ok">已完成</span></div><p>uiautomator2 桥接与 UI 压缩摘要。</p></div><div class="task done"><div class="task-head"><code>9</code><b>执行器</b><span class="pill ok">已完成</span></div><p>逐步执行动作并按 postcondition 校验。</p></div><div class="task done"><div class="task-head"><code>10</code><b>卡片检索与参数绑定</b><span class="pill ok">已完成</span></div><p>goal 里的值映射到卡片 inputs，未绑定的才问 LLM。</p></div><div class="task done"><div class="task-head"><code>11</code><b>动作编译与规划器</b><span class="pill ok">已完成</span></div><p>卡片步骤编译成具体 UI 动作，规划器串起路径。</p></div><div class="task done"><div class="task-head"><code>12</code><b>图更新器</b><span class="pill ok">已完成</span></div><p>失败归因后改卡片、改边或加卡，保留改前版本。</p></div><div class="task done"><div class="task-head"><code>13</code><b>能力补全</b><span class="pill ok">已完成</span></div><p>预测缺失能力并用探针验证。</p></div><div class="task done"><div class="task-head"><code>14</code><b>流水线与 CLI</b><span class="pill ok">已完成</span></div><p>mine / build-graph / plan / run 四个子命令。</p></div><div class="task done"><div class="task-head"><code>15</code><b>ProphetAgent 适配</b><span class="pill ok">已完成</span></div><p>解析外部 agent 的输出，作为轨迹来源之一。</p></div><div class="task done"><div class="task-head"><code>16</code><b>基准测试框架</b><span class="pill ok">已完成</span></div><p>任务套件、agent、程序化 oracle 与分数卡。</p></div><div class="task done"><div class="task-head"><code>17</code><b>Stage 1 数据与报告</b><span class="pill ok">已完成</span></div><p>清单、报告与公开证据副本。</p></div></div>
+  </div>
+</section>
+<section class="section alt" id="next">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">next</p>
+        <h2>Next Round</h2>
+      </div>
+      <p class="lead">卡片去掉 UI 动作、变成契约；计划输出任务描述；由 GUI agent 执行。目标是让 图描述 App 的功能，而不是回放某一次录制的动作。 已完成 0/8。</p>
+    </div>
+    <div class="tasks"><div class="task planned"><div class="task-head"><code>F</code><b>卡片是契约，计划是描述，agent 执行</b><span class="pill bad">计划中</span></div><p>架构切换，必须最先落地；一个 commit 内完成三个接口变更。</p></div><div class="task planned"><div class="task-head"><code>G</code><b>探针与能力补全走 agent</b><span class="pill bad">计划中</span></div><p>依赖 F。</p></div><div class="task planned"><div class="task-head"><code>H</code><b>消融实验：GraphAgent vs RawGoalAgent</b><span class="pill bad">计划中</span></div><p>依赖 F；只报配对差异，不把 agent 能力算进图的分。</p></div><div class="task planned"><div class="task-head"><code>C</code><b>重复功能检测改为读契约</b><span class="pill bad">计划中</span></div><p>依赖 F；只报告，不评分、不自动合并。</p></div><div class="task planned"><div class="task-head"><code>A</code><b>用当前 builder 重建四个图</b><span class="pill bad">计划中</span></div><p>依赖 C。</p></div><div class="task planned"><div class="task-head"><code>B</code><b>重测设备维度</b><span class="pill bad">计划中</span></div><p>依赖 A；随机遍历、探针与两臂 bench。</p></div><div class="task planned"><div class="task-head"><code>D</code><b>标定改为对 agent 运行结果</b><span class="pill bad">计划中</span></div><p>依赖 B，且以 B 的预测置信度不是常数为前提。</p></div><div class="task planned"><div class="task-head"><code>E</code><b>维护账本</b><span class="pill bad">计划中</span></div><p>每完成一步就勾掉计划并记录命令与结果；本页随之更新。</p></div></div>
+  </div>
+</section>
+<footer class="footer"><div class="wrap">
+  SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 实验环境已迁到 Android 模拟器
+  · 仓库 <a href="https://github.com/growvv/StarTrek">https://github.com/growvv/StarTrek</a>
+  · <a href="https://github.com/growvv/StarTrek/blob/main/LICENSE">MIT License</a><br>
+  页面由 <code>scripts/build_site.py</code> 从仓库产物生成 · <a class="version-badge" href="releases.html">v0.1.0 · 2026-11-18</a><br>
+  动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
+  · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
+</div></footer>
+<script src="assets/vendor/aos.js"></script>
+<script src="assets/vendor/countup.umd.js"></script>
+<script src="assets/vendor/motion.js"></script>
+</body></html>

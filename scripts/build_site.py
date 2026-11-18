@@ -17,9 +17,14 @@ from __future__ import annotations
 
 import html
 import json
+import re
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "docs"
@@ -40,6 +45,16 @@ JOURNAL = GRAPH_ROOT / "graph" / "journal.jsonl"
 
 GITHUB = "https://github.com/growvv/StarTrek"
 PAGES = "https://growvv.github.io/StarTrek/"
+
+RELEASES = SITE / "releases.yaml"
+PLAN = ROOT / "docs" / "superpowers" / "plans" / "2026-11-10-specfcg-mvp.md"
+ROADMAP = SITE / "roadmap.yaml"
+
+# The model that produced the pilot and benchmark numbers. It is recorded on the
+# page because the project has since moved to a local model, and a reader must
+# be able to tell which numbers belong to which model.
+NUMBERS_MODEL = "本地 magpie 网关（auto/deepseek-v4.1-flash）"
+CURRENT_MODEL = "Qwen3.8-27B-FP8（本地 vLLM，256k 上下文）"
 
 
 def esc(value: Any) -> str:
@@ -80,6 +95,48 @@ def read_edges() -> list[dict[str, Any]]:
         for line in EDGES.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+
+
+def read_releases() -> list[dict[str, Any]]:
+    """Read the release ledger, newest first."""
+    raw = yaml.safe_load(RELEASES.read_text(encoding="utf-8")) or {}
+    releases = list(raw.get("releases") or [])
+    return sorted(releases, key=lambda item: item.get("date", ""), reverse=True)
+
+
+def read_roadmap() -> list[dict[str, Any]]:
+    """Flatten the roadmap into one row per item, in declared order.
+
+    The order matters: the Next Round group is an execution order (F → G → H →
+    C → A → B → D → E), so it is never re-sorted.
+    """
+    raw = yaml.safe_load(ROADMAP.read_text(encoding="utf-8")) or {}
+    rows: list[dict[str, Any]] = []
+    for group in raw.get("groups") or []:
+        for item in group.get("items") or []:
+            rows.append({**item, "group": group.get("key", "")})
+    return rows
+
+
+def read_test_count() -> int:
+    """Count the offline suite without running it.
+
+    Collection is enough and takes well under a second; running the suite would
+    add twenty seconds to every site build.
+    """
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "--collect-only", "-q"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    match = re.search(r"(\d+)\s+tests?\s+collected", result.stdout)
+    if not match:
+        raise RuntimeError(
+            "could not count tests:\n" + (result.stdout or "") + (result.stderr or "")
+        )
+    return int(match.group(1))
 
 
 def read_pilot() -> list[dict[str, Any]]:
@@ -145,6 +202,27 @@ img{max-width:100%}
 .nav-links{display:flex;gap:20px;flex-wrap:wrap;justify-content:flex-end}
 .nav-links a{color:#40506a;font-family:var(--mono);font-size:.76rem;font-weight:700}
 .nav-links a:hover{color:var(--violet);text-decoration:none}
+.nav-links a.current{color:var(--violet)}
+.nav-links a.current::after{transform:scaleX(1)}
+.version-badge{display:inline-block;padding:2px 10px;border-radius:999px;
+  border:1px solid rgba(122,72,207,.3);background:#f4f0ff;color:#5d39b8;
+  font-family:var(--mono);font-size:.7rem;font-weight:700;text-decoration:none}
+.version-badge:hover{text-decoration:none;background:#ebe3ff}
+.release-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 22px}
+.release-meta code{font-size:.8rem}
+.bullets{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:.88rem}
+.bullets li{margin:6px 0}
+.tasks{display:grid;gap:12px}
+.task{background:#fff;border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:12px;padding:14px 18px;box-shadow:0 8px 22px rgba(42,65,100,.05)}
+.task.done{border-left-color:#12b76a}
+.task.in_progress{border-left-color:var(--gold)}
+.task.planned{border-left-color:#c7d7e6}
+.task-head{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+.task-head code{font-size:.74rem;color:var(--quiet);background:#eef2f6;
+  padding:1px 7px;border-radius:5px}
+.task-head b{font-size:.95rem;color:#1f2937}
+.task p{margin:6px 0 0;color:var(--muted);font-size:.84rem}
 .hero{padding:112px 0 12px}
 .hero-inner{width:min(1120px,calc(100% - 48px));margin:0 auto;text-align:center}
 .eyebrow,.kicker{margin:0 0 14px;color:var(--violet);font-family:var(--mono);
@@ -514,14 +592,7 @@ def build_demo_page() -> None:
 <noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
 <style>{CSS}</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
 <div class="loadbar" id="pageload"></div>
-<nav class="site-nav"><div class="nav-inner">
-  <a class="brand" href="../index.html">Spec<span>FCG</span></a>
-  <div class="nav-links">
-    <a href="../index.html#why">背景</a><a href="../index.html#method">方法</a>
-    <a href="../graph/">建图动画</a><a href="../index.html#demo">演示</a>
-    <a href="../index.html#results">效果</a><a href="../index.html#usage">使用</a>
-  </div>
-</div><div class="scrollbar" id="scrollbar"></div></nav>
+{site_nav("../", "demo")}
 
 <header class="hero" style="padding-top:96px">
   <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
@@ -651,6 +722,12 @@ def build_index() -> None:
     n_enables = sum(1 for e in edges if e.get("type") == "enables")
     n_sequence = sum(1 for e in edges if e.get("type") == "sequence")
     n_dataflow = sum(1 for e in edges if e.get("type") == "dataflow")
+    n_tests = read_test_count()
+    latest = read_releases()
+    latest_badge = (
+        f'<a class="version-badge" href="releases.html">最新 v{esc(latest[0]["version"])}</a>'
+        if latest else ""
+    )
 
     page = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -667,19 +744,12 @@ def build_index() -> None:
 <noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
 <style>{CSS}</style></head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
 <div class="loadbar" id="pageload"></div>
-<nav class="site-nav"><div class="nav-inner">
-  <a class="brand" href="#">Spec<span>FCG</span></a>
-  <div class="nav-links">
-    <a href="#why">背景</a><a href="#method">方法</a><a href="graph/">建图动画</a>
-    <a href="#innovations">核心点</a><a href="#demo">演示</a>
-    <a href="#results">效果</a><a href="#usage">使用</a><a href="#cite">引用</a>
-  </div>
-</div><div class="scrollbar" id="scrollbar"></div></nav>
+{site_nav("", "")}
 
 <header class="hero">
   <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="hero-inner">
-  <p class="eyebrow" data-aos="fade-up">SpecFCG · Function Contract Graph</p>
+  <p class="eyebrow" data-aos="fade-up">SpecFCG · Function Contract Graph {latest_badge}</p>
   <h1 data-aos="fade-up" data-aos-delay="70">把手机 App 的测试写成“函数契约图”，再让图搜索生成可执行测试</h1>
   <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">从真实执行轨迹里归纳用户级 function card（意图、参数、前后置条件、步骤、证据），
   组织成可组合的 Function Contract Graph，用目标驱动的图遍历合成测试计划，
@@ -687,7 +757,8 @@ def build_index() -> None:
   <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
     <a class="button primary" href="{GITHUB}" target="_blank" rel="noopener">GitHub 仓库</a>
     <a class="button accent" href="demo/index.html">交互演示（10 步真实截图）</a>
-    <a class="button teal" href="{GITHUB}/blob/main/docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md" target="_blank" rel="noopener">设计文档</a>
+    <a class="button teal" href="releases.html">版本记录</a>
+    <a class="button teal" href="roadmap.html">路线图</a>
   </div>
   <div class="scroll-cue" data-aos="fade-up" data-aos-delay="300">
     <span>↓</span>往下看：图是怎么一条轨迹一条轨迹长出来的</div>
@@ -697,7 +768,7 @@ def build_index() -> None:
   <div class="stat"><b data-count-to="{n_cards}">{n_cards}</b><span>从真实轨迹归纳的 function card</span></div>
   <div class="stat"><b data-count-to="{n_edges}">{n_edges}</b><span>enables / dataflow / sequence 边</span></div>
   <div class="stat"><b data-count-to="{passes}" data-count-suffix="/{total or '—'}">{passes}/{total or '—'}</b><span>真机组合目标通过（最后一轮）</span></div>
-  <div class="stat"><b data-count-to="204">204</b><span>离线单元测试全部通过</span></div>
+  <div class="stat"><b data-count-to="{n_tests}">{n_tests}</b><span>离线单元测试全部通过</span></div>
 </div>
 
 <section class="section" id="why"><div class="wrap">
@@ -810,7 +881,9 @@ def build_index() -> None:
 <section class="section alt" id="results"><div class="wrap">
   <div class="section-head">
     <div><p class="kicker">Results</p><h2>真机组合目标：{passes}/{total} 通过</h2></div>
-    <p class="lead">Pixel 9 Pro XL（Android 16，1008×2244），OmniNotes 6.5.1 FOSS，模型走本地 magpie 网关。
+    <p class="lead">Pixel 9 Pro XL（Android 16，1008×2244），OmniNotes 6.5.1 FOSS。
+    这批数字由 {NUMBERS_MODEL} 产出；2026-11-18 起项目改用 {CURRENT_MODEL}，
+    新结果会单列，不与这批数字混算。
     成功判定 = 每张卡片 postcondition 满足 + 整条路径 goal 达成，只看执行后的可观察 UI。</p>
   </div>
   <table><thead><tr>
@@ -876,7 +949,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
     --goal "Create a note titled Groceries with content Buy milk, then share it"</code></pre>
   <div class="grid two">
     <div class="card"><h3>没有设备也能跑</h3>
-      <p><code>python -m pytest -q</code> 当前 204 passed。加 <code>--fake-llm --fake-device</code>
+      <p><code>python -m pytest -q</code> 当前 {n_tests} passed。加 <code>--fake-llm --fake-device</code>
       可以在没有网关和设备的情况下跑通 <code>mine → build-graph → plan</code> 全链路，
       适合先验证配置和卡片格式。</p></div>
     <div class="card"><h3>产物都在磁盘上</h3>
@@ -915,11 +988,12 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
       <h3>移动端基准实验 ↗</h3>
       <p>四个开源 App：图覆盖、随机遍历、补图探针标定、自优化曲线与 20 步任务评测。</p></a>
   </div>
-</div></section>
-
+</div></section>""" + f"""
 <footer class="footer"><div class="wrap">
-  SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 仓库 <a href="{GITHUB}">{GITHUB}</a>
+  SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 实验环境已迁到 Android 模拟器
+  · 仓库 <a href="{GITHUB}">{GITHUB}</a>
   · <a href="{GITHUB}/blob/main/LICENSE">MIT License</a><br>
+  页面由 <code>scripts/build_site.py</code> 从仓库产物生成{(' · ' + latest_badge) if latest_badge else ''}<br>
   动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
   · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
 </div></footer>
@@ -928,6 +1002,18 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \\
 <script src="assets/vendor/motion.js"></script>
 </body></html>"""
     (SITE / "index.html").write_text(page, encoding="utf-8")
+
+
+def copy_text(src: Path, dst: Path) -> None:
+    """Copy a text artifact with normalized line endings.
+
+    The mined cards are written with CRLF on the machine that recorded the
+    traces.  ``shutil.copy2`` preserved those bytes, so every site build
+    rewrote the committed LF copies and left the worktree dirty.  Reading and
+    writing the text keeps the published copy stable.
+    """
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
 
 
 def publish_evidence() -> None:
@@ -940,11 +1026,11 @@ def publish_evidence() -> None:
     cards_out = EVIDENCE / "cards"
     cards_out.mkdir(exist_ok=True)
     for path in sorted(CARDS.glob("*.md")):
-        shutil.copy2(path, cards_out / path.name)
+        copy_text(path, cards_out / path.name)
     if EDGES.exists():
-        shutil.copy2(EDGES, EVIDENCE / "edges.jsonl")
+        copy_text(EDGES, EVIDENCE / "edges.jsonl")
     if JOURNAL.exists():
-        shutil.copy2(JOURNAL, EVIDENCE / "journal.jsonl")
+        copy_text(JOURNAL, EVIDENCE / "journal.jsonl")
     for name in (
         "refine_1.json",
         "create_note_before_refine.md",
@@ -955,7 +1041,7 @@ def publish_evidence() -> None:
     ):
         src = REAL / name
         if src.exists():
-            shutil.copy2(src, EVIDENCE / name)
+            copy_text(src, EVIDENCE / name)
     (EVIDENCE / "README.md").write_text(
         "# Evidence index\n\n"
         "These files are copied verbatim from the experiment run that produced\n"
@@ -970,6 +1056,218 @@ def publish_evidence() -> None:
         "| `create_note_before_refine.md` | The card before it was patched |\n",
         encoding="utf-8",
     )
+
+
+def site_nav(prefix: str = "", active: str = "") -> str:
+    """The shared navigation, with the current page marked.
+
+    ``prefix`` is ``""`` for pages at the site root and ``"../"`` for pages one
+    level down (demo, graph).  Keeping one function means a new page cannot
+    ship with a stale nav.
+    """
+    links = [
+        ("index.html#why", "背景", "why"),
+        ("index.html#method", "方法", "method"),
+        ("index.html#results", "效果", "results"),
+        ("graph/", "建图动画", "graph"),
+        ("demo/", "执行演示", "demo"),
+        ("releases.html", "Release", "releases"),
+        ("roadmap.html", "Roadmap", "roadmap"),
+    ]
+    items = []
+    for href, label, key in links:
+        cls = ' class="current"' if key == active else ""
+        items.append(f'<a href="{prefix}{href}"{cls}>{label}</a>')
+    return (
+        '<nav class="site-nav"><div class="nav-inner">'
+        f'<a class="brand" href="{prefix}index.html">Spec<span>FCG</span></a>'
+        f'<div class="nav-links">{"".join(items)}</div>'
+        '</div><div class="scrollbar" id="scrollbar"></div></nav>'
+    )
+
+
+def page_shell(
+    *,
+    title: str,
+    description: str,
+    prefix: str,
+    body: str,
+    active: str = "",
+    extra_head: str = "",
+) -> str:
+    """Wrap page content in the shared document, nav and footer."""
+    latest = read_releases()
+    badge = ""
+    if latest:
+        badge = (
+            f'<a class="version-badge" href="{prefix}releases.html">'
+            f'v{esc(latest[0]["version"])} · {esc(latest[0]["date"])}</a>'
+        )
+    return f"""<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="{esc(description)}">
+<title>{esc(title)} — SpecFCG</title>
+<link rel="stylesheet" href="{prefix}assets/vendor/aos.css">
+<noscript><style>[data-aos]{{opacity:1!important;transform:none!important}}</style></noscript>
+<style>{CSS}</style>{extra_head}</head><body data-aos-easing="ease-out-cubic" data-aos-duration="700">
+<div class="loadbar" id="pageload"></div>
+{site_nav(prefix, active)}
+{body}
+<footer class="footer"><div class="wrap">
+  SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 实验环境已迁到 Android 模拟器
+  · 仓库 <a href="{GITHUB}">{GITHUB}</a>
+  · <a href="{GITHUB}/blob/main/LICENSE">MIT License</a><br>
+  页面由 <code>scripts/build_site.py</code> 从仓库产物生成{(' · ' + badge) if badge else ''}<br>
+  动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
+  · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
+</div></footer>
+<script src="{prefix}assets/vendor/aos.js"></script>
+<script src="{prefix}assets/vendor/countup.umd.js"></script>
+<script src="{prefix}assets/vendor/motion.js"></script>
+</body></html>"""
+
+
+STATUS_LABEL = {"done": "已完成", "in_progress": "进行中", "planned": "计划中"}
+
+
+def build_release_page() -> None:
+    """Render every released version, newest first.
+
+    The page is the human-readable half of the release process: the tag itself
+    lives on GitHub, and each section links there so a reader can diff it.
+    """
+    releases = read_releases()
+    sections = []
+    for index, release in enumerate(releases):
+        tag = release.get("tag", "")
+        highlights = "".join(
+            f"<li>{esc(item)}</li>" for item in release.get("highlights") or []
+        )
+        evidence = "".join(
+            f'<li><a href="{esc(path.removeprefix("docs/"))}">{esc(path)}</a></li>'
+            for path in release.get("evidence") or []
+        )
+        latest = '<span class="pill ok">latest</span>' if index == 0 else ""
+        sections.append(f"""
+<section class="section{' alt' if index % 2 else ''}" id="v{esc(release.get('version', ''))}">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">Release · {esc(release.get('date', ''))}</p>
+        <h2>v{esc(release.get('version', ''))} — {esc(release.get('title', ''))}</h2>
+      </div>
+      <p class="lead">{esc(release.get('summary', ''))}</p>
+    </div>
+    <div class="release-meta">
+      <code>{esc(tag)}</code> {latest}
+      <a class="button" href="{GITHUB}/releases/tag/{esc(tag)}" target="_blank" rel="noopener">在 GitHub 上查看 →</a>
+      <a class="button" href="{GITHUB}/tree/{esc(tag)}" target="_blank" rel="noopener">源码快照</a>
+    </div>
+    <div class="grid two">
+      <div class="card"><h3>本版本包含</h3><ul class="bullets">{highlights}</ul></div>
+      <div class="card"><h3>可复查的证据</h3>
+        <ul class="bullets">{evidence or '<li>本页数字均可从仓库产物复算。</li>'}</ul></div>
+    </div>
+  </div>
+</section>""")
+
+    body = f"""
+<header class="hero" style="padding-top:96px">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+  <p class="eyebrow" data-aos="fade-up">Releases</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">版本记录</h1>
+  <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">
+  每个大项完成并推送后打一个 tag，这里和 GitHub Releases 同步更新。
+  条目内容来自仓库里的 <code>docs/releases.yaml</code>，页面由生成器渲染，不手改。</p>
+  <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
+    <a class="button primary" href="roadmap.html">看路线图 →</a>
+    <a class="button accent" href="{GITHUB}/releases" target="_blank" rel="noopener">GitHub Releases</a>
+  </div>
+</div></header>
+{"".join(sections) or '<section class="section"><div class="wrap"><p class="lead">还没有发布版本。</p></div></section>'}"""
+    (SITE / "releases.html").write_text(
+        page_shell(
+            title="版本记录",
+            description="SpecFCG 的版本记录：每个大项完成后的变更摘要与可复查证据。",
+            prefix="",
+            body=body,
+            active="releases",
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def build_roadmap_page() -> None:
+    """Render the roadmap, grouped and in the order the plan declares.
+
+    Statuses come from ``docs/roadmap.yaml``; the page does not infer them from
+    checkboxes, because a task is "done" only when its tests and its device
+    run both pass, which a checkbox cannot express.
+    """
+    raw = yaml.safe_load(ROADMAP.read_text(encoding="utf-8")) or {}
+    rows = read_roadmap()
+    groups_html = []
+    for group in raw.get("groups") or []:
+        key = group.get("key", "")
+        items = [row for row in rows if row["group"] == key]
+        done = sum(1 for item in items if item.get("status") == "done")
+        cards = "".join(
+            f'<div class="task {esc(item.get("status", ""))}">'
+            f'<div class="task-head"><code>{esc(item.get("key", ""))}</code>'
+            f'<b>{esc(item.get("title", ""))}</b>'
+            f'<span class="pill {esc(_status_pill(item.get("status", "")))}">'
+            f'{esc(STATUS_LABEL.get(item.get("status", ""), item.get("status", "")))}</span></div>'
+            f'<p>{esc(item.get("note", ""))}</p></div>'
+            for item in items
+        )
+        groups_html.append(f"""
+<section class="section{' alt' if key == 'next' else ''}" id="{esc(key)}">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">{esc(key)}</p>
+        <h2>{esc(group.get('title', ''))}</h2>
+      </div>
+      <p class="lead">{esc(group.get('summary', ''))} 已完成 {done}/{len(items)}。</p>
+    </div>
+    <div class="tasks">{cards}</div>
+  </div>
+</section>""")
+
+    body = f"""
+<header class="hero" style="padding-top:96px">
+  <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="hero-inner">
+  <p class="eyebrow" data-aos="fade-up">Roadmap</p>
+  <h1 data-aos="fade-up" data-aos-delay="70">哪些做完了，哪些在计划中</h1>
+  <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">
+  状态来自 <code>docs/roadmap.yaml</code>，与
+  <a href="{GITHUB}/blob/main/docs/superpowers/plans/2026-11-10-specfcg-mvp.md">实施计划</a>
+  一一对应。Next Round 的顺序是执行顺序：F 必须先落地，其余按依赖排列。</p>
+  <div class="hero-actions" data-aos="fade-up" data-aos-delay="210">
+    <a class="button primary" href="releases.html">看版本记录 →</a>
+    <a class="button accent" href="{GITHUB}/blob/main/docs/handoff.md" target="_blank" rel="noopener">交接文档</a>
+  </div>
+</div></header>
+{"".join(groups_html)}"""
+    (SITE / "roadmap.html").write_text(
+        page_shell(
+            title="路线图",
+            description="SpecFCG 的路线图：Stage 1 MVP 与 Next Round 的完成状态与执行顺序。",
+            prefix="",
+            body=body,
+            active="roadmap",
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+def _status_pill(status: str) -> str:
+    return {"done": "ok", "in_progress": "wait"}.get(status, "bad")
 
 
 def publish_vendor() -> None:
@@ -993,10 +1291,12 @@ def main() -> int:
     publish_evidence()
     build_index()
     build_demo_page()
+    build_release_page()
+    build_roadmap_page()
     # Jekyll would otherwise try to render these; keep Pages serving them as-is.
     (SITE / ".nojekyll").write_text("", encoding="utf-8")
-    print(f"wrote {SITE / 'index.html'}")
-    print(f"wrote {DEMO / 'index.html'}")
+    for name in ("index.html", "demo/index.html", "releases.html", "roadmap.html"):
+        print(f"wrote {SITE / name}")
     return 0
 
 

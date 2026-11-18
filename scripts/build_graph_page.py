@@ -582,7 +582,8 @@ def build_page(
 <nav class="nav"><div class="nav-in">
   <a class="brand" href="../index.html">Spec<span>FCG</span></a>
   <div><a href="../index.html">主页</a><a href="../index.html#results">效果</a>
-    <a href="../demo/">执行演示</a></div>
+    <a href="../demo/">执行演示</a>
+    <a href="../releases.html">Release</a><a href="../roadmap.html">Roadmap</a></div>
 </div><div class="scrollbar" id="scrollbar"></div></nav>
 
 <header class="hero">

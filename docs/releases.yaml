@@ -1,0 +1,33 @@
+# Released versions, newest first. The site's releases page and the "latest
+# release" badge on the index both read this file, and `scripts/release.py`
+# appends to it, so the page never drifts from the git tag.
+#
+# Fields:
+#   tag      git tag; must exist on origin before the page is published
+#   version  human-facing version, also used as the section anchor
+#   date     ISO date of the release
+#   title    one line, shown as the heading
+#   summary  two or three sentences; what a reader gets from this version
+#   highlights  bullet points, each a complete sentence
+#   evidence   paths under docs/ that back the claims (may be empty)
+
+releases:
+  - tag: v0.1.0
+    version: 0.1.0
+    date: 2026-11-18
+    title: Stage 1 MVP 与实验环境
+    summary: >-
+      第一个可运行版本：从真实轨迹归纳 function card、建 Function Contract
+      Graph、按目标规划并在真机上执行，失败后回写卡片。实验侧补齐了四个 App 的
+      MobileWorld 基准、随机遍历对照与分数记录；本机实验环境改为 Android 模拟器 +
+      本地 vLLM 的 Qwen3.8-27B。
+    highlights:
+      - 卡片、图、规划、执行、修补的完整链路在真机上验证，三个组合目标 3/3 通过。
+      - 448 个离线测试通过，CI 覆盖 Python 3.10 与 3.12。
+      - 四个 App 各建一张图，分数记录 7 次迭代，最新综合 71.7。
+      - 实验环境迁到 Android 模拟器；LLM 从 Magpie 网关切到本地 Qwen3.8-27B（256k 上下文、OpenAI 工具调用）。
+      - 已知限制写进报告：20 个任务不足以做显著性结论，标定维度是 bias-only。
+    evidence:
+      - docs/reports/mobileworld.html
+      - docs/evidence/README.md
+      - docs/experiments/2026-11-10-real-device-pilot.md

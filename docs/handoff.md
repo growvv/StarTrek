@@ -84,11 +84,13 @@ steps / evidence`；`TestPlan` 含卡片路径与编译出的 `steps`；边类�
   1008×2244），以及一个 OpenAI 兼容网关。
 - LLM 配置：
   - `config/llm.yaml`（**gitignored**，本机主配置，scripts 的默认 `--config`）：
-    模型 `auto/hy4free`，网关 `http://127.0.0.1:3425/v1`，key 由环境变量
-    `OPENAI_API_KEY` 提供；设备序列号也在这里。
-  - `config/llm.bench.yaml`（**入库**）：benchmark 专用模型
-    `auto/deepseek-v4.1-flash`，缓存 `.cache/llm-bench`，保证实验记录能对上是
-    哪个模型产出的。
+    `Qwen3.8-27B-FP8`，本地 vLLM `http://127.0.0.1:8002/v1`，key 由
+    `QWEN_API_KEY` 提供（本机为 `local`），缓存 `.cache/llm-qwen38`；设备
+    序列号也在这里。
+  - `config/llm.bench.yaml`（**入库**）：benchmark 专用 `Qwen3.8-27B-FP8`，
+    同一端点，缓存 `.cache/llm-bench-qwen38`。2026-11-18 起从 Magpie
+    `auto/deepseek-v4.1-flash` 切换；此前的分数记录由旧模型产出，报告里要
+    标断点。
   - 模板：`config/llm.example.yaml`。
 - Windows 注意：
   - 脚本一般需要 `PYTHONPATH=.`；
@@ -187,8 +189,8 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
    `CardParseError`），不会静默吞掉。
 3. `granularity.py` / `scripts/measure_granularity.py` 依赖编译后的动作集，
    Task F 会删除，由 C 的契约级重复检测替代。
-4. 网关模型名（`auto/hy4free`、`auto/deepseek-v4.1-flash`）是本地网关的
-   路由名，换环境要同步改配置。
+4. 模型名现在指向本地 vLLM 的 `Qwen3.8-27B-FP8`（:8002）；旧的 Magpie 路由名
+   只保留在历史记录里。换环境要同步改 `config/llm*.yaml`。
 5. `runs/` 不入库：新机器 clone 后没有图。要么连同本机 `runs/` 一起交接，
    要么按 `scripts/build_app_graph.py`（不带 `--skip-collect`）重新采集
    （需要设备）。

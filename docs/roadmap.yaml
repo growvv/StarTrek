@@ -1,0 +1,122 @@
+# Roadmap source. The site's roadmap page is generated from this file, so a
+# status changes here and nowhere else.
+#
+# The two groups mirror the implementation plan:
+#   stage1 — docs/superpowers/plans/2026-11-10-specfcg-mvp.md, Tasks 1–17
+#   next   — the same plan's "Next Round", Tasks F → G → H → C → A → B → D → E
+#
+# status: done | in_progress | planned
+# note:   one line on what the item actually delivers, or why it waits.
+
+groups:
+  - key: stage1
+    title: Stage 1 MVP
+    summary: >-
+      从轨迹归纳卡片、建图、按目标规划、真机执行、失败回写，全部在真机上跑通。
+    items:
+      - key: "1"
+        title: 配置与 LLM 客户端
+        status: done
+        note: 配置加载、OpenAI 兼容客户端、回复缓存与离线 fake。
+      - key: "2"
+        title: 共享模型与卡片解析
+        status: done
+        note: FunctionCard / Edge / Graph 与 Markdown 卡片格式。
+      - key: "3"
+        title: 卡片与图的存储
+        status: done
+        note: 卡片落盘、边落盘、图版本与补丁日志。
+      - key: "4"
+        title: 图搜索
+        status: done
+        note: BFS / DFS / A*，供规划器取可达路径。
+      - key: "5"
+        title: 轨迹采集
+        status: done
+        note: 脚本化采集、录制与 ProphetAgent 输出适配。
+      - key: "6"
+        title: 卡片归纳
+        status: done
+        note: LLM 切分 episode 并写卡片，输入参数做 grounding。
+      - key: "7"
+        title: 边构建
+        status: done
+        note: enables / dataflow 由 LLM 判断，sequence 来自轨迹。
+      - key: "8"
+        title: 设备抽象与状态摘要
+        status: done
+        note: uiautomator2 桥接与 UI 压缩摘要。
+      - key: "9"
+        title: 执行器
+        status: done
+        note: 逐步执行动作并按 postcondition 校验。
+      - key: "10"
+        title: 卡片检索与参数绑定
+        status: done
+        note: goal 里的值映射到卡片 inputs，未绑定的才问 LLM。
+      - key: "11"
+        title: 动作编译与规划器
+        status: done
+        note: 卡片步骤编译成具体 UI 动作，规划器串起路径。
+      - key: "12"
+        title: 图更新器
+        status: done
+        note: 失败归因后改卡片、改边或加卡，保留改前版本。
+      - key: "13"
+        title: 能力补全
+        status: done
+        note: 预测缺失能力并用探针验证。
+      - key: "14"
+        title: 流水线与 CLI
+        status: done
+        note: mine / build-graph / plan / run 四个子命令。
+      - key: "15"
+        title: ProphetAgent 适配
+        status: done
+        note: 解析外部 agent 的输出，作为轨迹来源之一。
+      - key: "16"
+        title: 基准测试框架
+        status: done
+        note: 任务套件、agent、程序化 oracle 与分数卡。
+      - key: "17"
+        title: Stage 1 数据与报告
+        status: done
+        note: 清单、报告与公开证据副本。
+  - key: next
+    title: Next Round
+    summary: >-
+      卡片去掉 UI 动作、变成契约；计划输出任务描述；由 GUI agent 执行。目标是让
+      图描述 App 的功能，而不是回放某一次录制的动作。
+    items:
+      - key: F
+        title: 卡片是契约，计划是描述，agent 执行
+        status: planned
+        note: 架构切换，必须最先落地；一个 commit 内完成三个接口变更。
+      - key: G
+        title: 探针与能力补全走 agent
+        status: planned
+        note: 依赖 F。
+      - key: H
+        title: 消融实验：GraphAgent vs RawGoalAgent
+        status: planned
+        note: 依赖 F；只报配对差异，不把 agent 能力算进图的分。
+      - key: C
+        title: 重复功能检测改为读契约
+        status: planned
+        note: 依赖 F；只报告，不评分、不自动合并。
+      - key: A
+        title: 用当前 builder 重建四个图
+        status: planned
+        note: 依赖 C。
+      - key: B
+        title: 重测设备维度
+        status: planned
+        note: 依赖 A；随机遍历、探针与两臂 bench。
+      - key: D
+        title: 标定改为对 agent 运行结果
+        status: planned
+        note: 依赖 B，且以 B 的预测置信度不是常数为前提。
+      - key: E
+        title: 维护账本
+        status: planned
+        note: 每完成一步就勾掉计划并记录命令与结果；本页随之更新。
