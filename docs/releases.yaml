@@ -12,6 +12,23 @@
 #   evidence   paths under docs/ that back the claims (may be empty)
 
 releases:
+  - tag: v0.5.0
+    version: 0.5.0
+    date: 2026-11-19
+    title: 重测全部设备维度，综合 57
+    summary: >-
+      在新图与新 seed 上重测随机遍历、探针、自优化曲线与两臂 bench。四个维度
+      全部来自当前代码写出的记录，综合 57；它与旧架构的 71.7 不可比。
+    highlights:
+      - 自优化曲线从当前 builder 重建的 seed 出发，四个 app 都真实增长（最多 6→10 张卡）。
+      - 探针预测不再常数：单卡路径 0.333、两卡 0.6；记录新增 Brier 与预测值分散度。
+      - 报告写明标定维度看不见什么：预测讲路线、观测讲 agent 的走法，一个数字分不开两者。
+      - 修复：随机遍历实验仍在用旧的两参数调用，四个 app 全部 TypeError。
+      - 综合 57（graph 86、calibration 69、selfopt 14、task 60）；对照：随机遍历 39.1、原始 goal 65.0。
+      - 444 个测试通过。
+    evidence:
+      - docs/reports/mobileworld.html
+      - docs/handoff.md
   - tag: v0.4.0
     version: 0.4.0
     date: 2026-11-19

@@ -8,13 +8,13 @@
 
 ## 1. 一句话状态
 
-MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F、G、H、C、A 已完成**，
-当前 **440 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
+MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F、G、H、C、A、B、D、E 全部完成**，
+当前 **444 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
 Function Contract Graph，`runs/mobileworld/score-history.json` 记录了 7 次
 迭代的分数，最新综合 **71.7**（这批分数由旧架构产出，见第 7 节）。
 
 Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
-下一步是 **Task B**（重测设备维度：随机遍历、探针与两臂 bench）。README 里“卡片含 Steps /
+Next Round 的八项任务已全部完成；下一轮尚未规划。README 里“卡片含 Steps /
 编译成动作”的描述已经过期，重写它属于文档收尾。
 
 ## 2. 现在系统怎么工作（as built）
@@ -100,7 +100,7 @@ steps / evidence`；`TestPlan` 含卡片路径与编译出的 `steps`；边类�
 
 ```bash
 # 测试（无设备）
-python -m pytest -q                      # 440 passed
+python -m pytest -q                      # 444 passed
 
 # 无设备的端到端冒烟
 python -m specfcg.cli plan --config config/llm.yaml --fake-llm --fake-device \
@@ -164,8 +164,8 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
 | 5 | coverage-and-selfopt-honesty | 100.0 | 84.0 | 18.2 | 100.0 | 75.5 | 41.1 |
 | 6 | honest-graph-coverage | 84.5 | 84.0 | 18.2 | 100.0 | 71.7 | 41.1 |
 
-**新架构（2026-11-19，重建图后的两臂消融）**：4 个 app × 5 个任务，同一个
-agent、同一台设备，只改交给它的字符串。
+**新架构（2026-11-19，重建图 + 重测全部设备维度）**：4 个 app × 5 个任务，
+同一个 agent、同一台设备，只改交给它的字符串。
 
 | 臂 | 通过 | 说明 |
 |---|---|---|
@@ -173,11 +173,24 @@ agent、同一台设备，只改交给它的字符串。
 | 原始 goal | **13/20** | 对照，不计入分数 |
 | 配对差异 | **−1** | 只有原始臂通过 1（`diary_add_note`，图缺入边） |
 
-四个维度（重算后）：graph 85.5、calibration 84.0、selfopt 18.2、task 60.0，
-综合 61.9；对照组随机遍历 41.1、原始 goal 臂 65.0。
+四个维度（重算后）：graph 86、calibration 69、selfopt 14、task 60，综合 **57**。
+对照组：随机遍历 39.1、原始 goal 臂 65.0。
+
+自优化曲线（从当前 builder 重建的 seed 出发，4 轮）：
+
+| App | seed 卡 | 结束卡 | 曲线 |
+|---|---|---|---|
+| activitydiary | 6 | 9 | 5 → 6 → 7 → 7 → 7 |
+| amaze | 6 | 9 | 6 → 7 → 7 → 8 → 9 |
+| markor | 6 | 10 | 6 → 7 → 8 → 9 → 10 |
+| omninotes | 8 | 9 | 8 → 9 → 9 → 9 → 9 |
+
+探针标定：预测已不是常数（单卡路径 0.333、两卡 0.6），但 markor 只跑了 2 个
+探针且预测相同，报告里标为「常数估计」。
 
 **这个结果必须如实读**：在当前图上，任务描述没有表现出比原始 goal 更好的
-效果。20 个任务里 18 个两臂结论相同；唯一的差异来自图缺一条边。
+效果。20 个任务里 18 个两臂结论相同；唯一的差异来自图缺一条边。综合 57 与
+旧架构的 71.7 **不可比**——覆盖率匹配规则、卡片格式、执行器和任务定义都变了。
 
 限制，报告里必须原样保留：
 
@@ -187,7 +200,7 @@ agent、同一台设备，只改交给它的字符串。
 - 20 个任务里 10 个是单卡路径，两臂字符串的信息量差别很小；
 - `diary_add_note` 的图臂是 `no_plan`（`add_note_to_current_activity` 没有入边），
   这一配对无效，不能当作「原始臂更好」的证据；
-- 随机遍历与探针记录仍是旧架构产出的，Task B 只完成了两臂 bench 部分。
+- 综合 57 与旧的 71.7 不可比，报告已标注断点，不要连成一条曲线。
 
 ## 8. 开发约定
 
@@ -228,7 +241,7 @@ agent、同一台设备，只改交给它的字符串。
 
 ## 10. 交接清单
 
-- [x] MVP 代码与测试（440 passed）
+- [x] MVP 代码与测试（444 passed）
 - [x] 设计文档、实施计划、Next Round 路线图（commit `5da1862`）
 - [x] 公开报告、证据副本、Pages 站点
 - [x] 本交接文档
@@ -237,5 +250,7 @@ agent、同一台设备，只改交给它的字符串。
 - [x] Task H：消融（同一 agent，原始 goal vs 图描述；raw 作为对照单列）
 - [x] Task C：重复功能检测读契约
 - [x] Task A：四图已重建
-- [ ] Task B → D → E（见计划）
+- [x] Task B：重测设备维度
+- [x] Task D：标定（Brier + 预测分散度）
+- [x] Task E：账本
 - [ ] 设备、网关、`OPENAI_API_KEY`、`config/llm.yaml` 访问权限移交

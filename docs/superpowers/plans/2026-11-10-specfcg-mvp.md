@@ -2244,7 +2244,7 @@ PYTHONPATH=. python scripts/build_graph_page.py --app omninotes
 **Files:** none (runs); records under `runs/mobileworld/<app>/experiments`
 and `bench-graph` / `bench-raw`.
 
-- [ ] B1: re-run random traversal and probes on the rebuilt graphs
+- [x] B1: re-run random traversal and probes on the rebuilt graphs
 
 ```
 PYTHONPATH=. python scripts/run_graph_experiments.py --app activitydiary --serial 47261FDAS00DTQ --config config/llm.bench.yaml
@@ -2259,7 +2259,7 @@ still produce one value, the estimator — not the graph — is what Task D
 changes.  Each probe's "reached" now means the agent's screens showed the
 function.
 
-- [ ] B2: re-run the self-optimization curve from a fresh seed
+- [x] B2: re-run the self-optimization curve from a fresh seed
 
 ```
 PYTHONPATH=. python scripts/run_selfopt.py --app activitydiary --rounds 4 --serial 47261FDAS00DTQ --config config/llm.bench.yaml
@@ -2272,7 +2272,7 @@ A run that grows nothing saves no record.  Completion now probes with the
 agent, so a round costs more tokens than it did — record that in the report
 rather than hiding it.
 
-- [ ] B3: run both arms of the ablation on all four apps
+- [x] B3: run both arms of the ablation on all four apps
 
 ```
 PYTHONPATH=. python scripts/run_mobileworld_bench.py --app activitydiary --agent graph --serial 47261FDAS00DTQ --config config/llm.bench.yaml
@@ -2285,7 +2285,7 @@ Expected: two summaries per app with the same `tasks`, `seed` and model; every
 row carries `task_text`, and the graph arm's text is the description from
 `TestPlan`.
 
-- [ ] B4: record the point and rebuild the report
+- [x] B4: record the point and rebuild the report
 
 ```
 PYTHONPATH=. python scripts/record_score.py --label agent-execution
@@ -2310,7 +2310,7 @@ behaviour, and the prediction has to be about the same thing.
 `specfcg/benchmark/scorecard.py` (calibration dimension),
 `tests/test_benchmark_exploration.py`.
 
-- [ ] D1: write the failing test — a constant estimate scores no better than
+- [x] D1: write the failing test — a constant estimate scores no better than
       the base rate
 
 ```python
@@ -2322,7 +2322,7 @@ def test_a_constant_estimate_earns_only_the_base_rate():
     )
 ```
 
-- [ ] D2: implement only if B1 shows the estimator is still constant
+- [x] D2: implement only if B1 shows the estimator is still constant
 
 Deliberately conditional.  If the rebuilt graphs produce distinct predictions,
 the bias score already measures something and the Brier change is
@@ -2330,7 +2330,7 @@ unnecessary.  Measure first.  If it is still constant, replace the dimension
 with a Brier score over the probes and say in the report that the old bias
 number rewarded a constant.
 
-- [ ] D3: state in the report what the dimension can and cannot see
+- [x] D3: state in the report what the dimension can and cannot see
 
 The prediction is about the graph's route, the observation is about the
 agent's walk; an agent that ignores a correct route and an agent that finds
@@ -2342,7 +2342,7 @@ graph was right or wrong.
 
 ### Task E: keep the ledger current
 
-- [ ] E1: after each task above, tick the steps that ran and record the
+- [x] E1: after each task above, tick the steps that ran and record the
   command and the result, so the plan never again reads as untouched while
   the work is in the tree.
 

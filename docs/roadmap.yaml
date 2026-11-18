@@ -110,13 +110,13 @@ groups:
         note: 四图已重建；每图一次语义边调用，0 个 Steps 残留，卡片数 25/21/18/17。
       - key: B
         title: 重测设备维度
-        status: in_progress
-        note: 两臂 bench 已在新图上重测（图 12/20，原始 13/20，配对 -1）；随机遍历与探针待重测。
+        status: done
+        note: 随机遍历、探针、自优化与两臂 bench 均在新图与新 seed 上重测；综合 57（与旧架构不可比）。
       - key: D
         title: 标定改为对 agent 运行结果
-        status: planned
-        note: 依赖 B，且以 B 的预测置信度不是常数为前提。
+        status: done
+        note: B1 显示预测已能区分单卡/两卡路径，bias 维度保留；新增 Brier 与预测值分散度，并在报告里写明该维度看不见什么。
       - key: E
         title: 维护账本
-        status: planned
-        note: 每完成一步就勾掉计划并记录命令与结果；本页随之更新。
+        status: done
+        note: 计划步骤已勾完，命令与结果记录在交接文档第 7 节。

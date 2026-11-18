@@ -326,7 +326,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
 <header class="hero">
   <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="hero-inner">
-  <p class="eyebrow" data-aos="fade-up">SpecFCG · Function Contract Graph <a class="version-badge" href="releases.html">最新 v0.4.0</a></p>
+  <p class="eyebrow" data-aos="fade-up">SpecFCG · Function Contract Graph <a class="version-badge" href="releases.html">最新 v0.5.0</a></p>
   <h1 data-aos="fade-up" data-aos-delay="70">把手机 App 的测试写成“函数契约图”，再让图搜索生成可执行测试</h1>
   <p class="hero-sub" data-aos="fade-up" data-aos-delay="140">从真实执行轨迹里归纳用户级 function card（意图、参数、前后置条件、步骤、证据），
   组织成可组合的 Function Contract Graph，用目标驱动的图遍历合成测试计划，
@@ -345,7 +345,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
   <div class="stat"><b data-count-to="10">10</b><span>从真实轨迹归纳的 function card</span></div>
   <div class="stat"><b data-count-to="56">56</b><span>enables / dataflow / sequence 边</span></div>
   <div class="stat"><b data-count-to="3" data-count-suffix="/3">3/3</b><span>真机组合目标通过（最后一轮）</span></div>
-  <div class="stat"><b data-count-to="440">440</b><span>离线单元测试全部通过</span></div>
+  <div class="stat"><b data-count-to="444">444</b><span>离线单元测试全部通过</span></div>
 </div>
 
 <section class="section" id="why"><div class="wrap">
@@ -526,7 +526,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \
     --goal "Create a note titled Groceries with content Buy milk, then share it"</code></pre>
   <div class="grid two">
     <div class="card"><h3>没有设备也能跑</h3>
-      <p><code>python -m pytest -q</code> 当前 440 passed。加 <code>--fake-llm --fake-device</code>
+      <p><code>python -m pytest -q</code> 当前 444 passed。加 <code>--fake-llm --fake-device</code>
       可以在没有网关和设备的情况下跑通 <code>mine → build-graph → plan</code> 全链路，
       适合先验证配置和卡片格式。</p></div>
     <div class="card"><h3>产物都在磁盘上</h3>
@@ -570,7 +570,7 @@ python -m specfcg.cli run --config config/llm.local.yaml --max-rounds 2 \
   SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 实验环境已迁到 Android 模拟器
   · 仓库 <a href="https://github.com/growvv/StarTrek">https://github.com/growvv/StarTrek</a>
   · <a href="https://github.com/growvv/StarTrek/blob/main/LICENSE">MIT License</a><br>
-  页面由 <code>scripts/build_site.py</code> 从仓库产物生成 · <a class="version-badge" href="releases.html">最新 v0.4.0</a><br>
+  页面由 <code>scripts/build_site.py</code> 从仓库产物生成 · <a class="version-badge" href="releases.html">最新 v0.5.0</a><br>
   动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
   · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
 </div></footer>
