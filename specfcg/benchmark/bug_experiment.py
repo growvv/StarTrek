@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from specfcg.benchmark.first_run import settle_first_run
+from specfcg.benchmark.first_run import grant_storage_access, settle_first_run
 from specfcg.benchmark.themis import BuggyVersion, crash_hit
 
 # A crash that names the app's own process; the same shape FuncDroid checks.
@@ -89,6 +89,7 @@ class BugExperiment:
 
         self.device.shell("logcat -c")
         self.device.clear_app(version.package)
+        grant_storage_access(self.device, version.package)
         self.device.launch(version.package)
         time.sleep(self.settle_s)
         # A build's own onboarding — a permission grant, a licences notice —

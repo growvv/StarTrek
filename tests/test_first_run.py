@@ -96,3 +96,55 @@ def test_the_licences_button_is_named_so_it_can_be_clicked():
     from specfcg.benchmark.first_run import DISMISS_CONTROLS
 
     assert "net.gsantner.markor:id/button1" in DISMISS_CONTROLS
+
+
+def test_a_dialog_inside_the_app_keeps_the_same_focus():
+    """Markor's licences notice is a dialog in MainActivity.
+
+    The window keeps focusing the activity, so "the app is in front" does not
+    mean the app's own UI is reachable.  The UI has to be read.
+    """
+    device = FakeDevice(
+        screens=["net.gsantner.markor", "net.gsantner.markor"],
+        controls={"net.gsantner.markor": "net.gsantner.markor:id/button1"},
+    )
+    device.dialog_until = 1  # the first look finds the dialog
+
+    state = settle_first_run(device, "net.gsantner.markor", settle_s=0)
+
+    assert state.dismissed >= 1
+    assert state.ready is True
+
+
+def test_all_files_access_is_granted_and_read_back():
+    """Without it a build shows an empty directory while files are on disk.
+
+    The permission's own dialog opens a Settings page no in-app click can
+    reach, so the experiment grants it and checks the answer rather than
+    assuming the shell call worked.
+    """
+    from specfcg.benchmark.first_run import grant_storage_access
+
+    class Device:
+        def __init__(self, granted: bool) -> None:
+            self.granted = granted
+            self.calls: list[str] = []
+
+        def shell(self, command: str) -> str:
+            self.calls.append(command)
+            if command.startswith("appops get"):
+                return (
+                    "MANAGE_EXTERNAL_STORAGE: allow"
+                    if self.granted
+                    else "MANAGE_EXTERNAL_STORAGE: default"
+                )
+            if command.startswith("dumpsys package"):
+                state = "granted=true" if self.granted else "granted=false"
+                return (
+                    "android.permission.READ_EXTERNAL_STORAGE: " + state + "\n"
+                    "android.permission.WRITE_EXTERNAL_STORAGE: " + state
+                )
+            return ""
+
+    assert grant_storage_access(Device(True), "com.example") is True
+    assert grant_storage_access(Device(False), "com.example") is False

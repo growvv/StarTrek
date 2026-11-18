@@ -43,6 +43,18 @@ FOREIGN_PACKAGES = (
     "com.android.packageinstaller",
 )
 
+# Storage permissions, by the mechanism the build was written for.  A 2018
+# build asks for READ/WRITE_EXTERNAL_STORAGE (runtime permissions, granted by
+# `pm grant`); a 2021+ build asks for MANAGE_EXTERNAL_STORAGE (an appop whose
+# dialog opens a Settings page).  Granting only one leaves the other build
+# showing an empty directory while its files sit on disk, so every file task
+# would fail for a reason that has nothing to do with the app.
+RUNTIME_STORAGE_PERMISSIONS = (
+    "android.permission.READ_EXTERNAL_STORAGE",
+    "android.permission.WRITE_EXTERNAL_STORAGE",
+)
+APPOPS_STORAGE_PERMISSIONS = ("MANAGE_EXTERNAL_STORAGE",)
+
 
 @dataclass
 class LaunchState:
@@ -56,6 +68,35 @@ class LaunchState:
     @property
     def ready(self) -> bool:
         return self.foreground == self.package
+
+
+def grant_storage_access(device, package: str) -> bool:
+    """Give the build all-files access, which it cannot ask for itself.
+
+    `pm clear` keeps appops grants but a fresh install has none, and the
+    dialog for this permission opens a Settings page outside the app.  The
+    check is read back so a failed grant is reported rather than assumed.
+    """
+    granted = True
+    for permission in RUNTIME_STORAGE_PERMISSIONS:
+        device.shell(f"pm grant {package} {permission}")
+    for operation in APPOPS_STORAGE_PERMISSIONS:
+        device.shell(f"appops set {package} {operation} allow")
+    # Read back whichever mechanism this build actually declares: a 2018 build
+    # has no MANAGE_EXTERNAL_STORAGE line at all, and demanding it would call
+    # a working grant a failure.
+    declared = device.shell(f"dumpsys package {package}")
+    for permission in RUNTIME_STORAGE_PERMISSIONS:
+        if permission in declared and f"{permission}: granted=true" not in declared:
+            granted = False
+    if "MANAGE_EXTERNAL_STORAGE" in device.shell(
+        f"appops get {package} MANAGE_EXTERNAL_STORAGE"
+    ):
+        if "allow" not in device.shell(
+            f"appops get {package} MANAGE_EXTERNAL_STORAGE"
+        ):
+            granted = False
+    return granted
 
 
 def settle_first_run(
@@ -76,7 +117,15 @@ def settle_first_run(
     for _ in range(rounds):
         state.foreground = _foreground(device)
         if state.foreground == package:
-            return state
+            # A dialog drawn by the app itself keeps the window focused on the
+            # activity, so focus alone cannot tell "ready" from "blocked":
+            # Markor's licences notice is a dialog *in* MainActivity.  The UI
+            # has to be read to know whether a dismissable control is showing.
+            if not _dismiss_once(device):
+                return state
+            state.dismissed += 1
+            time.sleep(settle_s)
+            continue
         if state.foreground not in FOREIGN_PACKAGES:
             # Not a known dialog and not the app: back out once, then stop.
             device.shell("input keyevent 4")
