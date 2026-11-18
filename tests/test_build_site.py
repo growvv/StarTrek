@@ -53,7 +53,14 @@ def test_release_page_links_the_github_release(site):
     assert f"{module.GITHUB}/releases/tag/{latest['tag']}" in page
 
 
-def test_roadmap_marks_mvp_done_and_next_round_planned(site):
+def test_roadmap_marks_mvp_done_and_reports_the_current_next_round(site):
+    """The roadmap reports status; it does not assume one.
+
+    F is done as of v0.2.0 and G is still planned, so the test asserts the
+    shape (a done MVP, a Next Round group) and that the page carries whatever
+    status the ledger declares -- not a hard-coded snapshot that has to be
+    edited every time a task lands.
+    """
     module, docs = site
     module.build_roadmap_page()
 
@@ -61,13 +68,16 @@ def test_roadmap_marks_mvp_done_and_next_round_planned(site):
     statuses = module.read_roadmap()
     by_key = {item["key"]: item for item in statuses}
 
-    assert by_key["1"]["status"] == "done"
-    assert by_key["17"]["status"] == "done"
-    assert by_key["F"]["status"] == "planned"
-    assert by_key["E"]["status"] == "planned"
-    # Both groups are rendered with a visible heading.
+    assert all(by_key[str(n)]["status"] == "done" for n in range(1, 18))
+    assert by_key["F"]["status"] == "done"
+    assert by_key["G"]["status"] == "planned"
     assert "Stage 1 MVP" in page
     assert "Next Round" in page
+    for item in statuses:
+        if item["group"] == "next":
+            label = {"done": "已完成", "planned": "计划中"}.get(item["status"])
+            if label:
+                assert label in page
 
 
 def test_roadmap_keeps_the_declared_execution_order(site):

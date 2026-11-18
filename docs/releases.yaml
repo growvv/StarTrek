@@ -12,6 +12,25 @@
 #   evidence   paths under docs/ that back the claims (may be empty)
 
 releases:
+  - tag: v0.2.0
+    version: 0.2.0
+    date: 2026-11-18
+    title: 卡片是契约，计划是描述，agent 执行
+    summary: >-
+      架构切换：卡片不再记录 UI 动作，只声明意图、输入、前后置条件与产出；
+      规划器的输出变成一段任务描述，由 GUI agent 执行。图从此描述 App 的功能，
+      而不是回放某一次录制的动作。
+    highlights:
+      - 卡片去掉 Steps；解析器显式拒绝旧格式，93 张卡已迁移且幂等。
+      - 新增 TaskDescriber：确定性渲染整体 goal 与有序 subgoals，不点名任何动作。
+      - 新增 GuiAgent 协议与 MobileAgentBackend；Executor 只交描述、只做 goal 判定。
+      - agent 不再自己启动 app，不再清掉 benchmark 准备好的状态。
+      - 删除 StepCompiler / PlanStep / DeviceProbe / execute_plan / SpecFCGAgent / granularity。
+      - 真机验证：MobileAgentBackend 逐步记录动作前后 UI；规划→描述→执行→判定返回成功。
+      - 417 个测试通过。
+    evidence:
+      - docs/handoff.md
+      - docs/superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md
   - tag: v0.1.0
     version: 0.1.0
     date: 2026-11-18

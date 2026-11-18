@@ -90,8 +90,8 @@ groups:
     items:
       - key: F
         title: 卡片是契约，计划是描述，agent 执行
-        status: planned
-        note: 架构切换，必须最先落地；一个 commit 内完成三个接口变更。
+        status: done
+        note: 架构切换已落地：93 张卡迁移，真机 smoke 与端到端规划均通过。
       - key: G
         title: 探针与能力补全走 agent
         status: planned
