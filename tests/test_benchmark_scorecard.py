@@ -253,9 +253,20 @@ def test_the_graph_dimension_is_recomputed_from_the_graph_not_read_back():
     """
     from pathlib import Path
 
+    import pytest
+
     from specfcg.benchmark.scorecard import coverage_from_disk
 
     root = Path(__file__).resolve().parents[1]
+    graph = root / "runs" / "mobileworld" / "activitydiary" / "graph"
+    if not graph.exists():
+        # `runs/` is git-ignored: the graph is a local artifact, and CI has
+        # none.  The property under test is that the scorecard recomputes
+        # from the graph on disk; with no graph on disk there is nothing to
+        # recompute, and asserting a number would only assert this machine's
+        # history.
+        pytest.skip("no local graph under runs/ (git-ignored artifact)")
+
     report = coverage_from_disk("activitydiary", root / "runs" / "mobileworld")
 
     assert report is not None
