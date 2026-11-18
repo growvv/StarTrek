@@ -1,0 +1,651 @@
+{
+  "source": "Themis, as evaluated by FuncDroid",
+  "versions": [
+    {
+      "id": "APhotoManager-0.6.4.180314-debug-#116",
+      "app": "de.k3b.android.androFotoFinder",
+      "package": "de.k3b.android.androFotoFinder",
+      "version_code": 116,
+      "version_name": "0.6.4.180314",
+      "crashes": [
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        },
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        },
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@de.k3b.android.androFotoFinder.locationmap.LocationMapFragment.createHashMap(LocationMapFragment.java:964)",
+          "frames": [
+            "de.k3b.android.androFotoFinder.locationmap.LocationMapFragment.createHashMap(LocationMapFragment.java:964)",
+            "de.k3b.android.androFotoFinder.locationmap.LocationMapFragment.reloadFotoMarker(LocationMapFragment.java:667)",
+            "de.k3b.android.androFotoFinder.locationmap.LocationMapFragment.reloadFotoMarker(LocationMapFragment.java:641)",
+            "de.k3b.android.androFotoFinder.locationmap.LocationMapFragment.access$000(LocationMapFragment.java:95)",
+            "de.k3b.android.androFotoFinder.locationmap.LocationMapFragment$2.onZoom(LocationMapFragment.java:307)",
+            "org.osmdroid.events.DelayedMapListener$CallbackTask.run(DelayedMapListener.java:90)",
+            "android.os.Handler.handleCallback(Handler.java:751)",
+            "android.os.Handler.dispatchMessage(Handler.java:95)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ActivityDiary",
+      "app": "de.rampro.activitydiary",
+      "package": "de.rampro.activitydiary.debug",
+      "version_code": null,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "java.lang.IllegalArgumentException",
+          "identity": "java.lang.IllegalArgumentException@de.rampro.activitydiary.ui.generic.DetailRecyclerViewAdapter.getDiaryImageIdAt(DetailRecyclerViewAdapter.java:156)",
+          "frames": [
+            "de.rampro.activitydiary.ui.generic.DetailRecyclerViewAdapter.getDiaryImageIdAt(DetailRecyclerViewAdapter.java:156)",
+            "de.rampro.activitydiary.ui.history.HistoryRecyclerViewAdapter$1.onClick(HistoryRecyclerViewAdapter.java:87)",
+            "android.support.v7.app.AlertController$ButtonHandler.handleMessage(AlertController.java:162)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AmazeFileManager-3.3.2-#1796",
+      "app": "com.amaze.filemanager",
+      "package": "com.amaze.filemanager",
+      "version_code": 1796,
+      "version_name": "3.3.2",
+      "crashes": [
+        {
+          "exception": "java.lang.IndexOutOfBoundsException",
+          "identity": "java.lang.IndexOutOfBoundsException@com.amaze.filemanager.asynchronous.asynctasks.DeleteTask.onPostExecute(DeleteTask.java:175)",
+          "frames": [
+            "java.util.ArrayList.get(ArrayList.java:411)",
+            "com.amaze.filemanager.asynchronous.asynctasks.DeleteTask.onPostExecute(DeleteTask.java:175)",
+            "com.amaze.filemanager.asynchronous.asynctasks.DeleteTask.onPostExecute(DeleteTask.java:51)",
+            "android.os.AsyncTask.finish(AsyncTask.java:667)",
+            "android.os.AsyncTask$InternalHandler.handleMessage(AsyncTask.java:684)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)"
+          ]
+        },
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.amaze.filemanager.filesystem.Operations$1.doInBackground(Operations.java:164)",
+          "frames": [
+            "android.os.AsyncTask$3.done(AsyncTask.java:325)",
+            "java.util.concurrent.FutureTask.finishCompletion(FutureTask.java:354)",
+            "java.util.concurrent.FutureTask.setException(FutureTask.java:223)",
+            "java.util.concurrent.FutureTask.run(FutureTask.java:242)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1133)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:607)",
+            "java.lang.Thread.run(Thread.java:761)",
+            "com.amaze.filemanager.filesystem.Operations$1.doInBackground(Operations.java:164)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AmazeFileManager-3.4.2-#1837",
+      "app": "com.amaze.filemanager",
+      "package": "com.amaze.filemanager.debug",
+      "version_code": 1837,
+      "version_name": "3.4.2",
+      "crashes": [
+        {
+          "exception": "java.lang.IndexOutOfBoundsException",
+          "identity": "java.lang.IndexOutOfBoundsException@com.amaze.filemanager.adapters.glide.RecyclerPreloadModelProvider.getPreloadItems(RecyclerPreloadModelProvider.java:36)",
+          "frames": [
+            "java.util.ArrayList.get(ArrayList.java:411)",
+            "com.amaze.filemanager.adapters.glide.RecyclerPreloadModelProvider.getPreloadItems(RecyclerPreloadModelProvider.java:36)",
+            "com.bumptech.glide.ListPreloader.preload(ListPreloader.java:173)",
+            "com.bumptech.glide.ListPreloader.preload(ListPreloader.java:154)",
+            "com.bumptech.glide.ListPreloader.onScroll(ListPreloader.java:142)",
+            "com.bumptech.glide.integration.recyclerview.RecyclerToListViewScrollListener.onScrolled(RecyclerToListViewScrollListener.java:58)",
+            "com.bumptech.glide.integration.recyclerview.RecyclerViewPreloader.onScrolled(RecyclerViewPreloader.java:96)",
+            "androidx.recyclerview.widget.RecyclerView.dispatchOnScrolled(RecyclerView.java:4961)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-2.16alpha67-debug-#11586",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 11586,
+      "version_name": "2.16alpha67",
+      "crashes": [
+        {
+          "exception": "java.lang.UnsupportedOperationException",
+          "identity": "java.lang.UnsupportedOperationException@com.ichi2.anki.ActionProviderCompat.onCreateActionView(ActionProviderCompat.kt:35)",
+          "frames": [
+            "com.ichi2.anki.ActionProviderCompat.onCreateActionView(ActionProviderCompat.kt:35)",
+            "androidx.core.view.ActionProvider.onCreateActionView(ActionProvider.java:170)",
+            "androidx.appcompat.view.menu.MenuItemImpl.getActionView(MenuItemImpl.java:773)",
+            "androidx.appcompat.widget.ActionMenuPresenter.getItemView(ActionMenuPresenter.java:191)",
+            "androidx.appcompat.widget.ActionMenuPresenter.flagActionItems(ActionMenuPresenter.java:469)",
+            "androidx.appcompat.view.menu.MenuBuilder.flagActionItems(MenuBuilder.java:1176)",
+            "androidx.appcompat.view.menu.BaseMenuPresenter.updateMenuView(BaseMenuPresenter.java:96)",
+            "androidx.appcompat.widget.ActionMenuPresenter.updateMenuView(ActionMenuPresenter.java:226)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.6beta6-#4200",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 4200,
+      "version_name": "2.6beta6",
+      "crashes": [
+        {
+          "exception": "java.lang.NumberFormatException",
+          "identity": "java.lang.NumberFormatException@com.ichi2.anki.dialogs.CustomStudyDialog$2.onPositive(CustomStudyDialog.java:231)",
+          "frames": [
+            "java.lang.Integer.parseInt(Integer.java:524)",
+            "java.lang.Integer.parseInt(Integer.java:556)",
+            "com.ichi2.anki.dialogs.CustomStudyDialog$2.onPositive(CustomStudyDialog.java:231)",
+            "com.afollestad.materialdialogs.MaterialDialog.onClick(MaterialDialog.java:333)",
+            "android.view.View.performClick(View.java:5637)",
+            "android.view.View$PerformClick.run(View.java:22429)",
+            "android.os.Handler.handleCallback(Handler.java:751)",
+            "android.os.Handler.dispatchMessage(Handler.java:95)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.7beta1-#4451",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 4451,
+      "version_name": "2.7beta1",
+      "crashes": [
+        {
+          "exception": "android.os.FileUriExposedException",
+          "identity": "android.os.FileUriExposedException@android.os.StrictMode.onFileUriExposed(StrictMode.java:1799)",
+          "frames": [
+            "android.os.StrictMode.onFileUriExposed(StrictMode.java:1799)",
+            "android.net.Uri.checkFileUriExposed(Uri.java:2346)",
+            "android.content.ClipData.prepareToLeaveProcess(ClipData.java:845)",
+            "android.content.Intent.prepareToLeaveProcess(Intent.java:8941)",
+            "android.content.Intent.prepareToLeaveProcess(Intent.java:8926)",
+            "android.app.Instrumentation.execStartActivity(Instrumentation.java:1517)",
+            "android.app.Activity.startActivityForResult(Activity.java:4225)",
+            "android.support.v4.app.BaseFragmentActivityJB.startActivityForResult(BaseFragmentActivityJB.java:48)"
+          ]
+        },
+        {
+          "exception": "java.lang.ClassCastException",
+          "identity": "java.lang.ClassCastException@com.ichi2.anki.AbstractFlashcardViewer.initLayout(AbstractFlashcardViewer.java:1439)",
+          "frames": [
+            "com.ichi2.anki.AbstractFlashcardViewer.initLayout(AbstractFlashcardViewer.java:1439)",
+            "com.ichi2.anki.AbstractFlashcardViewer.onCollectionLoaded(AbstractFlashcardViewer.java:889)",
+            "com.ichi2.anki.Reviewer.onCollectionLoaded(Reviewer.java:98)",
+            "com.ichi2.anki.AnkiActivity.onLoadFinished(AnkiActivity.java:286)",
+            "com.ichi2.anki.AnkiActivity.onLoadFinished(AnkiActivity.java:42)",
+            "android.support.v4.app.LoaderManagerImpl$LoaderInfo.callOnLoadFinished(LoaderManager.java:479)",
+            "android.support.v4.app.LoaderManagerImpl$LoaderInfo.onLoadComplete(LoaderManager.java:447)",
+            "android.support.v4.content.Loader.deliverResult(Loader.java:126)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.9-#4977",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 4977,
+      "version_name": "2.9",
+      "crashes": [
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@com.ichi2.anki.CardBrowser$20.onPostExecute(CardBrowser.java:1364)",
+          "frames": [
+            "com.ichi2.anki.CardBrowser$20.onPostExecute(CardBrowser.java:1364)",
+            "com.ichi2.async.DeckTask$TaskListener.onPostExecute(DeckTask.java:1521)",
+            "com.ichi2.async.DeckTask.onPostExecute(DeckTask.java:376)",
+            "com.ichi2.async.DeckTask.onPostExecute(DeckTask.java:69)",
+            "android.os.AsyncTask.finish(AsyncTask.java:667)",
+            "android.os.AsyncTask$InternalHandler.handleMessage(AsyncTask.java:684)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)"
+          ]
+        },
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@com.ichi2.anki.CardBrowser$20.onPostExecute(CardBrowser.java:1364)",
+          "frames": [
+            "com.ichi2.anki.CardBrowser$20.onPostExecute(CardBrowser.java:1364)",
+            "com.ichi2.async.DeckTask$TaskListener.onPostExecute(DeckTask.java:1521)",
+            "com.ichi2.async.DeckTask.onPostExecute(DeckTask.java:376)",
+            "com.ichi2.async.DeckTask.onPostExecute(DeckTask.java:69)",
+            "android.os.AsyncTask.finish(AsyncTask.java:667)",
+            "android.os.AsyncTask$InternalHandler.handleMessage(AsyncTask.java:684)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.9.1-#5638",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 5638,
+      "version_name": "2.9.1",
+      "crashes": [
+        {
+          "exception": "java.lang.ArrayIndexOutOfBoundsException",
+          "identity": "java.lang.ArrayIndexOutOfBoundsException@com.ichi2.libanki.Utils.entsToTxt(Utils.java:251)",
+          "frames": [
+            "java.util.regex.Matcher.appendEvaluated(Matcher.java:636)",
+            "java.util.regex.Matcher.appendReplacement(Matcher.java:601)",
+            "com.ichi2.libanki.Utils.entsToTxt(Utils.java:251)",
+            "com.ichi2.libanki.Utils.stripHTML(Utils.java:223)",
+            "com.ichi2.libanki.Utils.stripHTMLMedia(Utils.java:232)",
+            "com.ichi2.libanki.Utils.fieldChecksum(Utils.java:509)",
+            "com.ichi2.libanki.Note.dupeOrEmpty(Note.java:288)",
+            "com.ichi2.anki.NoteEditor.duplicateCheck(NoteEditor.java:1344)"
+          ]
+        },
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@android.os.AsyncTask$3.done(AsyncTask.java:325)",
+          "frames": [
+            "android.os.AsyncTask$3.done(AsyncTask.java:325)",
+            "java.util.concurrent.FutureTask.finishCompletion(FutureTask.java:354)",
+            "java.util.concurrent.FutureTask.setException(FutureTask.java:223)",
+            "java.util.concurrent.FutureTask.run(FutureTask.java:242)",
+            "android.os.AsyncTask$SerialExecutor$1.run(AsyncTask.java:243)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1133)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:607)",
+            "java.lang.Thread.run(Thread.java:761)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.9.4-#5756",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 5756,
+      "version_name": "2.9.4",
+      "crashes": [
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        },
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AnkiDroid-debug-2.9alpha4-#4707",
+      "app": "com.ichi2.anki",
+      "package": "com.ichi2.anki",
+      "version_code": 4707,
+      "version_name": "2.9alpha4",
+      "crashes": [
+        {
+          "exception": "android.os.FileUriExposedException",
+          "identity": "android.os.FileUriExposedException@android.os.StrictMode.onFileUriExposed(StrictMode.java:1799)",
+          "frames": [
+            "android.os.StrictMode.onFileUriExposed(StrictMode.java:1799)",
+            "android.net.Uri.checkFileUriExposed(Uri.java:2346)",
+            "android.content.ClipData.prepareToLeaveProcess(ClipData.java:845)",
+            "android.content.Intent.prepareToLeaveProcess(Intent.java:8941)",
+            "android.content.Intent.prepareToLeaveProcess(Intent.java:8926)",
+            "android.app.Instrumentation.execStartActivity(Instrumentation.java:1517)",
+            "android.app.Activity.startActivityForResult(Activity.java:4225)",
+            "android.support.v4.app.BaseFragmentActivityJB.startActivityForResult(BaseFragmentActivityJB.java:50)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AntennaPod",
+      "app": "de.danoeh.antennapod",
+      "package": "de.danoeh.antennapod.debug",
+      "version_code": null,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@de.danoeh.antennapod.core.export.favorites.FavoritesWriter.writeFeed(FavoritesWriter.java:113)",
+          "frames": [
+            "java.lang.String.replace(String.java:2187)",
+            "de.danoeh.antennapod.core.export.favorites.FavoritesWriter.writeFeed(FavoritesWriter.java:113)",
+            "de.danoeh.antennapod.core.export.favorites.FavoritesWriter.writeDocument(FavoritesWriter.java:55)",
+            "de.danoeh.antennapod.asynctask.DocumentFileExportWorker.lambda$exportObservable$0$DocumentFileExportWorker(DocumentFileExportWorker.java:44)",
+            "io.reactivex.internal.operators.observable.ObservableCreate.subscribeActual(ObservableCreate.java:40)",
+            "io.reactivex.Observable.subscribe(Observable.java:12246)",
+            "io.reactivex.internal.operators.observable.ObservableSubscribeOn$SubscribeTask.run(ObservableSubscribeOn.java:96)",
+            "io.reactivex.Scheduler$DisposeTask.run(Scheduler.java:578)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "FirefoxLite-2.1.20-#5085",
+      "app": "org.mozilla.rocket.debug",
+      "package": "org.mozilla.rocket.debug.ting",
+      "version_code": 5085,
+      "version_name": "2.1.20",
+      "crashes": [
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@org.mozilla.focus.settings.SettingsFragment.onCreate(SettingsFragment.kt:53)",
+          "frames": [
+            "org.mozilla.focus.settings.SettingsFragment.onCreate(SettingsFragment.kt:53)",
+            "android.app.Fragment.performCreate(Fragment.java:2336)",
+            "android.app.FragmentManagerImpl.moveToState(FragmentManager.java:949)",
+            "android.app.BackStackRecord.setLastIn(BackStackRecord.java:860)",
+            "android.app.BackStackRecord.calculateFragments(BackStackRecord.java:900)",
+            "android.app.BackStackRecord.run(BackStackRecord.java:728)",
+            "android.app.FragmentManagerImpl.execPendingActions(FragmentManager.java:1578)",
+            "android.app.FragmentManagerImpl$1.run(FragmentManager.java:483)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "Omni-Notes-6.1.0-#745",
+      "app": "it.feio.android.omninotes",
+      "package": "it.feio.android.omninotes.alpha",
+      "version_code": 745,
+      "version_name": "6.1.0",
+      "crashes": [
+        {
+          "exception": "java.lang.NoSuchMethodError",
+          "identity": "java.lang.NoSuchMethodError@it.feio.android.simplegallery.GalleryPagerFragment.onCreateView(GalleryPagerFragment.java:86)",
+          "frames": [
+            "it.feio.android.simplegallery.GalleryPagerFragment.onCreateView(GalleryPagerFragment.java:86)",
+            "androidx.fragment.app.Fragment.performCreateView(Fragment.java:2600)",
+            "androidx.fragment.app.FragmentManagerImpl.moveToState(FragmentManagerImpl.java:881)",
+            "androidx.fragment.app.FragmentManagerImpl.moveFragmentToExpectedState(FragmentManagerImpl.java:1238)",
+            "androidx.fragment.app.FragmentManagerImpl.moveToState(FragmentManagerImpl.java:1303)",
+            "androidx.fragment.app.BackStackRecord.executeOps(BackStackRecord.java:439)",
+            "androidx.fragment.app.FragmentManagerImpl.executeOps(FragmentManagerImpl.java:2079)",
+            "androidx.fragment.app.FragmentManagerImpl.executeOpsTogether(FragmentManagerImpl.java:1869)"
+          ]
+        },
+        {
+          "exception": "android.database.sqlite.SQLiteDiskIOException",
+          "identity": "android.database.sqlite.SQLiteDiskIOException@it.feio.android.omninotes.db.DbHelper.getNotes(DbHelper.java:444)",
+          "frames": [
+            "android.database.sqlite.SQLiteConnection.executeForCursorWindow(SQLiteConnection.java:845)",
+            "android.database.sqlite.SQLiteSession.executeForCursorWindow(SQLiteSession.java:836)",
+            "android.database.sqlite.SQLiteQuery.fillWindow(SQLiteQuery.java:62)",
+            "android.database.sqlite.SQLiteCursor.fillWindow(SQLiteCursor.java:143)",
+            "android.database.sqlite.SQLiteCursor.getCount(SQLiteCursor.java:132)",
+            "android.database.AbstractCursor.moveToPosition(AbstractCursor.java:219)",
+            "android.database.AbstractCursor.moveToFirst(AbstractCursor.java:258)",
+            "it.feio.android.omninotes.db.DbHelper.getNotes(DbHelper.java:444)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "and-bible-build-327-#480",
+      "app": "net.bible.android.activity",
+      "package": "net.bible.android.activity",
+      "version_code": 480,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "kotlin.KotlinNullPointerException",
+          "identity": "kotlin.KotlinNullPointerException@net.bible.service.db.bookmark.BookmarkDBAdapter.updateLabel(BookmarkDBAdapter.kt:110)",
+          "frames": [
+            "net.bible.service.db.bookmark.BookmarkDBAdapter.updateLabel(BookmarkDBAdapter.kt:110)",
+            "net.bible.android.control.bookmark.BookmarkControl.saveOrUpdateLabel(BookmarkControl.kt:306)",
+            "net.bible.android.view.activity.bookmark.LabelDialogs$1.onClick(LabelDialogs.java:83)",
+            "com.android.internal.app.AlertController$ButtonHandler.handleMessage(AlertController.java:166)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "and-bible-build-369-#697",
+      "app": "net.bible.android.activity",
+      "package": "net.bible.android.activity",
+      "version_code": 697,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "collect-1.23.0-beta.2-#3222",
+      "app": "org.odk.collect.android",
+      "package": "org.odk.collect.android",
+      "version_code": 3222,
+      "version_name": "1.23.0",
+      "crashes": [
+        {
+          "exception": "java.lang.IllegalArgumentException",
+          "identity": "java.lang.IllegalArgumentException@org.odk.collect.android.activities.FormChooserList.onLoadFinished(FormChooserList.java:232)",
+          "frames": [
+            "android.database.AbstractCursor.getColumnIndexOrThrow(AbstractCursor.java:333)",
+            "android.database.CursorWrapper.getColumnIndexOrThrow(CursorWrapper.java:87)",
+            "android.widget.SimpleCursorAdapter.findColumns(SimpleCursorAdapter.java:333)",
+            "android.widget.SimpleCursorAdapter.swapCursor(SimpleCursorAdapter.java:345)",
+            "org.odk.collect.android.activities.FormChooserList.onLoadFinished(FormChooserList.java:232)",
+            "org.odk.collect.android.activities.FormChooserList.onLoadFinished(FormChooserList.java:55)",
+            "androidx.loader.app.LoaderManagerImpl$LoaderObserver.onChanged(LoaderManagerImpl.java:250)",
+            "androidx.lifecycle.LiveData.considerNotify(LiveData.java:131)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "commons-2.9.0-#2123",
+      "app": "fr.free.nrw.commons",
+      "package": "fr.free.nrw.commons.beta",
+      "version_code": 2123,
+      "version_name": "2.9.0",
+      "crashes": [
+        {
+          "exception": "",
+          "identity": "@io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)",
+          "frames": [
+            "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:704)",
+            "io.reactivex.internal.functions.Functions$OnErrorMissingConsumer.accept(Functions.java:701)",
+            "io.reactivex.internal.observers.LambdaObserver.onError(LambdaObserver.java:77)",
+            "com.tspoon.traceur.ObservableOnAssembly$OnAssemblyObserver.onError(ObservableOnAssembly.java:62)",
+            "io.reactivex.internal.operators.observable.ObservableObserveOn$ObserveOnObserver.checkTerminated(ObservableObserveOn.java:276)",
+            "io.reactivex.internal.operators.observable.ObservableObserveOn$ObserveOnObserver.drainNormal(ObservableObserveOn.java:172)",
+            "io.reactivex.internal.operators.observable.ObservableObserveOn$ObserveOnObserver.run(ObservableObserveOn.java:252)",
+            "io.reactivex.android.schedulers.HandlerScheduler$ScheduledRunnable.run(HandlerScheduler.java:119)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "markor-0.3.9-#264",
+      "app": "net.gsantner.markor",
+      "package": "net.gsantner.markor",
+      "version_code": 264,
+      "version_name": "0.3.9",
+      "crashes": [
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@net.gsantner.opoc.util.FileUtils.isTextFile(FileUtils.java:400)",
+          "frames": [
+            "net.gsantner.opoc.util.FileUtils.isTextFile(FileUtils.java:400)",
+            "net.gsantner.markor.ui.FileInfoDialog.setUpDialog(FileInfoDialog.java:69)",
+            "net.gsantner.markor.ui.FileInfoDialog.onCreateDialog(FileInfoDialog.java:41)",
+            "android.support.v4.app.DialogFragment.onGetLayoutInflater(DialogFragment.java:328)",
+            "android.support.v4.app.Fragment.performGetLayoutInflater(Fragment.java:1226)",
+            "android.support.v4.app.FragmentManagerImpl.moveToState(FragmentManager.java:1428)",
+            "android.support.v4.app.FragmentManagerImpl.moveFragmentToExpectedState(FragmentManager.java:1759)",
+            "android.support.v4.app.FragmentManagerImpl.moveToState(FragmentManager.java:1827)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "open-event-attendee-android",
+      "app": "com.eventyay.attendee",
+      "package": "com.eventyay.attendee",
+      "version_code": null,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "",
+          "identity": "@androidx.fragment.app.Fragment.instantiate(Fragment.java:532)",
+          "frames": [
+            "androidx.fragment.app.Fragment.instantiate(Fragment.java:532)",
+            "androidx.fragment.app.FragmentContainer.instantiate(FragmentContainer.java:57)",
+            "androidx.fragment.app.FragmentManagerImpl$6.instantiate(FragmentManagerImpl.java:2850)",
+            "androidx.navigation.fragment.FragmentNavigator.instantiateFragment(FragmentNavigator.java:132)",
+            "androidx.navigation.fragment.FragmentNavigator.navigate(FragmentNavigator.java:162)",
+            "androidx.navigation.fragment.FragmentNavigator.navigate(FragmentNavigator.java:58)",
+            "androidx.navigation.NavController.navigate(NavController.java:859)",
+            "androidx.navigation.NavController.navigate(NavController.java:793)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "osmeditor4android-debug-#637",
+      "app": "de.blau.android",
+      "package": "de.blau.android",
+      "version_code": 637,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "java.lang.IllegalStateException",
+          "identity": "java.lang.IllegalStateException@org.acra.ACRA.getErrorReporter(ACRA.java:316)",
+          "frames": [
+            "org.acra.ACRA.getErrorReporter(ACRA.java:316)",
+            "de.blau.android.DebugInformation$1.onClick(DebugInformation.java:44)",
+            "android.view.View.performClick(View.java:5637)",
+            "android.view.View$PerformClick.run(View.java:22429)",
+            "android.os.Handler.handleCallback(Handler.java:751)",
+            "android.os.Handler.dispatchMessage(Handler.java:95)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)"
+          ]
+        },
+        {
+          "exception": "java.lang.NullPointerException",
+          "identity": "java.lang.NullPointerException@de.blau.android.validation.BaseValidator.validateElement(BaseValidator.java:105)",
+          "frames": [
+            "de.blau.android.validation.BaseValidator.validateElement(BaseValidator.java:105)",
+            "de.blau.android.validation.BaseValidator.validate(BaseValidator.java:213)",
+            "de.blau.android.osm.Way.validate(Way.java:519)",
+            "de.blau.android.osm.OsmElement.hasProblem(OsmElement.java:531)",
+            "de.blau.android.Map.paintWay(Map.java:1155)",
+            "de.blau.android.Map.paintOsmData(Map.java:737)",
+            "de.blau.android.Map.onDraw(Map.java:426)",
+            "android.view.View.draw(View.java:17185)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "osmeditor4android-debug-#729",
+      "app": "de.blau.android",
+      "package": "de.blau.android",
+      "version_code": 729,
+      "version_name": "",
+      "crashes": [
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@android.os.AsyncTask$3.done(AsyncTask.java:325)",
+          "frames": [
+            "android.os.AsyncTask$3.done(AsyncTask.java:325)",
+            "java.util.concurrent.FutureTask.finishCompletion(FutureTask.java:354)",
+            "java.util.concurrent.FutureTask.setException(FutureTask.java:223)",
+            "java.util.concurrent.FutureTask.run(FutureTask.java:242)",
+            "android.os.AsyncTask$SerialExecutor$1.run(AsyncTask.java:243)",
+            "java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1133)",
+            "java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:607)",
+            "java.lang.Thread.run(Thread.java:761)"
+          ]
+        },
+        {
+          "exception": "java.lang.RuntimeException",
+          "identity": "java.lang.RuntimeException@com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+          "frames": [
+            "android.app.ActivityThread.performLaunchActivity(ActivityThread.java:2665)",
+            "android.app.ActivityThread.handleLaunchActivity(ActivityThread.java:2726)",
+            "android.app.ActivityThread$H.handleMessage(ActivityThread.java:1477)",
+            "android.os.Handler.dispatchMessage(Handler.java:102)",
+            "android.os.Looper.loop(Looper.java:154)",
+            "android.app.ActivityThread.main(ActivityThread.java:6119)",
+            "com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:886)",
+            "com.android.internal.os.ZygoteInit.main(ZygoteInit.java:776)"
+          ]
+        }
+      ]
+    }
+  ]
+}
