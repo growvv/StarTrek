@@ -110,6 +110,11 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         config = load_config(ROOT / args.config)
         config.paths.root = str(graph_root)
+        # The pipeline's agent must act on the device this run was given.
+        # The config's serial is one machine's default; with four emulators
+        # in parallel, a pipeline that ignored --serial observed and acted on
+        # a different app's screen, and every card looked inexecutable.
+        config.device.serial = args.serial
         pipeline = build_pipeline(config, fake_llm=False, fake_device=False)
         graph = pipeline.store.load()
         print(

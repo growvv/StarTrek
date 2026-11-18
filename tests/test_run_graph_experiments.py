@@ -138,3 +138,42 @@ def test_the_probe_plan_carries_the_app_package(tmp_path):
     assert pipeline.plan_calls, "the probe should have planned a path"
     assert pipeline.plan_calls[0][2] == "com.amaze.filemanager"
     assert pipeline.execute_calls, "the probe should have executed through the executor"
+
+
+def test_the_graph_arm_uses_the_serial_it_was_given(monkeypatch, tmp_path):
+    """Four emulators run in parallel; each pipeline must act on its own.
+
+    The config carries one machine's default serial.  When the graph arm
+    ignored `--serial`, its pipeline observed whichever app happened to be in
+    the foreground on that other emulator, so every card looked inexecutable
+    and the arm scored zero for a reason that had nothing to do with the graph.
+    """
+    import scripts.run_mobileworld_bench as bench
+
+    seen: dict[str, str] = {}
+
+    class _Config:
+        paths = type("P", (), {"root": ""})()
+        device = type("D", (), {"serial": "emulator-5600"})()
+        llm = type("L", (), {"base_url": "", "api_key_env": "X"})()
+        agent = type("A", (), {"model": "m", "fallback_model": "m"})
+
+    monkeypatch.setattr(bench, "load_config", lambda _path: _Config())
+
+    def fake_build(config, **_kwargs):
+        seen["serial"] = config.device.serial
+        raise SystemExit("stop here: construction is what matters")
+
+    monkeypatch.setattr(bench, "build_pipeline", fake_build)
+
+    graph_root = tmp_path / "graph"
+    (graph_root / "cards").mkdir(parents=True)
+    try:
+        bench.main([
+            "--app", "amaze", "--agent", "graph", "--serial", "emulator-5604",
+            "--graph-root", str(graph_root), "--out", str(tmp_path / "out"),
+        ])
+    except SystemExit:
+        pass
+
+    assert seen["serial"] == "emulator-5604"
