@@ -371,3 +371,31 @@ def test_estimate_section_scores_each_dimension_from_the_records():
     assert "估计打分" in html
     # graph 100, random 40, calibration 95, selfopt gain 1/17 -> 6, task 50
     assert "100" in html and "40" in html and "95" in html and "50" in html
+
+
+def test_the_suite_onboarding_matches_what_the_builds_show():
+    """Onboarding targets are the labels these builds actually use.
+
+    A wizard step that names a control the build does not have fails
+    silently — the click returns False and the episode starts on a
+    permission screen — so the suite is checked against the APKs' own
+    resource ids instead of against memory.
+    """
+    from specfcg.benchmark.suite import load_suite
+
+    suites = {s.app: s for s in load_suite(ROOT / "benchmark" / "mobileworld" / "suite.yaml")}
+    assert set(suites) == {"omninotes", "markor", "amaze", "activitydiary"}
+
+    for suite in suites.values():
+        onboarding = suite.tasks[0].onboarding
+        assert onboarding, f"{suite.app} has no onboarding"
+        targets = [str(step.get("target", "")) for step in onboarding]
+        # Every app's wizard ends on a control the build names, not on prose.
+        assert any(t for t in targets), suite.app
+
+    # The builds are English: Amaze's drawer tab is `Home`, and Markor's
+    # storage dialog is `OK`.  Both were Chinese labels that matched nothing.
+    amaze = [str(s.get("target")) for s in suites["amaze"].tasks[0].onboarding]
+    assert "desc=Home" in amaze
+    markor = [str(s.get("target")) for s in suites["markor"].tasks[0].onboarding]
+    assert "text=OK" in markor

@@ -44,6 +44,18 @@ DEVICE_PROFILE = "pixel_6"
 # start on any of them without a separate provisioning step.
 BENCHMARK_APPS = (
     "it.feio.android.omninotes.foss",
+    "net.gsantner.markor",
+    "com.amaze.filemanager",
+    "de.rampro.activitydiary",
+)
+
+# Permissions a benchmark app needs before its tasks can run.  These are
+# granted once per device rather than per episode: `pm clear` keeps appops
+# grants, but an onboarding script cannot reach the all-files screen at all —
+# it opens a Settings page outside the app.
+APP_OPS = (
+    ("net.gsantner.markor", "MANAGE_EXTERNAL_STORAGE"),
+    ("com.amaze.filemanager", "MANAGE_EXTERNAL_STORAGE"),
 )
 
 
@@ -267,6 +279,12 @@ def install(serials: list[str]) -> int:
             )
             if result.returncode != 0:
                 print(f"  failed: {result.stderr.strip()[:200]}")
+        for package, op in APP_OPS:
+            subprocess.run(
+                [str(ADB), "-s", serial, "shell", "appops", "set", package, op, "allow"],
+                capture_output=True, text=True, env=_env(),
+            )
+            print(f"{serial}: appops {package} {op}=allow")
     return 0
 
 

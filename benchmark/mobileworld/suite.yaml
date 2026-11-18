@@ -112,7 +112,12 @@ apps:
   - name: activitydiary
     package: de.rampro.activitydiary
     source: https://github.com/ramack/ActivityDiary (1.4.2)
+    # Android 13 asks for notification permission on first launch.  The dialog
+    # appears a moment after the app draws, so it is clicked twice: the first
+    # click waits out the launch, the second covers the dialog itself.
     onboarding:
+      - {action: wait, target: "", args: "2"}
+      - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
       - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
     tasks:
       - id: diary_start_activity
@@ -186,12 +191,16 @@ apps:
   - name: markor
     package: net.gsantner.markor
     source: https://github.com/gsantner/markor
+    # Four intro pages, then DONE, then the storage-permission dialog.  The
+    # order matters: OK only exists after the intro is dismissed.  `pm clear`
+    # resets the grant, so this runs every episode.
     onboarding:
       - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
       - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
       - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
       - {action: click, target: "resourceId=net.gsantner.markor:id/next"}
       - {action: click, target: "resourceId=net.gsantner.markor:id/done"}
+      - {action: click, target: "text=OK"}
       - {action: click, target: "text=确定"}
     tasks:
       - id: markor_create_note
@@ -288,11 +297,14 @@ apps:
   - name: amaze
     package: com.amaze.filemanager
     source: https://github.com/TeamAmaze/AmazeFileManager (3.11.4)
+    # The build is English: the drawer tab is `desc=Home`, not `主页`.  The
+    # all-files grant is set with `appops` by scripts/emulator_pool.py, because
+    # the dialog it opens lives in Settings and no in-app click can reach it.
     onboarding:
       - {action: click, target: "resourceId=com.android.permissioncontroller:id/permission_allow_button"}
       # Every task names Documents explicitly, so task initialisation lands
       # there instead of leaving the agent on Amaze's home tab.
-      - {action: click, target: "desc=主页"}
+      - {action: click, target: "desc=Home"}
       - {action: click, target: "text=Documents"}
     tasks:
       - id: amaze_create_folder
