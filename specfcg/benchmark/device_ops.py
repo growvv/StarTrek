@@ -103,6 +103,19 @@ class AdbOps:
             self._device = Uiautomator2Device(self.serial, settle_s=0.8)
         return self._device.execute(action, target, args)
 
+    def install(self, apk) -> bool:
+        """Install an APK, replacing whatever is there.
+
+        The package manager refuses a downgrade, so the caller uninstalls
+        first; `-r` only makes a same-or-newer reinstall cheap.
+        """
+        code, out = self._exec("install", "-r", str(apk))
+        text = out.decode("utf-8", "replace")
+        return code == 0 and "Success" in text
+
+    def uninstall(self, package: str) -> None:
+        self._exec("uninstall", package)
+
     def focused_package(self) -> str:
         code, out = self._exec("shell", "dumpsys", "window")
         text = out.decode("utf-8", "replace")
