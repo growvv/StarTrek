@@ -170,7 +170,12 @@ def run_probes(
         # The probe predicted a path; the walk that tests the prediction must
         # be that path.  A goal-blind random walk measures a different thing
         # entirely, so "reached" would not be evidence about the estimate.
-        plan = pipeline.plan_path(probe.goal, probe.predicted_path)
+        # The package travels with the plan: the executor hands the plan's
+        # description to an agent, and an agent with no app has nothing to
+        # act on.
+        plan = pipeline.plan_path(
+            probe.goal, probe.predicted_path, app=package
+        )
         if plan is None:
             run = AgentRun(steps=[], no_plan=True)
             observed = pipeline.observe(package)

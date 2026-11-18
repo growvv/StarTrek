@@ -8,13 +8,13 @@
 
 ## 1. 一句话状态
 
-MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F 已完成**，
-当前 **417 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
+MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F 与 G 已完成**，
+当前 **419 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
 Function Contract Graph，`runs/mobileworld/score-history.json` 记录了 7 次
 迭代的分数，最新综合 **71.7**（这批分数由旧架构产出，见第 7 节）。
 
 Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
-下一步是 **Task G**（探针与能力补全走 agent）。README 里“卡片含 Steps /
+下一步是 **Task H**（消融：GraphAgent vs RawGoalAgent）。README 里“卡片含 Steps /
 编译成动作”的描述已经过期，重写它属于文档收尾。
 
 ## 2. 现在系统怎么工作（as built）
@@ -100,7 +100,7 @@ steps / evidence`；`TestPlan` 含卡片路径与编译出的 `steps`；边类�
 
 ```bash
 # 测试（无设备）
-python -m pytest -q                      # 417 passed
+python -m pytest -q                      # 419 passed
 
 # 无设备的端到端冒烟
 python -m specfcg.cli plan --config config/llm.yaml --fake-llm --fake-device \
@@ -208,10 +208,11 @@ tasks，20 步上限，程序化 oracle（只看执行结束后的 UI/窗口/文
 
 ## 10. 交接清单
 
-- [x] MVP 代码与测试（417 passed）
+- [x] MVP 代码与测试（419 passed）
 - [x] 设计文档、实施计划、Next Round 路线图（commit `5da1862`）
 - [x] 公开报告、证据副本、Pages 站点
 - [x] 本交接文档
 - [x] Task F：卡片是契约、计划是描述、agent 执行（93 张卡已迁移，真机 smoke 通过）
-- [ ] Task G → H → C → A → B → D → E（见计划）
+- [x] Task G：探针与能力补全走 agent（包名透传，真机验证）
+- [ ] Task H → C → A → B → D → E（见计划）
 - [ ] 设备、网关、`OPENAI_API_KEY`、`config/llm.yaml` 访问权限移交

@@ -94,8 +94,8 @@ groups:
         note: 架构切换已落地：93 张卡迁移，真机 smoke 与端到端规划均通过。
       - key: G
         title: 探针与能力补全走 agent
-        status: planned
-        note: 依赖 F。
+        status: done
+        note: 探针经 AgentProbe 交给同一个 agent；包名从 goal 透传到探针计划，真机验证通过。
       - key: H
         title: 消融实验：GraphAgent vs RawGoalAgent
         status: planned

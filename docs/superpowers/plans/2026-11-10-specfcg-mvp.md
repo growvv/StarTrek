@@ -1953,7 +1953,7 @@ execute through the executor instead of replaying a compiled plan.
 **Interfaces:**
 - Consumes: `AgentProbe` and `GuiAgent` (F), `Executor` (F)
 
-- [ ] **Step 1: Write the failing wiring test**
+- [x] **Step 1: Write the failing wiring test**
 
 The probe itself is tested in F.  What F cannot test is that the package
 reaches it:
@@ -1971,14 +1971,14 @@ def test_the_completer_gives_the_probe_the_goal_s_package(
     assert fake_probe.apps == ["it.feio.android.omninotes.foss"]
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `python -m pytest tests/test_completer.py -q`
 
 Expected: FAIL — `FakeProbe` records no `apps`, and `complete` calls
 `probe.run(capability, state)` without the package.
 
-- [ ] **Step 3: Pass the package through and wire the probe**
+- [x] **Step 3: Pass the package through and wire the probe**
 
 `CapabilityCompleter.complete` calls
 `self.probe.run(capability, state, app=goal.app)`; `tests/fakes.py`'s
@@ -1990,7 +1990,7 @@ client that observed the screen.  F already removed
 "short probe plan" clause; G only checks the completer still runs without
 them.
 
-- [ ] **Step 4: Reroute `run_probes`**
+- [x] **Step 4: Reroute `run_probes`**
 
 `run_probes` keeps its predicted path and executes it through the pipeline's
 executor (`pipeline.plan_path(...)` then `pipeline.executor.execute(plan)`
@@ -2000,13 +2000,13 @@ step's `before_state` plus the final UI, so "reached" means the agent's
 screens showed the function.  The prediction stays about the graph's route —
 that is the quantity calibration scores.
 
-- [ ] **Step 5: Run the completer, pipeline and experiment tests**
+- [x] **Step 5: Run the completer, pipeline and experiment tests**
 
 Run: `python -m pytest tests/test_completer.py tests/test_pipeline.py tests/test_run_graph_experiments.py -q`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add specfcg scripts tests

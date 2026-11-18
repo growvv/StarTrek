@@ -241,3 +241,36 @@ def test_hypotheses_are_grounded_in_the_observed_screen(
     )
 
     assert "文本注释" in fake_llm.prompts[-1]
+
+
+def test_the_completer_gives_the_probe_the_goal_s_package(
+    fake_llm, graph_store, card_miner, edge_builder, fake_probe, probe_trace
+):
+    """A probe acts through the agent, and the agent needs the package.
+
+    `MissingCapability` names a capability, not an app: only the goal knows
+    which package the probe is about, so the completer has to pass it down.
+    """
+    fake_probe.trace = probe_trace
+    fake_llm.responses = [
+        {"gap": "need a tag"},
+        {
+            "capabilities": [
+                {"name": "add_tag", "intent": "Add a tag", "confidence": 0.9}
+            ]
+        },
+        "# add_tag\n\n**Intent**: Add a tag to the open note.\n"
+        "**Inputs**: none\n**Preconditions**: A note is open.\n"
+        "**Postconditions**: The note carries a tag.\n"
+        "**Effects/Outputs**: A tag is attached.\n"
+        "**Evidence**: traces t9; 1/1 successes",
+        {"edges": []},
+    ]
+
+    _completer(
+        fake_llm, graph_store, card_miner, edge_builder, fake_probe
+    ).complete(
+        Goal(description="add a tag", app="it.feio.android.omninotes.foss"), ""
+    )
+
+    assert fake_probe.apps == ["it.feio.android.omninotes.foss"]
