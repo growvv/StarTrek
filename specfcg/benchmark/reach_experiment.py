@@ -146,6 +146,15 @@ class ReachExperiment:
         )
         if result.seed_note.startswith(("could not install", "never reached")):
             result.error = result.seed_note
+        if result.seed_note == "never reached the app: stuck on no usable UI":
+            # The UI could not be read, so neither arm can say anything about
+            # the description.  Recorded rather than planned from a blank.
+            result.no_plan = False
+            (out / "result.json").write_text(
+                json.dumps(result.as_record(), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            return result
 
         from specfcg.benchmark.suite import BenchTask
 

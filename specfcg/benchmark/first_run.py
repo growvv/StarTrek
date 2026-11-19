@@ -115,6 +115,7 @@ def settle_first_run(
     and saying so is more useful than a run that measures the dialog.
     """
     state = LaunchState(package=package)
+    saw_screen = False
     for _ in range(rounds):
         state.foreground = _foreground(device)
         if state.foreground == package:
@@ -131,9 +132,13 @@ def settle_first_run(
                 time.sleep(settle_s)
                 continue
             if _click_any(device, ui):
+                # A dialog was read and answered, so the UI is readable even
+                # if a later dump fails while a window animates.
+                saw_screen = True
                 state.dismissed += 1
                 time.sleep(settle_s)
                 continue
+            saw_screen = True
             return state
         if state.foreground not in FOREIGN_PACKAGES:
             # Not a known dialog and not the app: back out once, then stop.
@@ -151,7 +156,12 @@ def settle_first_run(
             continue
         state.stuck_on = state.foreground
         return state
-    state.stuck_on = state.foreground
+    if not saw_screen:
+        # Rounds ran out without ever reading a usable screen.  Reporting
+        # ready here would hand the caller an app whose UI cannot be read,
+        # and the next step — planning — would fail for a reason that looks
+        # like the graph's fault.
+        state.stuck_on = "no usable UI"
     return state
 
 
@@ -204,10 +214,14 @@ def _dump(device) -> str:
     waits out its whole timeout before failing.  The file is removed first,
     so a failed dump reads as empty.
     """
-    device.shell("rm -f /sdcard/_ui.xml")
-    device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1")
-    ui = device.shell("cat /sdcard/_ui.xml 2>/dev/null")
-    return ui if "<hierarchy" in ui else ""
+    for _ in range(3):
+        device.shell("rm -f /sdcard/_ui.xml")
+        device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1")
+        ui = device.shell("cat /sdcard/_ui.xml 2>/dev/null")
+        if "<hierarchy" in ui:
+            return ui
+        time.sleep(0.5)
+    return ""
 
 
 def _click_attr(device, ui: str, attr: str, value: str) -> bool:
