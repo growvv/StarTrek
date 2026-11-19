@@ -231,3 +231,64 @@ def test_a_tie_is_reported_as_a_tie_not_as_evidence():
 
     assert summary["paired"]["tied"] == ["a"]
     assert summary["paired"]["delta"] == 0
+
+
+def test_the_graph_arm_gives_the_agent_the_plans_description(monkeypatch, tmp_path):
+    """Both arms must differ in the text and nothing else.
+
+    If the graph arm fell back to the goal, the comparison would be two copies
+    of the same arm and could not show a difference however large it was.
+    """
+    import scripts.run_reach_experiment as cli
+
+    seen: list[str] = []
+
+    class Backend:
+        def __init__(self, *a, **k):
+            pass
+
+        def observe(self, app):
+            return "TextView text='Notebook'"
+
+        def run(self, task, max_steps, *, app):
+            seen.append(task)
+            return SimpleNamespace(
+                steps=[], done=True, final_ui="", error=""
+            )
+
+    class Plan:
+        path = ["file_details"]
+        description = "Overall goal: X\n1. file_details — Show metadata"
+
+    class Pipeline:
+        def plan(self, goal, state, app=""):
+            return Plan()
+
+    monkeypatch.setattr(cli, "MobileAgentBackend", Backend, raising=False)
+    monkeypatch.setattr(
+        cli, "build_pipeline", lambda *a, **k: Pipeline(), raising=False
+    )
+    monkeypatch.setattr(
+        cli, "_apk_for", lambda version, apks: Path(__file__), raising=False
+    )
+    monkeypatch.setattr(
+        cli,
+        "_graph_root",
+        lambda package, graphs: tmp_path / "graph",
+        raising=False,
+    )
+
+    from specfcg.benchmark.suite import BenchTask
+
+    reason = cli._graph_agent(Pipeline(), Backend())(
+        BenchTask(
+            id="t",
+            app="app",
+            package="com.example.app",
+            template="In the app, open a file's info dialog",
+            max_steps=5,
+        )
+    )
+
+    assert seen == [Plan.description]
+    assert reason.predicted_path == ["file_details"]
