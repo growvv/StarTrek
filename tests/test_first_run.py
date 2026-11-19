@@ -201,3 +201,45 @@ def test_a_button_that_is_text_inside_a_panel_is_tapped_by_coordinate():
 
     assert state.dismissed >= 1
     assert any(call == "xy=540,1677" for call in device.calls)
+
+
+def test_a_failed_dump_is_not_read_from_the_previous_file():
+    """`uiautomator dump` leaves the old file behind when it fails.
+
+    Reading it acts on a screen that is no longer showing; the control is
+    gone, and the selector then waits out its whole timeout before failing.
+    One round of settling took 129s because of this.
+    """
+    class Device:
+        """A device whose dump fails, leaving the previous file in place."""
+
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+            self.file = ""
+
+        def shell(self, command: str) -> str:
+            self.calls.append(command)
+            if command.startswith("rm -f"):
+                self.file = ""
+                return ""
+            if command.startswith("cat "):
+                return self.file
+            if "uiautomator dump" in command:
+                # The dump fails, so the file keeps its old contents.
+                return "ERROR: null root node"
+            if "dumpsys window" in command:
+                return "mCurrentFocus=Window{a u0 net.gsantner.markor/.Main}"
+            return ""
+
+        def act(self, action: str, target: str) -> bool:
+            raise AssertionError("must not act on a stale dump")
+
+    device = Device()
+    device.file = (
+        '<hierarchy><node text="OK" clickable="true" '
+        'bounds="[0,0][10,10]"/></hierarchy>'
+    )
+
+    state = settle_first_run(device, "net.gsantner.markor", settle_s=0, rounds=1)
+
+    assert state.dismissed == 0
