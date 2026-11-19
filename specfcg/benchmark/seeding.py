@@ -25,6 +25,11 @@ class SeedSpec:
     directory: str
     sample_file: str = "sample.txt"
     sample_text: str = "sample text\n"
+    # Some crashes need a state an ordinary directory does not have: Amaze
+    # 3.3.2's delete runs off the end of an adapter whose list just became
+    # empty, which only happens when the directory held one item.  A spec
+    # says so rather than leaving the run to hope.
+    only_item: bool = False
 
 
 # Paths read from each build's own storage: Markor stores its notebook
@@ -38,6 +43,9 @@ SEEDS = {
     "com.amaze.filemanager": SeedSpec(
         package="com.amaze.filemanager",
         directory="/storage/emulated/0/Documents",
+        # `DeleteTask.onPostExecute` indexes row 0 of an empty adapter; the
+        # dataset's crash needs a directory that held exactly one item.
+        only_item=True,
     ),
 }
 
@@ -65,6 +73,13 @@ def prepare(device, package: str) -> str:
     device.shell(f"printf '%s' '{spec.sample_text}' > {path}")
     device.shell(f"chmod 664 {path}")
     device.shell(f"chmod 775 {spec.directory}")
+    if spec.only_item:
+        # Leave nothing else behind: a delete that empties the directory is
+        # the state several of these crashes need.
+        device.shell(
+            f"find {spec.directory} -mindepth 1 -maxdepth 1 "
+            f"! -name '{spec.sample_file}' -exec rm -rf {{}} +"
+        )
     listing = device.shell(f"ls {spec.directory}")
     if spec.sample_file not in listing:
         return f"seeded {path} but the directory does not list it"

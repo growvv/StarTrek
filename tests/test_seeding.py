@@ -60,3 +60,18 @@ def test_an_unknown_build_is_not_given_a_guessed_path():
 def test_the_record_says_whether_a_seed_was_used():
     assert as_record("net.gsantner.markor")["seeded"] is True
     assert as_record("com.example.unknown")["seeded"] is False
+
+
+def test_a_single_item_directory_is_left_with_only_the_sample():
+    """Amaze's delete crash needs a directory that held exactly one item.
+
+    `DeleteTask.onPostExecute` indexes row 0 of an adapter whose list just
+    became empty; with other files present the list is never empty.
+    """
+    device = FakeDevice()
+
+    reason = prepare(device, "com.amaze.filemanager")
+
+    assert reason == ""
+    joined = " | ".join(device.calls)
+    assert "! -name 'sample.txt' -exec rm -rf" in joined
