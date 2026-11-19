@@ -42,6 +42,11 @@ class ReachRun:
     markers_seen: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
     error: str = ""
+    # A graph that cannot plan is a graph failure, not an agent failure.  Both
+    # would otherwise read `steps=0, reached=False`, and the comparison would
+    # count a missing plan against the description it never produced.
+    no_plan: bool = False
+    seed_note: str = ""
 
     def as_record(self) -> dict:
         return {
@@ -51,9 +56,11 @@ class ReachRun:
             "task": self.task_text,
             "steps": self.steps,
             "reached": self.reached,
+            "no_plan": self.no_plan,
             "markers_seen": self.markers_seen,
             "missing": self.missing,
             "error": self.error,
+            "seed_note": self.seed_note,
         }
 
 
@@ -132,9 +139,13 @@ class ReachExperiment:
             version=version.id, arm=arm, target=target.name
         )
         result.task_text = task_text(target)
-        setup_note = self._prepare(version, apk) if apk is not None else ""
-        if setup_note:
-            result.error = setup_note
+        # A build whose data path is unknown can still have tasks that need
+        # no file, so the note is recorded beside the run, not as a failure.
+        result.seed_note = (
+            self._prepare(version, apk) if apk is not None else ""
+        )
+        if result.seed_note.startswith(("could not install", "never reached")):
+            result.error = result.seed_note
 
         from specfcg.benchmark.suite import BenchTask
 
@@ -156,6 +167,7 @@ class ReachExperiment:
             return result
 
         result.steps = len(run.steps)
+        result.no_plan = bool(getattr(run, "no_plan", False))
         if run.error and not result.error:
             result.error = run.error
         time.sleep(self.after_s)

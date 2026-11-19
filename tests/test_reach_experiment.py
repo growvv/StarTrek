@@ -18,8 +18,9 @@ from specfcg.benchmark.suite_runner import AgentRun
 class FakeDevice:
     """A device whose final screen is set per arm."""
 
-    def __init__(self, final_ui: str = "") -> None:
+    def __init__(self, final_ui: str = "", package: str = "com.example.app") -> None:
         self.final_ui = final_ui
+        self.package = package
         self.installed: list[str] = []
         self.launched: list[str] = []
 
@@ -31,6 +32,9 @@ class FakeDevice:
         pass
 
     def shell(self, command: str) -> str:
+        if "dumpsys window" in command:
+            # The app is in front after `launch`; the settler reads this.
+            return f"mCurrentFocus=Window{{a u0 {self.package}/.Main}}"
         return ""
 
     def launch(self, package: str) -> None:
@@ -153,3 +157,48 @@ def test_a_failed_agent_call_is_a_datum_not_a_crash(tmp_path):
 
     assert run.reached is False
     assert "model went away" in run.error
+
+
+def test_a_graph_that_cannot_plan_is_not_counted_as_a_failed_attempt(tmp_path):
+    """A missing plan is the graph's failure, not the agent's.
+
+    Both read `steps=0, reached=False` without the flag, so the comparison
+    would count a plan the graph never produced against the agent.
+    """
+    version, apk = _version(
+        tmp_path, "net.gsantner.markor.ui.FileInfoDialog.setUpDialog"
+    )
+
+    def no_plan(task):
+        return AgentRun(steps=[], no_plan=True)
+
+    experiment = ReachExperiment(
+        FakeDevice(), None, None, tmp_path / "runs", settle_s=0, after_s=0
+    )
+    run = experiment.run(
+        version, target_for_version(version), "graph", no_plan, max_steps=5,
+        apk=apk,
+    )
+
+    assert run.no_plan is True
+    assert run.reached is False
+
+
+def test_an_unknown_data_path_is_a_note_not_an_error(tmp_path):
+    """A build with no known seed path can still have tasks that need no file."""
+    version, apk = _version(
+        tmp_path, "net.gsantner.markor.ui.FileInfoDialog.setUpDialog"
+    )
+    version.package = "com.example.unknown"
+    experiment = ReachExperiment(
+        FakeDevice(package="com.example.unknown"), None, None,
+        tmp_path / "runs", settle_s=0, after_s=0,
+    )
+
+    run = experiment.run(
+        version, target_for_version(version), "raw", _agent(), max_steps=5,
+        apk=apk,
+    )
+
+    assert run.seed_note.startswith("no known data path")
+    assert run.error == ""

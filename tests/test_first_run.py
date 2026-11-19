@@ -13,8 +13,14 @@ class FakeDevice:
         self.index = 0
         self.clicks: list[str] = []
         self.keys: list[str] = []
+        self._dump = ""
 
     def shell(self, command: str) -> str:
+        if command.startswith("rm -f"):
+            self._dump = ""
+            return ""
+        if command.startswith("cat "):
+            return self._dump
         if "dumpsys window" in command:
             return f"mCurrentFocus=Window{{abc u0 {self.screens[self.index]}/.MainActivity}}"
         if command.startswith("input keyevent"):
@@ -25,8 +31,16 @@ class FakeDevice:
         if "uiautomator dump" in command:
             # The current screen exposes every control that leads out of it.
             here = self.screens[self.index]
-            ids = " ".join(self.controls[here].split(",")) if here in self.controls else ""
-            return ids
+            parts = (
+                self.controls[here].split(",") if here in self.controls else []
+            )
+            nodes = " ".join(
+                f'<node id="{part}" clickable="true"/>'
+                for part in parts
+                if part
+            )
+            self._dump = f"<hierarchy>{nodes}</hierarchy>"
+            return "UI hierchary dumped to: /sdcard/_ui.xml"
         return ""
 
     def act(self, action: str, target: str) -> bool:
@@ -148,3 +162,42 @@ def test_all_files_access_is_granted_and_read_back():
 
     assert grant_storage_access(Device(True), "com.example") is True
     assert grant_storage_access(Device(False), "com.example") is False
+
+
+def test_a_button_that_is_text_inside_a_panel_is_tapped_by_coordinate():
+    """Markor 0.3.9's licences OK is a non-clickable TextView in a panel.
+
+    A selector click finds the text and fails to act on it, so the dialog
+    stayed up and became the agent's start screen.
+    """
+    class Device:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+            self._dump = ""
+
+        def shell(self, command: str) -> str:
+            if command.startswith("rm -f"):
+                self._dump = ""
+                return ""
+            if command.startswith("cat "):
+                return self._dump
+            if "dumpsys window" in command:
+                return "mCurrentFocus=Window{a u0 net.gsantner.markor/.Main}"
+            if "uiautomator dump" in command:
+                self._dump = (
+                    '<hierarchy><node text="OK" resource-id="" '
+                    'class="android.widget.TextView" bounds="[70,1603][1010,1751]"/>'
+                    '</hierarchy>'
+                )
+                return "UI hierchary dumped to: /sdcard/_ui.xml"
+            return ""
+
+        def act(self, action: str, target: str) -> bool:
+            self.calls.append(target)
+            return target.startswith("xy=")
+
+    device = Device()
+    state = settle_first_run(device, "net.gsantner.markor", settle_s=0)
+
+    assert state.dismissed >= 1
+    assert any(call == "xy=540,1677" for call in device.calls)

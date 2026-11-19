@@ -123,6 +123,15 @@ def settle_first_run(
             # Markor's licences notice is a dialog *in* MainActivity.  The UI
             # has to be read to know whether a dismissable control is showing.
             if not _dismiss_once(device):
+                # The control may be present but unclickable the first time;
+                # give it one more look before calling the app ready, or a
+                # dialog that stays up silently becomes the agent's start.
+                time.sleep(settle_s)
+                state.foreground = _foreground(device)
+                if state.foreground == package and _dismiss_once(device):
+                    state.dismissed += 1
+                    time.sleep(settle_s)
+                    continue
                 return state
             state.dismissed += 1
             time.sleep(settle_s)
@@ -158,25 +167,75 @@ def _foreground(device) -> str:
 
 
 def _dismiss_once(device) -> bool:
-    """Click one control that closes a first-run dialog, if one is there."""
+    """Click one control that closes a first-run dialog, if one is there.
+
+    One dump decides what to try.  Asking the device for each control in turn
+    makes every absent one wait out its selector timeout — four ids and six
+    labels is minutes per round — and a settle that slow hides behind its own
+    latency.
+    """
+    ui = _dump(device)
+    if not ui:
+        return False
     for resource_id in DISMISS_CONTROLS:
-        if _click_id(device, resource_id):
+        if f'id="{resource_id}"' in ui and _click_attr(
+            device, ui, "id", resource_id
+        ):
             return True
     for label in DISMISS_TEXTS:
-        if _click_text(device, label):
+        if f'text="{label}"' in ui and _click_attr(
+            device, ui, "text", label
+        ):
             return True
     return False
 
 
-def _click_id(device, resource_id: str) -> bool:
-    ui = device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1; cat /sdcard/_ui.xml")
-    if resource_id not in ui:
-        return False
-    return device.act("click", f"resourceId={resource_id}")
+def _dump(device) -> str:
+    """A fresh UI dump, or "" when the dump failed.
+
+    `uiautomator dump` leaves the previous file in place when it fails, so a
+    plain `cat` hands back a screen that is no longer showing.  Acting on it
+    is worse than doing nothing: the control is gone, and the selector then
+    waits out its whole timeout before failing.  The file is removed first,
+    so a failed dump reads as empty.
+    """
+    device.shell("rm -f /sdcard/_ui.xml")
+    device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1")
+    ui = device.shell("cat /sdcard/_ui.xml 2>/dev/null")
+    return ui if "<hierarchy" in ui else ""
 
 
-def _click_text(device, label: str) -> bool:
-    ui = device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1; cat /sdcard/_ui.xml")
-    if f'text="{label}"' not in ui:
+def _click_attr(device, ui: str, attr: str, value: str) -> bool:
+    """Click the node carrying this attribute value.
+
+    A selector click on a non-clickable node does not fail fast: it waits out
+    the selector timeout first.  A node the dump marks `clickable="false"` is
+    therefore tapped at its centre directly.
+    """
+    import re
+
+    pattern = re.compile(
+        rf'<node\b[^>]*{attr}="{re.escape(value)}"[^>]*>'
+    )
+    match = pattern.search(ui)
+    if not match:
         return False
-    return device.act("click", f"text={label}")
+    node = match.group(0)
+    clickable = 'clickable="true"' in node
+    selector = (
+        f"resourceId={value}" if attr == "id" else f"text={value}"
+    )
+    if clickable:
+        return device.act("click", selector)
+    bounds = re.search(
+        r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node
+    )
+    if not bounds:
+        return False
+    left, top, right, bottom = (int(v) for v in bounds.groups())
+    return device.act(
+        "click", f"xy={(left + right) // 2},{(top + bottom) // 2}"
+    )
+
+
+
