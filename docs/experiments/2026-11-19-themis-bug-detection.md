@@ -97,6 +97,23 @@ agent 会让它「看一眼菜单」，永远到不了崩溃代码。
 
 ## 8. 本轮对 executor 的改进
 
+**agent 第一次走到了崩溃入口。** 修好 `tap` 的 content-desc 支持与长按能力后，
+markor 0.3.9 的一次运行里全部动作都成功：第 1 步长按文件、第 12 步点开
+`Info`，最终界面确实是 `FileInfoDialog`（Name / Location / Size / Text Lines
+全部渲染）。这是本轮第一次让 agent 抵达数据集标注的崩溃点。
+
+但它没有崩溃，因为该 bug 需要 `FileUtils.isTextFile` 收到空扩展名（NPE 在
+`String.startsWith` 的 null 接收者上），而列表里的文件都带 `.md`/`.txt`。
+无扩展名的文件不被文件浏览器列出，目录又不支持长按菜单——具体触发条件尚未
+还原出来。这属于任务推导的精度问题：`bug_task` 给出「打开文件信息对话框」，
+但真正需要的可能是「对某个无扩展名的项打开信息」。
+
+另外，日志里出现的 11 条 `FATAL EXCEPTION` 全部来自 **uiautomator 自身**
+（`UiAutomationService already registered`），判定的 `Process:` 过滤把它们正确
+排除了——这正好验证了「只认目标进程」这条规则的必要性。
+
+## 8.1 屏幕身份与安装对话框
+
 **屏幕身份**（`mobile_agent/screen.py`）。Markor 的失败看得最清楚：agent
 的 plan 是对的（「点 overflow，选 Info」），但第一次点击打开了编辑器，随后
 十四步都在编辑器的 overflow 里找 Info。它从未意识到界面变了。
