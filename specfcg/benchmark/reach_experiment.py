@@ -47,6 +47,10 @@ class ReachRun:
     # count a missing plan against the description it never produced.
     no_plan: bool = False
     seed_note: str = ""
+    # `version-matched` when the graph came from this build, `other-build`
+    # when it came from another one.  The second means every number from this
+    # run measures a graph that was not built from this code.
+    graph_build: str = ""
 
     def as_record(self) -> dict:
         return {
@@ -61,6 +65,7 @@ class ReachRun:
             "missing": self.missing,
             "error": self.error,
             "seed_note": self.seed_note,
+            "graph_build": self.graph_build,
         }
 
 
@@ -256,4 +261,10 @@ def paired_summary(runs: list[ReachRun]) -> dict:
                 for arm in arms
             },
         }
-    return {"per_arm": per_arm, "paired": paired}
+    by_build: dict[str, int] = {}
+    for run in runs:
+        if run.arm.startswith("graph"):
+            by_build[run.graph_build or "unknown"] = (
+                by_build.get(run.graph_build or "unknown", 0) + 1
+            )
+    return {"per_arm": per_arm, "paired": paired, "graph_builds": by_build}

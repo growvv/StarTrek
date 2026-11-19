@@ -74,16 +74,29 @@ GRAPH_DIR_BY_PACKAGE = {
 }
 
 
-def _graph_root(package: str, graph_dir: Path) -> Path | None:
-    """The graph built for this app, if one exists."""
+def _graph_root(
+    package: str, version_id: str, graph_dir: Path
+) -> tuple[Path | None, str]:
+    """The graph for this app, and whether it was built from this build.
+
+    A graph built from another version cannot bound this one: the controls
+    have moved, functions have appeared and disappeared, and the graph arm
+    then fails with `no_plan` for a reason that has nothing to do with the
+    description it would have produced.  A build-matched graph is looked for
+    first, under the version's own directory; a graph found any other way is
+    reported as `other-build` so the comparison can be read for what it is.
+    """
+    matched = graph_dir / "themis" / version_id / "graph"
+    if (matched / "cards").is_dir():
+        return matched, "version-matched"
     names = [GRAPH_DIR_BY_PACKAGE.get(package, ""), package]
     for name in names:
         if not name:
             continue
         for candidate in (graph_dir / name, graph_dir / name / "graph"):
             if (candidate / "cards").is_dir():
-                return candidate
-    return None
+                return candidate, "other-build"
+    return None, "none"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -163,12 +176,23 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         # The graph arm: the same agent, given the graph's description.
-        graph_root = _graph_root(version.package, Path(args.graphs))
+        graph_root, graph_build = _graph_root(
+            version.package, version.id, Path(args.graphs)
+        )
         if graph_root is None:
             skipped.append(
                 {"version": version.id, "reason": "no graph built for this app"}
             )
             continue
+        if graph_build != "version-matched":
+            # Not fatal, but every number from this arm measures a graph that
+            # was not built from this build.  Said out loud, once per version.
+            print(
+                f"{version.id}: graph at {graph_root} was not built from this "
+                f"build; the graph arm measures a version mismatch",
+                file=sys.stderr,
+                flush=True,
+            )
         cfg = load_config(ROOT / args.config)
         cfg.paths.root = str(graph_root)
         # The pipeline's own agent must act on the device this run was given;
@@ -186,6 +210,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.max_steps,
                 apk=apk,
             )
+            graph_run.graph_build = graph_build
             runs.append(graph_run)
             print(
                 f"{version.id:40s} graph#{attempt} reached={graph_run.reached} "

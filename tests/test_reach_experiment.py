@@ -292,3 +292,57 @@ def test_the_graph_arm_gives_the_agent_the_plans_description(monkeypatch, tmp_pa
 
     assert seen == [Plan.description]
     assert reason.predicted_path == ["file_details"]
+
+
+def test_a_graph_built_from_another_build_is_reported_as_such():
+    """A graph from another version cannot bound this one.
+
+    The controls have moved and functions have appeared or gone, so the graph
+    arm fails with `no_plan` for a reason that is not the description's.
+    """
+    runs = [
+        ReachRun(version="a", arm="graph-1", target="t", reached=True,
+                 graph_build="version-matched"),
+        ReachRun(version="b", arm="graph-1", target="t", reached=False,
+                 graph_build="other-build"),
+        ReachRun(version="b", arm="raw-1", target="t", reached=True),
+    ]
+
+    summary = paired_summary(runs)
+
+    assert summary["graph_builds"] == {
+        "version-matched": 1,
+        "other-build": 1,
+    }
+
+
+def test_the_graph_lookup_prefers_the_build_matched_one(tmp_path):
+    import scripts.run_reach_experiment as cli
+
+    matched = tmp_path / "themis" / "app-1.0-#1" / "graph" / "cards"
+    matched.mkdir(parents=True)
+    shared = tmp_path / "app" / "graph" / "cards"
+    shared.mkdir(parents=True)
+
+    root, build = cli._graph_root("com.example.app", "app-1.0-#1", tmp_path)
+
+    assert root == matched.parent
+    assert build == "version-matched"
+
+
+def test_a_shared_graph_is_flagged_rather_than_silently_used(tmp_path):
+    import scripts.run_reach_experiment as cli
+
+    shared = tmp_path / "markor" / "graph" / "cards"
+    shared.mkdir(parents=True)
+
+    root, build = cli._graph_root("net.gsantner.markor", "markor-0.3.9-#264", tmp_path)
+
+    assert root == shared.parent
+    assert build == "other-build"
+
+
+def test_no_graph_at_all_is_reported_as_none(tmp_path):
+    import scripts.run_reach_experiment as cli
+
+    assert cli._graph_root("com.x", "v1", tmp_path) == (None, "none")
