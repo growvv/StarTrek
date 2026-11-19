@@ -202,3 +202,32 @@ def test_an_unknown_data_path_is_a_note_not_an_error(tmp_path):
 
     assert run.seed_note.startswith("no known data path")
     assert run.error == ""
+
+
+def test_repeats_are_scored_as_a_rate_not_as_extra_arms():
+    """One run of a stochastic agent is a coin flip, not an outcome."""
+    runs = [
+        ReachRun(version="a", arm="graph-1", target="t", reached=True),
+        ReachRun(version="a", arm="graph-2", target="t", reached=False),
+        ReachRun(version="a", arm="raw-1", target="t", reached=False),
+        ReachRun(version="a", arm="raw-2", target="t", reached=False),
+    ]
+
+    summary = paired_summary(runs)
+
+    assert set(summary["per_arm"]) == {"graph", "raw"}
+    assert summary["paired"]["graph_only"] == ["a"]
+    assert summary["paired"]["delta"] == 1
+    assert summary["paired"]["mean_rate"] == {"graph": 0.5, "raw": 0.0}
+
+
+def test_a_tie_is_reported_as_a_tie_not_as_evidence():
+    runs = [
+        ReachRun(version="a", arm="graph", target="t", reached=True),
+        ReachRun(version="a", arm="raw", target="t", reached=True),
+    ]
+
+    summary = paired_summary(runs)
+
+    assert summary["paired"]["tied"] == ["a"]
+    assert summary["paired"]["delta"] == 0

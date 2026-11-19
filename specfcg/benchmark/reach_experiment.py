@@ -189,29 +189,62 @@ class ReachExperiment:
         return result
 
 
+def _base_arm(arm: str) -> str:
+    """`raw-2` is the second raw run, not a third arm."""
+    head, _, tail = arm.rpartition("-")
+    return head if head and tail.isdigit() else arm
+
+
 def paired_summary(runs: list[ReachRun]) -> dict:
-    """Reach rate per arm, and the paired difference over shared targets."""
-    by_arm: dict[str, dict[str, bool]] = {}
+    """Reach rate per arm, and the paired difference over shared targets.
+
+    A stochastic agent makes one run a coin flip, so a version with repeats
+    is scored by how often the target was reached.  The paired difference
+    counts a version as won only when the arms' rates differ; a tie — both
+    always, both never — is not evidence for either.
+    """
+    by_arm: dict[str, dict[str, list[bool]]] = {}
     for run in runs:
-        by_arm.setdefault(run.arm, {})[run.version] = run.reached
+        by_arm.setdefault(_base_arm(run.arm), {}).setdefault(
+            run.version, []
+        ).append(run.reached)
     arms = sorted(by_arm)
     per_arm = {
         arm: summarise([
-            ReachResult(version=v, target="", reached=hit)
-            for v, hit in hits.items()
+            ReachResult(
+                version=version,
+                target="",
+                reached=sum(attempts) / len(attempts),
+            )
+            for version, attempts in hits.items()
         ])
+        for arm, hits in by_arm.items()
+    }
+    # The per-version rate is what a paired comparison should use.
+    rates = {
+        arm: {
+            version: sum(attempts) / len(attempts)
+            for version, attempts in hits.items()
+        }
         for arm, hits in by_arm.items()
     }
     paired = {}
     if len(arms) == 2:
         left, right = arms
-        shared = set(by_arm[left]) & set(by_arm[right])
-        only_left = [v for v in shared if by_arm[left][v] and not by_arm[right][v]]
-        only_right = [v for v in shared if by_arm[right][v] and not by_arm[left][v]]
+        shared = set(rates[left]) & set(rates[right])
+        only_left = [v for v in shared if rates[left][v] > rates[right][v]]
+        only_right = [v for v in shared if rates[right][v] > rates[left][v]]
+        tied = [v for v in shared if rates[left][v] == rates[right][v]]
         paired = {
             "shared": len(shared),
             f"{left}_only": sorted(only_left),
             f"{right}_only": sorted(only_right),
+            "tied": sorted(tied),
             "delta": len(only_left) - len(only_right),
+            "mean_rate": {
+                arm: (sum(rates[arm].values()) / len(rates[arm]))
+                if rates[arm] else 0.0
+                for arm in arms
+            },
         }
     return {"per_arm": per_arm, "paired": paired}

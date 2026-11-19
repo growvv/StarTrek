@@ -96,6 +96,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default="runs/reach")
     parser.add_argument("--versions", default="all")
     parser.add_argument("--max-steps", type=int, default=20)
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="runs per arm; one run of a stochastic agent is a coin flip",
+    )
     args = parser.parse_args(argv)
 
     dataset = (
@@ -140,16 +146,21 @@ def main(argv: list[str] | None = None) -> int:
         raw_experiment = ReachExperiment(
             device, None, None, Path(args.out)
         )
-        raw_run = raw_experiment.run(
-            version, target, "raw", _callable_agent(agent), args.max_steps,
-            apk=apk,
-        )
-        runs.append(raw_run)
-        print(
-            f"{version.id:40s} raw   reached={raw_run.reached} "
-            f"steps={raw_run.steps} {raw_run.error[:40]}",
-            flush=True,
-        )
+        for attempt in range(1, max(1, args.repeat) + 1):
+            raw_run = raw_experiment.run(
+                version,
+                target,
+                "raw" if args.repeat == 1 else f"raw-{attempt}",
+                _callable_agent(agent),
+                args.max_steps,
+                apk=apk,
+            )
+            runs.append(raw_run)
+            print(
+                f"{version.id:40s} raw#{attempt} reached={raw_run.reached} "
+                f"steps={raw_run.steps} {raw_run.error[:40]}",
+                flush=True,
+            )
 
         # The graph arm: the same agent, given the graph's description.
         graph_root = _graph_root(version.package, Path(args.graphs))
@@ -164,22 +175,23 @@ def main(argv: list[str] | None = None) -> int:
         # the config's serial is one machine's default.
         cfg.device.serial = args.serial
         pipeline = build_pipeline(cfg, fake_llm=False, fake_device=False)
-        graph_run = ReachExperiment(
-            device, pipeline, None, Path(args.out)
-        ).run(
-            version,
-            target,
-            "graph",
-            _graph_agent(pipeline, agent),
-            args.max_steps,
-            apk=apk,
-        )
-        runs.append(graph_run)
-        print(
-            f"{version.id:40s} graph reached={graph_run.reached} "
-            f"steps={graph_run.steps} {graph_run.error[:40]}",
-            flush=True,
-        )
+        for attempt in range(1, max(1, args.repeat) + 1):
+            graph_run = ReachExperiment(
+                device, pipeline, None, Path(args.out)
+            ).run(
+                version,
+                target,
+                "graph" if args.repeat == 1 else f"graph-{attempt}",
+                _graph_agent(pipeline, agent),
+                args.max_steps,
+                apk=apk,
+            )
+            runs.append(graph_run)
+            print(
+                f"{version.id:40s} graph#{attempt} reached={graph_run.reached} "
+                f"steps={graph_run.steps} {graph_run.error[:40]}",
+                flush=True,
+            )
 
     summary = paired_summary(runs)
     report = {
