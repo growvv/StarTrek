@@ -1,6 +1,6 @@
 # 交接文档 — SpecFCG / StarTrek
 
-> 面向接手开发的工程师。最后更新：2026-11-18。
+> 面向接手开发的工程师。最后更新：2026-11-19。
 >
 > 建议阅读顺序：本文 → [设计文档](superpowers/specs/2026-11-10-spec-fcg-mobile-gui-testing-design.md)
 > → [实施计划](superpowers/plans/2026-11-10-specfcg-mvp.md) 的 **Next Round** 一节
@@ -9,9 +9,21 @@
 ## 1. 一句话状态
 
 MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Task F、G、H、C、A、B、D、E 全部完成**，
-当前 **444 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。四个 app 各建了一张
-Function Contract Graph，`runs/mobileworld/score-history.json` 记录了 7 次
-迭代的分数，最新综合 **71.7**（这批分数由旧架构产出，见第 7 节）。
+当前 **521 个测试通过**（CI 覆盖 Python 3.10 / 3.12）。
+
+四个 app 的功能图覆盖率（分母来自各 app 的**源码资源**，不是被比较工具的功能表）：
+
+| app | 覆盖 |
+|---|---|
+| activitydiary | 15/15 = 100% |
+| amaze | 19/20 = 95% |
+| markor | 17/17 = 100% |
+| omninotes | 23/23 = 100% |
+
+平均 **98.8%**，见 `docs/experiments/2026-11-19-coverage.md`。
+
+崩溃检测实验（FuncDroid 的 Themis 数据集）**尚未检出任何 bug**，阻塞点与已修复
+的缺陷见 `docs/experiments/2026-11-19-themis-bug-detection.md`。
 
 Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
 Next Round 的八项任务已全部完成；下一轮尚未规划。README 里“卡片含 Steps /
