@@ -122,20 +122,19 @@ def settle_first_run(
             # activity, so focus alone cannot tell "ready" from "blocked":
             # Markor's licences notice is a dialog *in* MainActivity.  The UI
             # has to be read to know whether a dismissable control is showing.
-            if not _dismiss_once(device):
-                # The control may be present but unclickable the first time;
-                # give it one more look before calling the app ready, or a
-                # dialog that stays up silently becomes the agent's start.
+            ui = _dump(device)
+            if not ui:
+                # A blank dump is not an empty screen.  Markor draws its
+                # licences notice about four seconds after launch, and an
+                # experiment that stopped at the first blank dump handed the
+                # agent a dialog as its start screen.
                 time.sleep(settle_s)
-                state.foreground = _foreground(device)
-                if state.foreground == package and _dismiss_once(device):
-                    state.dismissed += 1
-                    time.sleep(settle_s)
-                    continue
-                return state
-            state.dismissed += 1
-            time.sleep(settle_s)
-            continue
+                continue
+            if _click_any(device, ui):
+                state.dismissed += 1
+                time.sleep(settle_s)
+                continue
+            return state
         if state.foreground not in FOREIGN_PACKAGES:
             # Not a known dialog and not the app: back out once, then stop.
             device.shell("input keyevent 4")
@@ -145,7 +144,8 @@ def settle_first_run(
                 return state
             state.stuck_on = state.foreground
             return state
-        if _dismiss_once(device):
+        ui = _dump(device)
+        if ui and _click_any(device, ui):
             state.dismissed += 1
             time.sleep(settle_s)
             continue
@@ -167,14 +167,19 @@ def _foreground(device) -> str:
 
 
 def _dismiss_once(device) -> bool:
-    """Click one control that closes a first-run dialog, if one is there.
+    """Click one control that closes a first-run dialog, if one is there."""
+    ui = _dump(device)
+    return _click_any(device, ui)
+
+
+def _click_any(device, ui: str) -> bool:
+    """Click one control that closes a first-run dialog, from a given dump.
 
     One dump decides what to try.  Asking the device for each control in turn
     makes every absent one wait out its selector timeout — four ids and six
     labels is minutes per round — and a settle that slow hides behind its own
     latency.
     """
-    ui = _dump(device)
     if not ui:
         return False
     for resource_id in DISMISS_CONTROLS:

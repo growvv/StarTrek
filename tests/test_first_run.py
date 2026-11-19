@@ -243,3 +243,44 @@ def test_a_failed_dump_is_not_read_from_the_previous_file():
     state = settle_first_run(device, "net.gsantner.markor", settle_s=0, rounds=1)
 
     assert state.dismissed == 0
+
+
+def test_a_blank_screen_is_not_treated_as_ready():
+    """Markor draws its licences notice about four seconds after launch.
+
+    Settling at the first blank dump handed the agent a dialog as its start
+    screen, and that dialog became the raw arm's first action.
+    """
+    class Device:
+        def __init__(self) -> None:
+            self.dumps = 0
+            self.clicks: list[str] = []
+
+        def shell(self, command: str) -> str:
+            if command.startswith("rm -f"):
+                return ""
+            if "uiautomator dump" in command:
+                self.dumps += 1
+                return "UI hierchary dumped to: /sdcard/_ui.xml"
+            if command.startswith("cat "):
+                if self.dumps < 3:
+                    return ""
+                return (
+                    '<hierarchy><node text="OK" clickable="true" '
+                    'bounds="[0,0][20,20]"/></hierarchy>'
+                )
+            if "dumpsys window" in command:
+                return "mCurrentFocus=Window{a u0 app/.Main}"
+            return ""
+
+        def act(self, action: str, target: str) -> bool:
+            self.clicks.append(target)
+            return True
+
+    device = Device()
+    state = settle_first_run(device, "app", settle_s=0, rounds=6)
+
+    assert state.dismissed >= 1
+    # The dialog was found only on the third dump, so the blank ones were
+    # waited out rather than taken for a ready app.
+    assert device.dumps >= 3
