@@ -59,3 +59,22 @@ def describe(identity: str, previous: str = "") -> str:
             f"Current screen: {identity} — unchanged since the last action"
         )
     return f"Current screen: {identity} — changed from {previous}"
+
+
+def pending_confirmation(ui_text: str) -> bool:
+    """Whether a modal dialog with a positive button is open.
+
+    A user action that needs confirming ends on a dialog, and an agent that
+    reports the task done there has done nothing: Amaze's delete run long-
+    pressed the file, tapped Delete, saw the confirmation, and finished — the
+    file was never removed.
+
+    Two button vocabularies have to be recognised: the platform dialog uses
+    `android:id/button1`, and a Material dialog — which Amaze uses — uses
+    `md_buttonDefaultPositive`.
+    """
+    ui = ui_text or ""
+    return (
+        "android:id/button1" in ui
+        or "md_buttondefaultpositive" in ui.lower()
+    )

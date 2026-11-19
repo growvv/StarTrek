@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from mobile_agent import prompts
-from mobile_agent.screen import describe, screen_identity
+from mobile_agent.screen import describe, pending_confirmation, screen_identity
 from mobile_agent.device import AndroidDevice
 from mobile_agent.llm import VLM
 from mobile_agent.memory import ExperienceStore
@@ -279,6 +279,7 @@ class MobileAgent:
         done_summary = ""
         last_signature = ""
         stall = 0
+        done_warned = False
         previous_screen = ""
         initial_ui = ""
         final_ui = ""
@@ -392,6 +393,32 @@ class MobileAgent:
                     f"-> {result}"
                 )
                 if name == "done":
+                    # Finishing on an unconfirmed dialog reports an action that
+                    # did not happen; say so once, then let the agent decide.
+                    if not done_warned and pending_confirmation(after_ui):
+                        done_warned = True
+                        history.append(
+                            f"{step}. done refused: a dialog with a confirm "
+                            "button is open — confirm or dismiss it, or call "
+                            "done again if the dialog is the goal."
+                        )
+                        step_records.append(
+                            {
+                                "step": step,
+                                "thought": thought,
+                                "tool": "done",
+                                "args": args,
+                                "ok": False,
+                                "result": "refused: unconfirmed dialog",
+                                "before": before.name,
+                                "after": after.name,
+                                "ui_before": ui,
+                                "ui_after": after_ui,
+                                "ui_hash_before": ui_hash,
+                                "ui_hash_after": after_hash,
+                            }
+                        )
+                        continue
                     done_summary = str(args.get("summary", ""))
                     break
 

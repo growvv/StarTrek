@@ -229,7 +229,6 @@ def main(argv: list[str] | None = None) -> int:
         if args.out
         else ROOT / args.traces_dir / args.app / "graph"
     )
-    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8")) if spec_path.exists() else {}
     counts = build(
         traces, root, ROOT / args.config, declared_names(spec)
     )

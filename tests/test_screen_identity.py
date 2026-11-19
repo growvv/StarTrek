@@ -33,3 +33,22 @@ def test_the_observation_says_when_nothing_moved():
     assert "unchanged" in describe("file list (Main)", "file list (Main)")
     assert "changed from" in describe("file editor (Main)", "file list (Main)")
     assert describe("file list (Main)") == "Current screen: file list (Main)"
+
+
+def test_an_open_confirmation_dialog_is_visible_in_the_ui():
+    """Amaze's delete ended on the confirmation dialog and the agent stopped.
+
+    The file was never removed; the run reported a deletion that did not
+    happen. The platform's positive button is `android:id/button1`.
+    """
+    from mobile_agent.screen import pending_confirmation
+
+    platform = "Button text='OK' id='android:id/button1' clickable=true"
+    material = (
+        "TextView text='DELETE' "
+        "id='com.amaze.filemanager:id/md_buttonDefaultPositive' clickable=true"
+    )
+    assert pending_confirmation(platform) is True
+    assert pending_confirmation(material) is True
+    assert pending_confirmation("TextView text='Documents'") is False
+    assert pending_confirmation("") is False
