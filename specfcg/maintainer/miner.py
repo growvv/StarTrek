@@ -294,6 +294,39 @@ def _fallback_episode(trace: Trace) -> list[dict[str, Any]]:
     ]
 
 
+def _goal_slug(trace: Trace) -> str:
+    """The trace's goal as a snake_case function name."""
+    words = re.split(r"[^A-Za-z0-9]+", (trace.goal or "").casefold())
+    return "_".join(word for word in words if word)
+
+
+def _name_from_goal(
+    episodes: list[dict[str, Any]], trace: Trace
+) -> list[dict[str, Any]]:
+    """Name a single-episode trace after the function its spec declares.
+
+    A trace spec is written to exercise one function, and its author may say
+    which one with a ``name:`` field.  The model tends to name the same trace
+    after the screen it saw — a QuickNote open became ``open_main_tab`` —
+    which then matches no inventory entry and reads as a missing function.
+
+    A prose goal is not a name: "create and share a note" would become the
+    card name ``create_and_share_a_note``.  So only an explicitly declared
+    name is used, and a trace that is one episode keeps it.
+    """
+    if len(episodes) != 1:
+        return episodes
+    name = (trace.function_name or "").strip()
+    if not name:
+        return episodes
+    # The declared name is the card's name whether or not the model happened
+    # to segment it the same way: `expected_name` is what `draft` enforces.
+    episode = dict(episodes[0])
+    episode["name"] = name
+    episode["expected_name"] = name
+    return [episode]
+
+
 class CardMiner:
     """LLM-driven trace segmentation and function-card drafting."""
 
@@ -352,13 +385,13 @@ class CardMiner:
             data = self.llm.complete_json(prompt, _SEGMENT_SCHEMA)
         except LLMParseError as exc:
             logger.warning("segmentation parse failed: %s", exc)
-            return _fallback_episode(trace)
+            return _name_from_goal(_fallback_episode(trace), trace)
         episodes = data.get("episodes") if isinstance(data, dict) else None
         parsed = self._validate(episodes, trace)
         if parsed is None:
             logger.warning("segmentation boundaries invalid; using one episode")
-            return _fallback_episode(trace)
-        return parsed
+            return _name_from_goal(_fallback_episode(trace), trace)
+        return _name_from_goal(parsed, trace)
 
     def _enrich(
         self, card: FunctionCard, trace: Trace, steps: list[Step]
@@ -391,6 +424,11 @@ class CardMiner:
             f"Observed steps:\n{_render_steps(steps)}\n"
             f"Trace evidence: {trace.trace_id}"
         )
+        expected = episode.get("expected_name")
+        if expected:
+            # The trace's author named the function it exercises; the model
+            # tends to name the same trace after the screen it saw instead.
+            prompt += f"\nThe first line must be exactly '# {expected}'."
         try:
             raw = self.llm.complete(
                 prompt, system="You write precise mobile GUI function cards."
@@ -403,6 +441,14 @@ class CardMiner:
                 exc,
             )
             return None
+        if expected and card.name != expected:
+            # The author named the function this trace exercises.  The card's
+            # heading is its identity, and the model ignoring the instruction
+            # must not rename a traced function into one no inventory names.
+            logger.info(
+                "renaming card %r to the trace goal %r", card.name, expected
+            )
+            card.name = expected
         return self._enrich(
             _ground_contract(card, steps, trace.start_state), trace, steps
         )
@@ -434,9 +480,11 @@ class CardMiner:
                 # nobody has seen work, and the graph would claim coverage it
                 # cannot deliver.
                 logger.warning(
-                    "skipping episode %r of trace %s: no action succeeded",
+                    "skipping episode %r of trace %s: %d of %d actions failed",
                     episode.get("name"),
                     trace.trace_id,
+                    sum(1 for step in steps if not step.success),
+                    len(steps),
                 )
                 continue
             if card.name in existing:

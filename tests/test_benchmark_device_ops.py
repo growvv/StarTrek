@@ -107,3 +107,35 @@ def test_launch_uses_monkey():
     ops.launch("org.tasks")
     assert runner.commands[0][:5] == ["adb", "-s", "SER", "shell", "monkey"]
     assert "-p" in runner.commands[0]
+
+
+def test_contains_selectors_resolve():
+    """A list row's description carries the file path, so exact match fails.
+
+    `desc=File meeting-notes.md` never matches a row described as
+    `File meeting-notes.md /storage/...`; the contains form is what the trace
+    specs need to address it.
+    """
+    from specfcg.executor.device import Uiautomator2Device
+
+    seen: list[dict] = []
+
+    class Element:
+        exists = True
+
+        def click(self) -> None:
+            pass
+
+    class U2:
+        def __call__(self, **kwargs):
+            seen.append(kwargs)
+            return Element()
+
+    device = Uiautomator2Device(settle_s=0)
+    device._device = U2()
+
+    device._locator("descContains=File meeting-notes.md")
+    device._locator("textContains=meeting")
+
+    assert seen[0] == {"descriptionContains": "File meeting-notes.md"}
+    assert seen[1] == {"textContains": "meeting"}

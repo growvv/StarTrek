@@ -158,7 +158,14 @@ class AndroidDevice:
         self,
         text: str | None = None,
         resource_id: str | None = None,
+        description: str | None = None,
     ) -> tuple[bool, str]:
+        """Tap a control by its text, resource id, or content description.
+
+        The description is not a fallback for text: an overflow button has no
+        text at all, and an icon-only search control has none either.  Leaving
+        it out made every such control visible to the agent and untappable.
+        """
         d = self._d()
         try:
             if text and resource_id:
@@ -167,17 +174,56 @@ class AndroidDevice:
                 element = d(text=text)
                 if not element.exists:
                     element = d(textContains=text)
+            elif description:
+                element = d(description=description)
+                if not element.exists:
+                    element = d(descriptionContains=description)
             elif resource_id:
                 element = d(resourceId=resource_id)
             else:
-                return False, "FAIL tap needs text or id"
+                return False, "FAIL tap needs text, id, or description"
             if not element.exists:
-                return False, f"FAIL not found: {text or resource_id}"
+                return False, f"FAIL not found: {text or resource_id or description}"
             element.click()
             time.sleep(self.settle_s)
-            return True, f"OK tapped {text or resource_id}"
+            return True, f"OK tapped {text or resource_id or description}"
         except Exception as exc:
             return False, f"FAIL tap error: {exc}"
+
+    def long_press(
+        self,
+        text: str | None = None,
+        resource_id: str | None = None,
+        description: str | None = None,
+    ) -> tuple[bool, str]:
+        """Hold a control to open its selection menu.
+
+        Markor's file operations (rename, details, delete) live behind a long
+        press on the row.  Without this action the agent could see a row and
+        never reach any of them, and the trace specs' `long_click` had no
+        counterpart in the agent's vocabulary.
+        """
+        d = self._d()
+        try:
+            if description:
+                element = d(description=description)
+                if not element.exists:
+                    element = d(descriptionContains=description)
+            elif text and resource_id:
+                element = d(text=text, resourceId=resource_id)
+            elif text:
+                element = d(text=text)
+            elif resource_id:
+                element = d(resourceId=resource_id)
+            else:
+                return False, "FAIL long_press needs text, id, or description"
+            if not element.exists:
+                return False, f"FAIL not found: {text or resource_id or description}"
+            element.long_click()
+            time.sleep(self.settle_s)
+            return True, f"OK long-pressed {text or resource_id or description}"
+        except Exception as exc:
+            return False, f"FAIL long_press error: {exc}"
 
     def tap_xy(self, x: int, y: int) -> tuple[bool, str]:
         factor = self._scale()

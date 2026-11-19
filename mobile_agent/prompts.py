@@ -11,7 +11,8 @@ Choose exactly ONE tool call for the next small action.
 
 Rules:
 - The screenshot is the primary evidence; use the element list for exact labels/ids.
-- Prefer tap with text= or id= from the list. Use tap_xy only when no element matches.
+- Prefer tap with text=, id= or desc= from the list. Use tap_xy only when no element matches.
+- Use long_press to select an item whose actions are not on screen yet.
 - Coordinates are in the screenshot's pixel space.
 - After typing, submit or close the keyboard when the task needs it.
 - Never repeat an action that just failed. If the screen did not change, try a different target.
@@ -106,12 +107,43 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "tap",
-            "description": "Tap a visible UI element by exact text or resource id.",
+            "description": (
+                "Tap a visible UI element by its text, its resource id, or its "
+                "content description. Use desc for icon-only controls such as "
+                "an overflow menu, which have no text."
+            ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "text": {"type": "string", "description": "Visible label"},
                     "id": {"type": "string", "description": "Full resource id"},
+                    "desc": {
+                        "type": "string",
+                        "description": "Content description of an icon-only control",
+                    },
+                },
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "long_press",
+            "description": (
+                "Press and hold a visible UI element to open its selection or "
+                "context menu. Use this when an item's actions are not on the "
+                "screen until the item is selected."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "description": "Visible label"},
+                    "id": {"type": "string", "description": "Full resource id"},
+                    "desc": {
+                        "type": "string",
+                        "description": "Content description of an item",
+                    },
                 },
                 "additionalProperties": False,
             },

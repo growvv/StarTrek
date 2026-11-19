@@ -49,13 +49,14 @@ traces:
       - {action: click, target: "desc=转到上一层级", wait: 2.2}
 
   - id: amaze-select-and-delete
+    name: delete_file
     goal: Select a file and delete it
     reset: true
     prelude: *to_documents
     actions:
       - {action: long_click, target: "text=bench_new.txt", wait: 1.5}
-      - {action: click, target: "desc=删除", wait: 1.5}
-      - {action: click, target: "text=确定", wait: 2.0}
+      - {action: click, target: "desc=Delete", wait: 1.5}
+      - {action: click, target: "text=OK", wait: 2.0}
 
   - id: amaze-select-and-copy
     goal: Select a file and copy it
@@ -66,6 +67,7 @@ traces:
       - {action: click, target: "desc=复制", wait: 1.8}
 
   - id: amaze-select-and-cut
+    name: cut_move
     goal: Select a file and cut it for moving
     reset: true
     prelude: *to_documents
@@ -148,6 +150,7 @@ traces:
       - {action: click, target: "text=排序", wait: 2.0}
 
   - id: amaze-view-mode
+    name: view_mode
     goal: Switch the file list between grid and list view
     reset: true
     prelude: *to_documents
@@ -156,6 +159,7 @@ traces:
       - {action: click, target: "text=网格视图", wait: 2.0}
 
   - id: amaze-hidden-files
+    name: hidden_files
     goal: Show hidden files in the current folder
     reset: true
     prelude: *to_documents
@@ -164,6 +168,7 @@ traces:
       - {action: click, target: "text=已隐藏文件", wait: 2.0}
 
   - id: amaze-text-editor
+    name: text_editor
     goal: Open a text file in the built-in editor
     reset: true
     prelude: *to_documents

@@ -24,6 +24,7 @@ def run_actions(
     app: str,
     trace_id: str,
     goal: str = "",
+    function_name: str = "",
     metadata: dict[str, Any] | None = None,
     sleep=time.sleep,
 ) -> Trace:
@@ -57,6 +58,7 @@ def run_actions(
     trace = recorder.trace()
     trace.start_state = initial_state
     trace.goal = goal
+    trace.function_name = function_name
     if metadata:
         trace.metadata.update(metadata)
     return trace

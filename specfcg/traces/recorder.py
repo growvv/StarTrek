@@ -23,15 +23,22 @@ def trace_digest(trace: Trace) -> str:
     """A stable fingerprint of the evidence a trace carries.
 
     The digest covers what the miner reads -- the app, the start state, the
-    goal and the steps -- and not the recording's metadata, which says when
-    and on what the trace was captured without changing the function it
-    demonstrates.  Two traces with the same digest are the same evidence;
-    mining the second adds nothing the graph does not already have.
+    goal, the declared function name and the steps -- and not the recording's
+    metadata, which says when and on what the trace was captured without
+    changing the function it demonstrates.  Two traces with the same digest
+    are the same evidence; mining the second adds nothing the graph does not
+    already have.
+
+    The declared name is part of what the miner reads: adding `name:
+    open_quicknote` to a spec re-names the card it produces, so a digest that
+    ignored it would report the trace as already mined and silently keep the
+    model's own name.
     """
     payload = {
         "app": trace.app,
         "start_state": trace.start_state,
         "goal": trace.goal,
+        "function_name": trace.function_name,
         "steps": [asdict(step) for step in trace.steps],
     }
     encoded = json.dumps(payload, sort_keys=True, ensure_ascii=False)
@@ -49,6 +56,7 @@ def trace_to_dict(trace: Trace) -> dict[str, Any]:
         "app": trace.app,
         "start_state": trace.start_state,
         "goal": trace.goal,
+        "function_name": trace.function_name,
         "metadata": trace.metadata,
         "steps": [asdict(step) for step in trace.steps],
     }
@@ -88,6 +96,7 @@ def trace_from_dict(data: Any) -> Trace:
     return Trace(
         trace_id=trace_id,
         app=app,
+        function_name=str(data.get("function_name") or ""),
         steps=steps,
         start_state=str(data.get("start_state", "")),
         goal=str(data.get("goal", "")),

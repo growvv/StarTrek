@@ -126,6 +126,7 @@ traces:
       - {action: click, target: "text=删除记事", wait: 2.0}
 
   - id: omni-checklist
+    name: enable_checklist
     goal: Turn a note into a checklist
     reset: true
     prelude: *create_note
@@ -143,6 +144,7 @@ traces:
       - {action: click, target: "resourceId=it.feio.android.omninotes.foss:id/menu_attachment", wait: 2.0}
 
   - id: omni-select-all
+    name: multi_select_notes
     goal: Select all notes from the list contextual bar
     reset: true
     prelude: *create_note
@@ -165,6 +167,7 @@ traces:
       - {action: click, target: "text=设置", wait: 2.0}
 
   - id: omni-create-checklist
+    name: create_checklist
     goal: Create a checklist note from the expanded new-note button
     reset: true
     actions:
@@ -278,6 +281,7 @@ traces:
       - {action: click, target: "text=从归档中恢复", wait: 2.5}
 
   - id: omni-open-trash-view
+    name: open_trash_view
     goal: Open the trash view from the navigation drawer
     reset: true
     prelude:

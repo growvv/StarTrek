@@ -7,14 +7,15 @@ app: markor
 package: net.gsantner.markor
 
 onboarding:
-  - {action: click, target: "resourceId=net.gsantner.markor:id/next", wait: 1.4}
-  - {action: click, target: "resourceId=net.gsantner.markor:id/next", wait: 1.4}
-  - {action: click, target: "resourceId=net.gsantner.markor:id/next", wait: 1.4}
-  - {action: click, target: "resourceId=net.gsantner.markor:id/next", wait: 1.4}
-  - {action: click, target: "resourceId=net.gsantner.markor:id/done", wait: 2.0}
-  - {action: click, target: "text=确定", wait: 2.0}
-  - {action: click, target: "resourceId=net.gsantner.markor:id/cb_never", wait: 0.6}
-  - {action: click, target: "text=NO THANKS", wait: 1.5}
+  # This build's wizard labels its "next" button by description and its last
+  # button by text; after the wizard it shows a changelog dialog with an OK.
+  # Four pages, then DONE, then OK — verified by walking it on the device.
+  - {action: click, target: "desc=NEXT", wait: 1.4}
+  - {action: click, target: "desc=NEXT", wait: 1.4}
+  - {action: click, target: "desc=NEXT", wait: 1.4}
+  - {action: click, target: "desc=NEXT", wait: 1.4}
+  - {action: click, target: "text=DONE", wait: 2.0}
+  - {action: click, target: "text=OK", wait: 2.0}
 
 traces:
   - id: markor-create-file
@@ -23,9 +24,9 @@ traces:
     actions: &create_file
       - {action: click, target: "resourceId=net.gsantner.markor:id/fab_add_new_item", wait: 1.5}
       - {action: input, target: "resourceId=net.gsantner.markor:id/new_file_dialog__name", args: "meeting-notes", wait: 0.8}
-      - {action: click, target: "text=确定", wait: 2.0}
+      - {action: click, target: "text=OK", wait: 2.0}
       - {action: input, target: "resourceId=net.gsantner.markor:id/document__fragment__edit__highlighting_editor", args: "Agenda for Monday", wait: 1.0}
-      - {action: click, target: "desc=保存", wait: 1.5}
+      - {action: click, target: "desc=Save", wait: 1.5}
       - {action: back, wait: 1.2}
       - {action: back, wait: 1.8}
 
@@ -35,7 +36,7 @@ traces:
     actions:
       - {action: click, target: "resourceId=net.gsantner.markor:id/fab_add_new_item", wait: 1.5}
       - {action: input, target: "resourceId=net.gsantner.markor:id/new_file_dialog__name", args: "projects", wait: 0.8}
-      - {action: click, target: "text=文件夹", wait: 2.0}
+      - {action: click, target: "text=FOLDER", wait: 2.0}
 
   - id: markor-open-file
     goal: Open a Markdown file in the editor
@@ -51,17 +52,18 @@ traces:
     actions:
       - {action: click, target: "text=meeting-notes.md", wait: 2.0}
       - {action: input, target: "resourceId=net.gsantner.markor:id/document__fragment__edit__highlighting_editor", args: "Agenda updated", wait: 1.0}
-      - {action: click, target: "desc=保存", wait: 1.5}
+      - {action: click, target: "desc=Save", wait: 1.5}
 
   - id: markor-rename-file
+    name: rename_file
     goal: Rename a file through the long-press menu
     reset: true
     prelude: *create_file
     actions:
-      - {action: long_click, target: "text=meeting-notes.md", wait: 1.5}
-      - {action: click, target: "desc=重命名", wait: 1.5}
-      - {action: input, target: "resourceId=net.gsantner.markor:id/new_file_dialog__name", args: "renamed-notes", wait: 0.8}
-      - {action: click, target: "text=确定", wait: 2.0}
+      - {action: long_click, target: "descContains=File meeting-notes.md", wait: 1.8}
+      - {action: click, target: "desc=Rename", wait: 2.5}
+      - {action: input, target: "resourceId=net.gsantner.markor:id/new_name", args: "renamed-notes", wait: 0.8}
+      - {action: click, target: "text=OK", wait: 2.0}
 
   - id: markor-delete-file
     goal: Delete a file through the long-press menu
@@ -80,7 +82,7 @@ traces:
       - {action: click, target: "desc=收藏", wait: 1.5}
 
   - id: markor-file-details
-    goal: Show a file's details
+    goal: Show file details
     reset: true
     prelude: *create_file
     actions:
@@ -93,7 +95,7 @@ traces:
     prelude: *create_file
     actions:
       - {action: long_click, target: "text=meeting-notes.md", wait: 1.5}
-      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "desc=More options", wait: 1.2}
       - {action: click, target: "text=分享", wait: 2.0}
 
   - id: markor-move-file
@@ -102,7 +104,7 @@ traces:
     prelude: *create_file
     actions:
       - {action: long_click, target: "text=meeting-notes.md", wait: 1.5}
-      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "desc=More options", wait: 1.2}
       - {action: click, target: "text=移动", wait: 2.0}
 
   - id: markor-search
@@ -110,7 +112,7 @@ traces:
     reset: true
     actions:
       - {action: click, target: "desc=搜索", wait: 1.5}
-      - {action: click, target: "text=确定", wait: 2.0}
+      - {action: click, target: "text=OK", wait: 2.0}
 
   - id: markor-sort
     goal: Sort the file list
@@ -118,7 +120,7 @@ traces:
     actions:
       - {action: click, target: "desc=排序方式", wait: 1.5}
       - {action: click, target: "text=名称", wait: 0.8}
-      - {action: click, target: "text=确定", wait: 2.0}
+      - {action: click, target: "text=OK", wait: 2.0}
 
   - id: markor-go-to
     goal: Jump to another folder path
@@ -133,20 +135,29 @@ traces:
       - {action: click, target: "text=To-Do", wait: 2.0}
 
   - id: markor-open-quicknote
-    goal: Open the QuickNote section and type into it
+    name: open_quicknote
+    goal: Open QuickNote
     reset: true
-    # A single click is not a function: the miner needs the screen the click
-    # produces, or it cannot say what the function leaves behind.
+    # One trace, one function: the miner needs the screen the click produces,
+    # and typing into it would describe a different function.
     actions:
-      - {action: click, target: "desc=QuickNote", wait: 2.0}
-      - {action: input, target: "resourceId=net.gsantner.markor:id/document__fragment__edit__highlighting_editor", args: "quick idea", wait: 1.0}
-      - {action: click, target: "desc=Save", wait: 1.5}
+      - {action: click, target: "resourceId=net.gsantner.markor:id/nav_quicknote", wait: 2.2}
+
+  - id: markor-show-file-details
+    name: file_details
+    goal: Show file details
+    reset: true
+    prelude: *create_file
+    actions:
+      - {action: long_click, target: "descContains=File meeting-notes.md", wait: 1.8}
+      - {action: click, target: "desc=Details", wait: 2.5}
+
 
   - id: markor-open-settings
     goal: Open app settings
     reset: true
     actions:
-      - {action: click, target: "desc=更多选项", wait: 1.2}
+      - {action: click, target: "desc=More options", wait: 1.2}
       - {action: click, target: "text=设置", wait: 2.0}
 
   - id: markor-copy-file
@@ -155,5 +166,5 @@ traces:
     prelude: *create_file
     actions:
       - {action: long_click, target: "text=meeting-notes.md", wait: 1.5}
-      - {action: click, target: "desc=更多选项", wait: 1.2}
-      - {action: click, target: "text=复制", wait: 2.0}
+      - {action: click, target: "desc=More options", wait: 1.2}
+      - {action: click, target: "text=Copy", wait: 2.0}

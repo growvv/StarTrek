@@ -379,3 +379,175 @@ def test_a_trace_whose_actions_all_failed_yields_no_card(
     patch = CardMiner(fake_llm, CardStore(tmp_path)).mine(sample_trace)
 
     assert patch.new_cards == []
+
+
+def test_a_single_episode_keeps_the_trace_authors_declared_name():
+    """A trace is written to exercise one function, and its spec may name it.
+
+    The model named a QuickNote-open trace `open_main_tab` after the screen it
+    saw; the spec declared `open_quicknote`.  The generic name matched no
+    inventory entry, so a function that had been traced read as missing.
+    """
+    from specfcg.maintainer.miner import _name_from_goal
+
+    trace = Trace(
+        trace_id="t1",
+        app="markor",
+        goal="Open QuickNote",
+        function_name="open_quicknote",
+        steps=[],
+    )
+
+    named = _name_from_goal(
+        [{"start": 0, "end": 0, "name": "open_main_tab", "intent": "x"}], trace
+    )
+
+    assert named[0]["name"] == "open_quicknote"
+    assert named[0]["start"] == 0 and named[0]["end"] == 0
+
+
+def test_two_episodes_keep_the_models_names():
+    """Only a trace that is one function keeps the goal name."""
+    from specfcg.maintainer.miner import _name_from_goal
+
+    trace = Trace(
+        trace_id="t2", app="app", goal="Do two things",
+        function_name="do_two_things", steps=[],
+    )
+    episodes = [
+        {"start": 0, "end": 0, "name": "first_thing", "intent": "a"},
+        {"start": 1, "end": 1, "name": "second_thing", "intent": "b"},
+    ]
+
+    assert _name_from_goal(episodes, trace) == episodes
+
+
+def test_a_trace_without_a_declared_name_keeps_the_models_name():
+    from specfcg.maintainer.miner import _name_from_goal
+
+    trace = Trace(trace_id="t3", app="app", goal="", steps=[])
+
+    assert _name_from_goal(
+        [{"start": 0, "end": 0, "name": "something", "intent": "x"}], trace
+    )[0]["name"] == "something"
+
+
+def test_a_prose_goal_does_not_become_a_card_name():
+    """`create and share a note` is a task phrase, not a function name."""
+    from specfcg.maintainer.miner import _name_from_goal
+
+    trace = Trace(
+        trace_id="t4", app="app", goal="create and share a note", steps=[]
+    )
+
+    assert _name_from_goal(
+        [{"start": 0, "end": 0, "name": "create_note", "intent": "x"}], trace
+    )[0]["name"] == "create_note"
+
+
+def test_the_goal_name_is_asked_for_in_the_card_prompt(fake_llm, sample_trace):
+    """Renaming the episode is not enough: the card's own heading is its name."""
+    from specfcg.maintainer.miner import CardMiner
+
+    class Store:
+        def all(self):
+            return {}
+
+    fake_llm.responses = [_card()]
+    miner = CardMiner(fake_llm, Store())
+    miner.draft(
+        {"start": 0, "end": 0, "name": "open_quicknote",
+         "intent": "x", "expected_name": "open_quicknote"},
+        sample_trace,
+    )
+
+    assert "The first line must be exactly '# open_quicknote'." in fake_llm.prompts[-1]
+
+
+def test_a_card_the_model_misnamed_is_renamed_to_the_goal(fake_llm, sample_trace):
+    """The model ignoring the instruction must not rename a traced function.
+
+    It wrote `# open_main_tab` for a trace whose goal was "Open QuickNote";
+    the generic name matched no inventory entry.
+    """
+    from specfcg.maintainer.miner import CardMiner
+
+    class Store:
+        def all(self):
+            return {}
+
+    fake_llm.responses = [_card()]  # this helper's card is titled create_note
+    card = CardMiner(fake_llm, Store()).draft(
+        {"start": 0, "end": 0, "name": "open_quicknote",
+         "intent": "x", "expected_name": "open_quicknote"},
+        sample_trace,
+    )
+
+    assert card is not None
+    assert card.name == "open_quicknote"
+
+
+def test_the_fallback_episode_takes_the_declared_name_too(
+    tmp_path, fake_llm
+):
+    """A one-step trace often fails segmentation, and must not lose its name."""
+    from specfcg.maintainer.miner import CardMiner
+
+    trace = Trace(
+        trace_id="t9",
+        app="markor",
+        goal="Open QuickNote",
+        function_name="open_quicknote",
+        steps=[Step(action="click", target="desc=QuickNote", success=True)],
+    )
+    # Invalid boundaries force the fallback episode.
+    fake_llm.responses = [{"episodes": [{"start": 0, "end": 5, "name": "x"}]}]
+
+    class Store:
+        def all(self):
+            return {}
+
+    episodes = CardMiner(fake_llm, Store()).segment(trace)
+
+    assert episodes[0]["name"] == "open_quicknote"
+    assert episodes[0]["expected_name"] == "open_quicknote"
+
+
+def test_the_digest_covers_the_declared_name():
+    """Adding a name to a spec changes what is mined, so it changes the digest.
+
+    Without it the pipeline reported the trace as already mined and kept the
+    model's own card name.
+    """
+    from specfcg.traces.recorder import trace_digest
+
+    steps = [Step(action="click", target="desc=QuickNote", success=True)]
+    named = Trace(
+        trace_id="t", app="markor", goal="Open QuickNote",
+        function_name="open_quicknote", steps=steps,
+    )
+    unnamed = Trace(
+        trace_id="t", app="markor", goal="Open QuickNote", steps=steps,
+    )
+
+    assert trace_digest(named) != trace_digest(unnamed)
+
+
+def test_the_declared_name_is_enforced_even_when_segmentation_agrees():
+    """The model named the episode right and the card wrong.
+
+    Segmentation said `open_quicknote`; the card draft still wrote
+    `activate_tab`.  `expected_name` is what makes the card follow.
+    """
+    from specfcg.maintainer.miner import _name_from_goal
+
+    trace = Trace(
+        trace_id="t5", app="markor", goal="Open QuickNote",
+        function_name="open_quicknote", steps=[],
+    )
+
+    named = _name_from_goal(
+        [{"start": 0, "end": 0, "name": "open_quicknote", "intent": "x"}], trace
+    )
+
+    assert named[0]["expected_name"] == "open_quicknote"

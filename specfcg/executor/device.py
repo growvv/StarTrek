@@ -119,8 +119,10 @@ class Uiautomator2Device:
 
     _SELECTOR_KEYS = {
         "text": "text",
+        "textContains": "textContains",
         "resourceId": "resourceId",
         "desc": "description",
+        "descContains": "descriptionContains",
         "description": "description",
         "content-desc": "description",
     }
@@ -215,8 +217,12 @@ class Uiautomator2Device:
             return self._combined_locator(target)
         if target.startswith("text="):
             return self._d()(text=target[len("text=") :])
+        if target.startswith("textContains="):
+            return self._d()(textContains=target[len("textContains=") :])
         if target.startswith("resourceId="):
             return self._d()(resourceId=target[len("resourceId=") :])
+        if target.startswith("descContains="):
+            return self._d()(descriptionContains=target[len("descContains=") :])
         if target.startswith(("desc=", "description=")):
             return self._d()(description=target.split("=", 1)[1])
         if target.startswith("content-desc="):

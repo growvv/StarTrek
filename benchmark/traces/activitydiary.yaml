@@ -83,6 +83,7 @@ traces:
       - {action: click, target: "text=Edit Activities", wait: 2.0}
 
   - id: diary-edit-activity-type
+    name: edit_activity_type
     goal: Rename an existing activity type
     prelude:
       - {action: click, target: "desc=Open navigation", wait: 1.2}
@@ -130,6 +131,7 @@ traces:
       - {action: click, target: "resourceId=de.rampro.activitydiary:id/action_filter", wait: 2.0}
 
   - id: diary-open-history-detail
+    name: history_detail
     goal: Open one diary entry's details
     prelude: *open_diary
     actions:

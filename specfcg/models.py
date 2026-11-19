@@ -45,6 +45,10 @@ class Trace:
     steps: list[Step] = field(default_factory=list)
     start_state: str = ""
     goal: str = ""
+    # The function this trace exercises, when the trace spec names it.  An
+    # author who writes it is stating the function; the model should not
+    # rename it after whatever screen it happened to see.
+    function_name: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

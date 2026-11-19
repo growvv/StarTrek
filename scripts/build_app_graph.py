@@ -77,6 +77,7 @@ def collect(
             app=package,
             trace_id=trace_id,
             goal=str(item.get("goal") or ""),
+            function_name=str(item.get("name") or ""),
             metadata={
                 "source": "scripted-benchmark",
                 "app": app,
@@ -97,7 +98,22 @@ def collect(
     return written
 
 
-def grow(pipeline, traces: list[Path]) -> list[str]:
+def declared_names(spec: dict) -> dict[str, str]:
+    """The function name each trace spec declares, by trace id.
+
+    A spec that names its function is stating which function the trace
+    exercises.  Reading it here, rather than only at collection time, means a
+    trace recorded before a name was added still mines under that name — the
+    evidence is unchanged either way.
+    """
+    return {
+        str(item["id"]): str(item["name"])
+        for item in spec.get("traces") or []
+        if item.get("id") and item.get("name")
+    }
+
+
+def grow(pipeline, traces: list[Path], names: dict[str, str] | None = None) -> list[str]:
     """Mine every trace, then derive the semantic edges once.
 
     Mining adds one card per trace and the sequence edges observed inside
@@ -107,10 +123,14 @@ def grow(pipeline, traces: list[Path]) -> list[str]:
     once, after the last card is in, is the same answer for one call.
     """
     mined: list[str] = []
+    names = names or {}
     for path in traces:
         trace = trace_from_dict(
             json.loads(path.read_text(encoding="utf-8"))
         )
+        declared = names.get(getattr(trace, "trace_id", ""), "")
+        if declared and not getattr(trace, "function_name", ""):
+            trace.function_name = declared
         print(f"--- mining {path.stem} ---", flush=True)
         patch = pipeline.mine_trace(trace)
         mined += [card.name for card in patch.new_cards]
@@ -125,7 +145,10 @@ def grow(pipeline, traces: list[Path]) -> list[str]:
 
 
 def build(
-    traces: list[Path], root: Path, config_path: Path
+    traces: list[Path],
+    root: Path,
+    config_path: Path,
+    names: dict[str, str] | None = None,
 ) -> dict[str, int]:
     if root.exists():
         shutil.rmtree(root)
@@ -134,7 +157,7 @@ def build(
     config.paths.root = str(root)
     pipeline = build_pipeline(config, fake_llm=False, fake_device=False)
 
-    grow(pipeline, traces)
+    grow(pipeline, traces, names)
     graph = pipeline.store.load()
     return {"cards": len(graph.cards), "edges": len(graph.edges)}
 
@@ -206,7 +229,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.out
         else ROOT / args.traces_dir / args.app / "graph"
     )
-    counts = build(traces, root, ROOT / args.config)
+    spec = yaml.safe_load(spec_path.read_text(encoding="utf-8")) if spec_path.exists() else {}
+    counts = build(
+        traces, root, ROOT / args.config, declared_names(spec)
+    )
     print(json.dumps({"app": args.app, "root": str(root), **counts}))
     return 0
 

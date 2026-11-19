@@ -235,8 +235,18 @@ class MobileAgent:
 
     def _execute(self, name: str, args: dict[str, Any]) -> tuple[bool, str]:
         if name == "tap":
+            # `desc` is not a fallback: an overflow button or an icon-only
+            # search control has no text at all.
             return self.device.tap(
-                text=args.get("text"), resource_id=args.get("id")
+                text=args.get("text"),
+                resource_id=args.get("id"),
+                description=args.get("desc"),
+            )
+        if name == "long_press":
+            return self.device.long_press(
+                text=args.get("text"),
+                resource_id=args.get("id"),
+                description=args.get("desc"),
             )
         if name == "tap_xy":
             return self.device.tap_xy(int(args["x"]), int(args["y"]))
