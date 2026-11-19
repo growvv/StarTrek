@@ -37,6 +37,19 @@ specfcg/benchmark/reach_experiment.py
 判定不需要崩溃发生，把「没到达」拆成 `no_plan`（图的失败）与「有路径但没走到」
 （agent 的失败），每臂可重复多次并报告比率。
 
+**版本匹配的图**：CLI 只把 `<graphs>/themis/<version>/graph` 认作 `version-matched`，
+其余记为 `other-build`。目前已为 `markor-0.3.9-#264` 建了第一张版本匹配的图
+（`runs/mobileworld/themis/markor-0.3.9-#264/graph`，1 张卡 `open_markdown_file`），
+轨迹规范在 `benchmark/traces/markor-0.3.9.yaml`。
+
+**采集器的两处修复**（否则 Themis build 上的文件轨迹全部失败）：`pm clear` 之后必须
+重新授予存储权限；采集前要先 `settle_first_run`，否则 0.3.9 的版权对话框会成为轨迹的
+起点。
+
+**仍卡住的一步**：0.3.9 上长按文件行标题会打开编辑器，而不是选中菜单，所以
+`file_details` 轨迹的第二步（`desc=Details`）失败。需要按行容器坐标长按
+（`long_click` 已支持 `xy=`），但 uiautomator 在这台模拟器上反复返回空 dump。
+
 Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
 Next Round 的八项任务已全部完成；下一轮尚未规划。README 里“卡片含 Steps /
 编译成动作”的描述已经过期，重写它属于文档收尾。
