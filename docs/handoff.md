@@ -25,6 +25,18 @@ MVP（计划 Task 1–17）已实现并在真机上验证，Next Round 的 **Tas
 崩溃检测实验（FuncDroid 的 Themis 数据集）**尚未检出任何 bug**，阻塞点与已修复
 的缺陷见 `docs/experiments/2026-11-19-themis-bug-detection.md`。
 
+**评估方法的调整**：`docs/experiments/2026-11-19-how-to-evaluate.md` 说明为什么
+「检出更多 bug」这个指标在当前数据规模下不可用，以及替代设计。其中主实验已经实现：
+
+```
+scripts/run_reach_experiment.py     # 图描述 vs 原始 goal，判定是否到达目标界面
+specfcg/benchmark/reachability.py   # 从崩溃栈推导目标界面，从 UI dump 判定到达
+specfcg/benchmark/reach_experiment.py
+```
+
+判定不需要崩溃发生，把「没到达」拆成 `no_plan`（图的失败）与「有路径但没走到」
+（agent 的失败），每臂可重复多次并报告比率。
+
 Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、执行交给 GUI agent。
 Next Round 的八项任务已全部完成；下一轮尚未规划。README 里“卡片含 Steps /
 编译成动作”的描述已经过期，重写它属于文档收尾。
