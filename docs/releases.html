@@ -331,7 +331,28 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
   </div>
 </div></header>
 
-<section class="section" id="v0.5.0">
+<section class="section" id="v0.6.0">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="kicker">Release · 2026-11-19</p>
+        <h2>v0.6.0 — 让 agent 能点图标控件、能长按，四个图覆盖到 98.8%</h2>
+      </div>
+      <p class="lead">修掉三个让整类动作不可能完成的缺陷：tap 不支持 content-desc、agent 没有 长按、轨迹无法声明自己测的是哪个功能。修完后四个 app 的功能图在各自主 源码清单上达到 98.8%（三个 100%）。崩溃检测仍未检出 bug，但 agent 第一 次走到了数据集标注的崩溃入口。</p>
+    </div>
+    <div class="release-meta">
+      <code>v0.6.0</code> <span class="pill ok">latest</span>
+      <a class="button" href="https://github.com/growvv/StarTrek/releases/tag/v0.6.0" target="_blank" rel="noopener">在 GitHub 上查看 →</a>
+      <a class="button" href="https://github.com/growvv/StarTrek/tree/v0.6.0" target="_blank" rel="noopener">源码快照</a>
+    </div>
+    <div class="grid two">
+      <div class="card"><h3>本版本包含</h3><ul class="bullets"><li>四个 app 的覆盖率：activitydiary 15/15、markor 17/17、omninotes 23/23、amaze 19/20，平均 98.8%。</li><li>分母来自各 app 的源码资源（res/menu 等），不是被比较工具的功能表，所以衡量的是我们的图。</li><li>修复：tap 支持 content-desc，图标按钮（overflow、NEXT、搜索）从此可点；此前模型看得到却点不到。</li><li>修复：agent 增加长按动作，Markor 的文件操作（重命名/详情/删除）从此可达。</li><li>{&#x27;修复：轨迹可用 name&#x27;: &#x27;声明功能名，模型按看到的界面命名（QuickNote 打开→open_main_tab）不再造成假缺失。&#x27;}</li><li>修复：全部动作失败的轨迹不再产出卡片；此前它生成了一张没人跑过的 write_quick_note。</li><li>修复：每版崩溃签名要求数据集记录的全部崩溃都出现，一个版本的日志不再顶替另一个。</li><li>修复：确认对话框打开时第一次 done 被拒绝；Amaze 此前删到确认框就宣布完成，文件其实没删。</li><li>修好之后 Amaze 真正删掉了文件、目录变空，但 3.3.2 未复现数据集记录的崩溃。</li><li>崩溃检测 0 检出；markor 0.3.9 的 agent 已抵达 FileInfoDialog，但该 bug 需要无扩展名的文件，触发条件未还原。</li><li>521 个测试通过。</li></ul></div>
+      <div class="card"><h3>可复查的证据</h3>
+        <ul class="bullets"><li><a href="experiments/2026-11-19-coverage.md">docs/experiments/2026-11-19-coverage.md</a></li><li><a href="experiments/2026-11-19-themis-bug-detection.md">docs/experiments/2026-11-19-themis-bug-detection.md</a></li></ul></div>
+    </div>
+  </div>
+</section>
+<section class="section alt" id="v0.5.0">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -341,7 +362,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
       <p class="lead">在新图与新 seed 上重测随机遍历、探针、自优化曲线与两臂 bench。四个维度 全部来自当前代码写出的记录，综合 57；它与旧架构的 71.7 不可比。</p>
     </div>
     <div class="release-meta">
-      <code>v0.5.0</code> <span class="pill ok">latest</span>
+      <code>v0.5.0</code> 
       <a class="button" href="https://github.com/growvv/StarTrek/releases/tag/v0.5.0" target="_blank" rel="noopener">在 GitHub 上查看 →</a>
       <a class="button" href="https://github.com/growvv/StarTrek/tree/v0.5.0" target="_blank" rel="noopener">源码快照</a>
     </div>
@@ -352,7 +373,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
     </div>
   </div>
 </section>
-<section class="section alt" id="v0.4.0">
+<section class="section" id="v0.4.0">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -373,7 +394,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
     </div>
   </div>
 </section>
-<section class="section" id="v0.3.0">
+<section class="section alt" id="v0.3.0">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -394,7 +415,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
     </div>
   </div>
 </section>
-<section class="section alt" id="v0.2.0">
+<section class="section" id="v0.2.0">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -415,7 +436,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
     </div>
   </div>
 </section>
-<section class="section" id="v0.1.0">
+<section class="section alt" id="v0.1.0">
   <div class="wrap">
     <div class="section-head">
       <div>
@@ -440,7 +461,7 @@ body,p,h1,h2,h3,td,th,li,span{overflow-wrap:anywhere;word-break:break-word}
   SpecFCG · 真实设备 Pixel 9 Pro XL / Android 16 · 实验环境已迁到 Android 模拟器
   · 仓库 <a href="https://github.com/growvv/StarTrek">https://github.com/growvv/StarTrek</a>
   · <a href="https://github.com/growvv/StarTrek/blob/main/LICENSE">MIT License</a><br>
-  页面由 <code>scripts/build_site.py</code> 从仓库产物生成 · <a class="version-badge" href="releases.html">v0.5.0 · 2026-11-19</a><br>
+  页面由 <code>scripts/build_site.py</code> 从仓库产物生成 · <a class="version-badge" href="releases.html">v0.6.0 · 2026-11-19</a><br>
   动效 <a href="https://michalsnik.github.io/aos/" target="_blank" rel="noopener">AOS</a>
   · <a href="https://inorganik.github.io/countUp.js/" target="_blank" rel="noopener">CountUp.js</a>（MIT）
 </div></footer>
