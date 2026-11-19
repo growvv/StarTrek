@@ -95,3 +95,43 @@ def test_the_agent_can_long_press():
 
     assert ok is True
     assert u2.selectors[0] == {"description": "File Readme.md"}
+
+
+def test_a_dead_accessibility_session_is_dropped_and_reconnected():
+    """`UiAutomationService already registered` repeats on the same session.
+
+    The retry has to reconnect, or every following dump fails the same way and
+    the agent reads the screen as blank for the rest of the run.
+    """
+    class FlakyU2:
+        def __init__(self) -> None:
+            self.dumps = 0
+
+        def dump_hierarchy(self) -> str:
+            self.dumps += 1
+            if self.dumps == 1:
+                raise RuntimeError(
+                    "UiAutomationService ... already registered!"
+                )
+            return "<hierarchy><node text='ok' package='app.pkg'/></hierarchy>"
+
+    first = FlakyU2()
+    second = FlakyU2()
+    second.dumps = 1  # its first dump succeeds
+    device = AndroidDevice("emulator-0", "app.pkg", settle_s=0)
+    device._device = first
+
+    original = device._d
+
+    def reconnect():
+        if device._device is None:
+            device._device = second
+        return device._device
+
+    device._d = reconnect  # type: ignore[method-assign]
+    device._scale = lambda: 1.0  # type: ignore[method-assign]
+
+    text = device.ui_text()
+
+    assert "text='ok'" in text
+    assert device._device is second

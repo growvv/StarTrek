@@ -104,14 +104,21 @@ class AndroidDevice:
         # animating or a keyboard is settling; one retry turns a spurious
         # "the screen is blank" into the screen the agent needs.
         raw_ui = ""
-        for attempt in range(3):
+        for attempt in range(4):
             try:
                 raw_ui = self._d().dump_hierarchy()
-            except Exception:
+            except Exception as exc:  # noqa: BLE001 -- any dump failure retries
                 raw_ui = ""
+                # "UiAutomationService ... already registered" means this
+                # session's accessibility service outlived the dump that
+                # registered it.  Retrying on the same session repeats the
+                # failure, so the session is dropped and the next attempt
+                # connects again.
+                if "already registered" in str(exc):
+                    self._device = None
             if raw_ui and "<hierarchy" in raw_ui:
                 break
-            time.sleep(0.4 * (attempt + 1))
+            time.sleep(0.8 * (attempt + 1))
         raw = compact_ui(
             raw_ui,
             self.package,
