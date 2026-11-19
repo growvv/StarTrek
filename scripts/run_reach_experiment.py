@@ -138,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
 
         # The raw arm: the goal alone, which is what a user would type.
         raw_experiment = ReachExperiment(
-            device, None, None, Path(args.out) / version.id
+            device, None, None, Path(args.out)
         )
         raw_run = raw_experiment.run(
             version, target, "raw", _callable_agent(agent), args.max_steps,
@@ -165,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
         cfg.device.serial = args.serial
         pipeline = build_pipeline(cfg, fake_llm=False, fake_device=False)
         graph_run = ReachExperiment(
-            device, pipeline, None, Path(args.out) / version.id
+            device, pipeline, None, Path(args.out)
         ).run(
             version,
             target,
