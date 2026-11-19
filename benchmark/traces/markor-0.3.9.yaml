@@ -1,0 +1,34 @@
+# Scripted traces for the Themis build of Markor, 0.3.9.
+#
+# A graph built from another version cannot plan this build: the overflow
+# menu, the selection menu and the file-info dialog all differ from 2.x.  This
+# spec is collected on an API 28 emulator, the Android these builds were
+# written for, and its graph lands under
+# `runs/mobileworld/themis/markor-0.3.9-#264/graph` so the reachability
+# runner can tell it apart from the shared graph.
+app: markor-0.3.9
+package: net.gsantner.markor
+
+# 0.3.9's first-run screen is a licences notice.  It is a dialog in
+# MainActivity, so the collector's `settle_first_run` clears it before the
+# trace starts; nothing to script here.
+onboarding: []
+
+traces:
+  - id: m039-open-file
+    name: open_markdown_file
+    goal: Open a Markdown file in the editor
+    reset: true
+    actions:
+      - {action: click, target: "text=Readme", wait: 2.5}
+      - {action: back, wait: 1.5}
+
+  - id: m039-file-details
+    name: file_details
+    goal: Show a file's details
+    reset: true
+    actions:
+      # 0.3.9 selects a file by long-pressing its row and then offers Details
+      # in the toolbar that replaces the title bar.
+      - {action: long_click, target: "text=Readme", wait: 2.0}
+      - {action: click, target: "desc=Details", wait: 2.5}

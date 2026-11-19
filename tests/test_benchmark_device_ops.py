@@ -139,3 +139,25 @@ def test_contains_selectors_resolve():
 
     assert seen[0] == {"descriptionContains": "File meeting-notes.md"}
     assert seen[1] == {"textContains": "meeting"}
+
+
+def test_a_long_click_can_be_addressed_by_coordinates():
+    """A file row's title opens the editor on a long press; its container
+    selects.  Coordinates address the row itself."""
+    from specfcg.executor.device import Uiautomator2Device
+
+    calls: list[tuple[int, int]] = []
+
+    class U2:
+        def long_click(self, x, y):
+            calls.append((x, y))
+
+        def __getattr__(self, name):
+            return lambda *a, **k: None
+
+    device = Uiautomator2Device(settle_s=0)
+    device._device = U2()
+
+    device.execute("long_click", "xy=540,300")
+
+    assert calls == [(540, 300)]

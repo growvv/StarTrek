@@ -30,6 +30,7 @@ from specfcg.cli import build_pipeline  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 from specfcg.executor.device import Uiautomator2Device  # noqa: E402
 from specfcg.traces.recorder import trace_from_dict, trace_to_dict  # noqa: E402
+from specfcg.benchmark.first_run import grant_storage_access, settle_first_run
 from specfcg.traces.scripted import run_actions  # noqa: E402
 
 
@@ -62,9 +63,16 @@ def collect(
                 ["adb", "-s", serial, "shell", "pm", "clear", package],
                 capture_output=True,
             )
+            # `pm clear` revokes runtime permissions along with the app's
+            # data.  Without re-granting storage the file browser shows an
+            # empty directory and every file trace fails for a reason that
+            # has nothing to do with the trace.
+            grant_storage_access(device, package)
             time.sleep(1.0)
         device.start_app(package)
-        time.sleep(1.5)
+        # A first-run dialog is not part of any function under study, and a
+        # trace that opens on one records the dialog instead of the app.
+        settle_first_run(device, package, settle_s=2.0, rounds=8)
         # Onboarding and the prelude put the app in the state the trace
         # assumes; neither is recorded, so the card describes only the
         # function under study.

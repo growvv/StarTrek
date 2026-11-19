@@ -117,6 +117,17 @@ class Uiautomator2Device:
             extra_packages=self.overlay_packages,
         )
 
+    # `settle_first_run` and the seeding helpers talk to a device through
+    # `shell` and `act`.  This bridge speaks `execute` and a uiautomator2
+    # handle, so it exposes the two names those helpers need rather than
+    # making every caller translate.
+    def shell(self, command: str) -> str:
+        result = self._d().shell(command)
+        return str(getattr(result, "output", result) or "")
+
+    def act(self, action: str, target: str, args: str = "") -> bool:
+        return self.execute(action, target, args)
+
     _SELECTOR_KEYS = {
         "text": "text",
         "textContains": "textContains",
@@ -297,6 +308,9 @@ class Uiautomator2Device:
                 if not fallback:
                     raise
                 self._locator(fallback).click()
+        elif action == "long_click" and target.startswith("xy="):
+            x, y = target[len("xy=") :].split(",")
+            self._d().long_click(int(x), int(y))
         elif action == "long_click":
             self._locator(target).long_click()
         elif action == "input":
