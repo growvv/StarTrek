@@ -36,6 +36,11 @@ DISMISS_TEXTS = ("OK", "Allow", "ALLOW", "确定", "允许", "Got it", "Close")
 
 # Screens that are not the app at all: the package installer, the settings
 # page an all-files grant opens.
+# A dump can fail while a window animates; the retry is bounded and its
+# delay is a constant so tests can run without waiting on it.
+_DUMP_ATTEMPTS = 3
+_DUMP_RETRY_S = 0.5
+
 FOREIGN_PACKAGES = (
     "com.android.permissioncontroller",
     "com.google.android.permissioncontroller",
@@ -214,13 +219,13 @@ def _dump(device) -> str:
     waits out its whole timeout before failing.  The file is removed first,
     so a failed dump reads as empty.
     """
-    for _ in range(3):
+    for _ in range(_DUMP_ATTEMPTS):
         device.shell("rm -f /sdcard/_ui.xml")
         device.shell("uiautomator dump /sdcard/_ui.xml >/dev/null 2>&1")
         ui = device.shell("cat /sdcard/_ui.xml 2>/dev/null")
         if "<hierarchy" in ui:
             return ui
-        time.sleep(0.5)
+        time.sleep(_DUMP_RETRY_S)
     return ""
 
 

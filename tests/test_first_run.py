@@ -1,7 +1,11 @@
 """First-run dialogs are cleared by the experiment, not guessed by the agent."""
 from __future__ import annotations
 
+import specfcg.benchmark.first_run as first_run
 from specfcg.benchmark.first_run import LaunchState, settle_first_run
+
+# The dump retry sleeps for real in production; tests must not wait on it.
+first_run._DUMP_RETRY_S = 0
 
 
 class FakeDevice:
