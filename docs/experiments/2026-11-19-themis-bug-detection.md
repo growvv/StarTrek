@@ -126,6 +126,21 @@ markor 0.3.9 的一次运行里全部动作都成功：第 1 步长按文件、�
 **安装/权限对话框**。AnkiDroid 2.7beta1 在 API 28 上会先弹 packageinstaller
 的 ALLOW 对话框，之前被误判为「卡住」。已加入可清除列表。
 
+## 8.2 确认对话框守卫
+
+Amaze 的一次运行里，agent 长按文件、点 Delete、弹出「Delete items permanently?」
+之后就宣布完成——文件从没被删除，而运行记录写的是「已删除」。
+
+现在：界面上还有带确认按钮的对话框时，第一次 `done` 会被拒绝并给出理由；
+agent 可以第二次坚持（如果那个对话框就是目标，不会被困住）。两种按钮词表都识别：
+平台的 `android:id/button1` 与 Material 的 `md_buttonDefaultPositive`（Amaze 用后者，
+也是第一次漏掉的那个）。
+
+修好之后同一条运行走到了真正删除：目录变为 `0 folders and 0 files`。但仍然没崩溃——
+3.3.2 的 `onPostExecute` 在这里处理了空列表。数据集记录的 `Index: 0, Size: 0`
+需要的状态还没还原，可能是「删除动作一个文件都没删掉」的情形（删除列表为空），
+而不是「删完之后目录为空」。
+
 ## 9. 仍未解决的交互障碍
 
 在 API 28 上手动复现 AnkiDroid 的崩溃时遇到的具体问题：
