@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Protocol
 
-from specfcg.executor.ui import compact_ui
+from specfcg.android.ui import compact_ui
 
 logger = logging.getLogger(__name__)
 

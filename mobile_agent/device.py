@@ -7,7 +7,7 @@ import re
 import time
 from pathlib import Path
 
-from specfcg.executor.ui import compact_ui
+from specfcg.android.ui import compact_ui
 
 _BOUNDS_RE = re.compile(r"bounds='\[(\d+),(\d+)\]\[(\d+),(\d+)\]'")
 

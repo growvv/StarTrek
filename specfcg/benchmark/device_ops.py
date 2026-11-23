@@ -35,7 +35,7 @@ def _live_ui_dump(serial: str) -> str:
     """Compact UI dump from the real device (only used when not injected)."""
     import uiautomator2 as u2
 
-    from specfcg.executor.ui import compact_ui
+    from specfcg.android.ui import compact_ui
 
     return compact_ui(u2.connect(serial).dump_hierarchy())
 

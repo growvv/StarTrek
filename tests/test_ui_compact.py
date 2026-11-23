@@ -1,5 +1,5 @@
 from specfcg.executor.device import Uiautomator2Device
-from specfcg.executor.ui import compact_ui
+from specfcg.android.ui import compact_ui
 
 
 SAMPLE_XML = """<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>

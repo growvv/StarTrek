@@ -65,3 +65,36 @@ def test_the_device_extra_declares_what_the_lazy_imports_need():
     assert line, "no device extra in pyproject.toml"
     assert "pillow" in line.lower()
     assert "uiautomator2" in line
+
+
+def test_the_agent_does_not_import_the_pipeline_package():
+    """`mobile_agent` and `specfcg` must not import each other.
+
+    They did: `mobile_agent.device` imported `specfcg.executor.ui` while
+    `specfcg.executor.mobile_agent_backend` imported `mobile_agent`.  That is
+    a package-level cycle which happens to work while every name resolves, and
+    breaks the moment import order changes.  Device-independent helpers live
+    in `specfcg.android`, which both sides may import.
+    """
+    offenders = []
+    for path in (ROOT / "mobile_agent").glob("*.py"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not (stripped.startswith("from specfcg") or stripped.startswith("import specfcg")):
+                continue
+            # The Android helpers are the shared floor, not the pipeline.
+            if stripped.startswith(("from specfcg.android", "import specfcg.android")):
+                continue
+            offenders.append(f"{path.name}: {stripped}")
+    assert offenders == [], offenders
+
+
+def test_the_shared_android_helpers_import_neither_side():
+    """The floor must stay a floor, or the cycle comes back through it."""
+    for path in (ROOT / "specfcg" / "android").glob("*.py"):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped.startswith(("from specfcg", "import specfcg", "from mobile_agent", "import mobile_agent")):
+                continue
+            assert "mobile_agent" not in stripped, f"{path.name}: {stripped}"
+            assert "specfcg.executor" not in stripped, f"{path.name}: {stripped}"
