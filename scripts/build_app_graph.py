@@ -30,7 +30,7 @@ from specfcg.cli import build_pipeline  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 from specfcg.executor.device import Uiautomator2Device  # noqa: E402
 from specfcg.traces.recorder import trace_from_dict, trace_to_dict  # noqa: E402
-from specfcg.benchmark.first_run import grant_storage_access, settle_first_run
+from specfcg.android.first_run import grant_storage_access, settle_first_run
 from specfcg.traces.scripted import run_actions  # noqa: E402
 
 

@@ -98,3 +98,16 @@ def test_the_shared_android_helpers_import_neither_side():
                 continue
             assert "mobile_agent" not in stripped, f"{path.name}: {stripped}"
             assert "specfcg.executor" not in stripped, f"{path.name}: {stripped}"
+
+
+def test_launch_settling_has_one_implementation():
+    """Two copies of "clear the first-run screens" drifted apart.
+
+    `mobile_agent.start_app` had its own loop with its own control list; it
+    could not tell a blank dump from an empty screen and kept clicking at
+    controls that were gone.  The shared settler is the only one now.
+    """
+    text = (ROOT / "mobile_agent" / "device.py").read_text(encoding="utf-8")
+    assert "settle_first_run" in text
+    # The old copy is recognisable by its own control list.
+    assert "permission_allow_button" not in text

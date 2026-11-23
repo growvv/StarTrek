@@ -1,7 +1,7 @@
 """A file task starts from a file, and the build's path is not guessable."""
 from __future__ import annotations
 
-from specfcg.benchmark.seeding import as_record, prepare, seed_for
+from specfcg.android.seeding import as_record, prepare, seed_for
 
 
 class FakeDevice:

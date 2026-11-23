@@ -1,8 +1,8 @@
 """First-run dialogs are cleared by the experiment, not guessed by the agent."""
 from __future__ import annotations
 
-import specfcg.benchmark.first_run as first_run
-from specfcg.benchmark.first_run import LaunchState, settle_first_run
+import specfcg.android.first_run as first_run
+from specfcg.android.first_run import LaunchState, settle_first_run
 
 # The dump retry sleeps for real in production; tests must not wait on it.
 first_run._DUMP_RETRY_S = 0
@@ -111,7 +111,7 @@ def test_an_unknown_foreign_screen_is_backed_out_of_once():
 
 def test_the_licences_button_is_named_so_it_can_be_clicked():
     """The control has to exist in the list, or the dialog is never cleared."""
-    from specfcg.benchmark.first_run import DISMISS_CONTROLS
+    from specfcg.android.first_run import DISMISS_CONTROLS
 
     assert "net.gsantner.markor:id/button1" in DISMISS_CONTROLS
 
@@ -141,7 +141,7 @@ def test_all_files_access_is_granted_and_read_back():
     reach, so the experiment grants it and checks the answer rather than
     assuming the shell call worked.
     """
-    from specfcg.benchmark.first_run import grant_storage_access
+    from specfcg.android.first_run import grant_storage_access
 
     class Device:
         def __init__(self, granted: bool) -> None:

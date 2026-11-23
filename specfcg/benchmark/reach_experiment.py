@@ -109,11 +109,11 @@ class ReachExperiment:
 
     def _prepare(self, version, apk: Path) -> str:
         """Install the exact build and put it in a state a task can start from."""
-        from specfcg.benchmark.first_run import (
+        from specfcg.android.first_run import (
             grant_storage_access,
             settle_first_run,
         )
-        from specfcg.benchmark.seeding import prepare as seed_data
+        from specfcg.android.seeding import prepare as seed_data
 
         if not self.device.install(apk):
             return f"could not install {apk}"

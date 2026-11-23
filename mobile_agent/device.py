@@ -47,41 +47,49 @@ class AndroidDevice:
         return self._size
 
     def start_app(self) -> None:
-        d = self._d()
-        d.app_start(self.package, stop=True)
+        """Launch the app and clear the screens it shows before its own UI.
+
+        The clearing used to be a second copy of this logic with its own
+        control list, which drifted from `first_run`'s and could not tell a
+        blank dump from an empty screen.  There is one implementation now.
+        """
+        from specfcg.android.first_run import settle_first_run
+
+        self._d().app_start(self.package, stop=True)
         time.sleep(2.0)
-        for _ in range(14):
-            acted = False
-            for resource_id in (
-                f"{self.package}:id/next",
-                f"{self.package}:id/done",
-                "com.android.permissioncontroller:id/permission_allow_button",
-                "com.google.android.permissioncontroller:id/permission_allow_button",
-            ):
-                try:
-                    element = d(resourceId=resource_id)
-                    if element.exists:
-                        element.click()
-                        time.sleep(0.8)
-                        acted = True
-                        break
-                except Exception:
-                    continue
-            if acted:
-                continue
-            for label in ("确定", "OK", "允许", "Allow", "Got it"):
-                try:
-                    element = d(text=label)
-                    if element.exists:
-                        element.click()
-                        time.sleep(0.8)
-                        acted = True
-                        break
-                except Exception:
-                    continue
-            if not acted:
-                break
-        time.sleep(self.settle_s)
+        settle_first_run(self, self.package, settle_s=self.settle_s)
+
+    def shell(self, command: str) -> str:
+        """Run a device shell command, for the shared Android helpers."""
+        result = self._d().shell(command)
+        return str(getattr(result, "output", result) or "")
+
+    def act(self, action: str, target: str, args: str = "") -> bool:
+        """One UI action, for the shared Android helpers."""
+        if action == "click":
+            if target.startswith("xy="):
+                x, y = target[len("xy=") :].split(",")
+                return self.tap_xy(int(x), int(y))[0]
+            key, _, value = target.partition("=")
+            if key == "text":
+                return self.tap(text=value)[0]
+            if key == "resourceId":
+                return self.tap(resource_id=value)[0]
+            if key in ("desc", "description"):
+                return self.tap(description=value)[0]
+            return False
+        if action == "long_click":
+            key, _, value = target.partition("=")
+            if key == "text":
+                return self.long_press(text=value)[0]
+            if key == "resourceId":
+                return self.long_press(resource_id=value)[0]
+            if key in ("desc", "description"):
+                return self.long_press(description=value)[0]
+            return False
+        if action == "back":
+            return self.press("back")[0]
+        return False
 
     def _scale(self) -> float:
         width, _ = self.size()
