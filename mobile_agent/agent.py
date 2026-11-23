@@ -8,11 +8,12 @@ import json
 import re
 import shutil
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from mobile_agent import prompts
+from mobile_agent.recorder import RunRecorder
 from mobile_agent.screen import describe, pending_confirmation, screen_identity
 from mobile_agent.device import AndroidDevice
 from mobile_agent.llm import VLM
@@ -269,7 +270,7 @@ class MobileAgent:
         out = self.out_root / task.id
         if out.exists():
             shutil.rmtree(out)
-        out.mkdir(parents=True, exist_ok=True)
+        record = RunRecorder(out)
 
         error = ""
         plan = ""
@@ -291,26 +292,17 @@ class MobileAgent:
             plan_shot = out / "00_plan.jpg"
             image = self.device.screenshot(plan_shot)
             initial_ui = self.device.ui_text()
-            (out / "initial_ui.txt").write_text(initial_ui, encoding="utf-8")
+            record.initial_ui(initial_ui)
             memory_hits = self.memory.retrieve(task.goal, task.app)
             memory_text = ExperienceStore.format(memory_hits)
-            (out / "memory.json").write_text(
-                json.dumps(
-                    [asdict(entry) for entry in memory_hits],
-                    ensure_ascii=False,
-                    indent=2,
-                ),
-                encoding="utf-8",
-            )
+            record.memory(memory_hits)
             plan = self._plan(task, memory_text, plan_shot)
 
             for step in range(1, task.max_steps + 1):
                 before = out / f"step_{step:02d}_before.jpg"
                 image = self.device.screenshot(before)
                 ui = self.device.ui_text()
-                (out / f"step_{step:02d}_before.txt").write_text(
-                    ui, encoding="utf-8"
-                )
+                record.step_before(step, ui)
                 ui_hash = hashlib.sha1(ui.encode("utf-8")).hexdigest()[:16]
                 # Name the screen so the agent can tell "the action changed
                 # nothing" from "I am now somewhere else".  Without it a tap
@@ -366,9 +358,7 @@ class MobileAgent:
                 after = out / f"step_{step:02d}_after.jpg"
                 self.device.screenshot(after)
                 after_ui = self.device.ui_text()
-                (out / f"step_{step:02d}_after.txt").write_text(
-                    after_ui, encoding="utf-8"
-                )
+                record.step_after(step, after_ui)
                 after_hash = hashlib.sha1(
                     after_ui.encode("utf-8")
                 ).hexdigest()[:16]
@@ -439,16 +429,7 @@ class MobileAgent:
 
                 if step % self.reflect_every == 0:
                     reflection = self._reflect(task, plan, history, after)
-                    with (out / "reflections.jsonl").open(
-                        "a", encoding="utf-8"
-                    ) as handle:
-                        handle.write(
-                            json.dumps(
-                                {"step": step, "text": reflection},
-                                ensure_ascii=False,
-                            )
-                            + "\n"
-                        )
+                    record.reflection(step, reflection)
                     if reflection.upper().startswith("REPLAN:"):
                         plan = reflection.split(":", 1)[1].strip() or plan
 
@@ -514,14 +495,10 @@ class MobileAgent:
             step_records=step_records,
             error=error,
         )
-        (out / "result.json").write_text(
-            json.dumps(asdict(result), ensure_ascii=False, indent=2),
-            encoding="utf-8",
+        record.finish(
+            result=result,
+            steps=step_records,
+            final_ui=final_ui,
+            done_summary=done_summary,
         )
-        (out / "steps.json").write_text(
-            json.dumps(step_records, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        (out / "final_ui.txt").write_text(final_ui, encoding="utf-8")
-        (out / "done_summary.txt").write_text(done_summary, encoding="utf-8")
         return result
