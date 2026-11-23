@@ -270,7 +270,7 @@ class MobileAgent:
         out = self.out_root / task.id
         if out.exists():
             shutil.rmtree(out)
-        record = RunRecorder(out)
+        run_log = RunRecorder(out)
 
         error = ""
         plan = ""
@@ -292,17 +292,17 @@ class MobileAgent:
             plan_shot = out / "00_plan.jpg"
             image = self.device.screenshot(plan_shot)
             initial_ui = self.device.ui_text()
-            record.initial_ui(initial_ui)
+            run_log.initial_ui(initial_ui)
             memory_hits = self.memory.retrieve(task.goal, task.app)
             memory_text = ExperienceStore.format(memory_hits)
-            record.memory(memory_hits)
+            run_log.memory(memory_hits)
             plan = self._plan(task, memory_text, plan_shot)
 
             for step in range(1, task.max_steps + 1):
                 before = out / f"step_{step:02d}_before.jpg"
                 image = self.device.screenshot(before)
                 ui = self.device.ui_text()
-                record.step_before(step, ui)
+                run_log.step_before(step, ui)
                 ui_hash = hashlib.sha1(ui.encode("utf-8")).hexdigest()[:16]
                 # Name the screen so the agent can tell "the action changed
                 # nothing" from "I am now somewhere else".  Without it a tap
@@ -358,7 +358,7 @@ class MobileAgent:
                 after = out / f"step_{step:02d}_after.jpg"
                 self.device.screenshot(after)
                 after_ui = self.device.ui_text()
-                record.step_after(step, after_ui)
+                run_log.step_after(step, after_ui)
                 after_hash = hashlib.sha1(
                     after_ui.encode("utf-8")
                 ).hexdigest()[:16]
@@ -377,36 +377,27 @@ class MobileAgent:
                     "ui_hash_before": ui_hash,
                     "ui_hash_after": after_hash,
                 }
-                step_records.append(record)
-                history.append(
-                    f"{step}. {name}({json.dumps(args, ensure_ascii=False)}) "
-                    f"-> {result}"
-                )
                 if name == "done":
                     # Finishing on an unconfirmed dialog reports an action that
                     # did not happen; say so once, then let the agent decide.
+                    # The refusal is decided *before* the step is recorded, or
+                    # the record shows a successful done followed by a refused
+                    # one under the same step number.
                     if not done_warned and pending_confirmation(after_ui):
                         done_warned = True
+                        record["ok"] = False
+                        record["result"] = "refused: unconfirmed dialog"
+                step_records.append(record)
+                history.append(
+                    f"{step}. {name}({json.dumps(args, ensure_ascii=False)}) "
+                    f"-> {record['result']}"
+                )
+                if name == "done":
+                    if not record["ok"]:
                         history.append(
                             f"{step}. done refused: a dialog with a confirm "
                             "button is open — confirm or dismiss it, or call "
                             "done again if the dialog is the goal."
-                        )
-                        step_records.append(
-                            {
-                                "step": step,
-                                "thought": thought,
-                                "tool": "done",
-                                "args": args,
-                                "ok": False,
-                                "result": "refused: unconfirmed dialog",
-                                "before": before.name,
-                                "after": after.name,
-                                "ui_before": ui,
-                                "ui_after": after_ui,
-                                "ui_hash_before": ui_hash,
-                                "ui_hash_after": after_hash,
-                            }
                         )
                         continue
                     done_summary = str(args.get("summary", ""))
@@ -429,7 +420,7 @@ class MobileAgent:
 
                 if step % self.reflect_every == 0:
                     reflection = self._reflect(task, plan, history, after)
-                    record.reflection(step, reflection)
+                    run_log.reflection(step, reflection)
                     if reflection.upper().startswith("REPLAN:"):
                         plan = reflection.split(":", 1)[1].strip() or plan
 
@@ -495,7 +486,7 @@ class MobileAgent:
             step_records=step_records,
             error=error,
         )
-        record.finish(
+        run_log.finish(
             result=result,
             steps=step_records,
             final_ui=final_ui,
