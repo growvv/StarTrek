@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from specfcg.benchmark.scorecard import (
+from specfcg.scoring.scorecard import (
     DIMENSIONS,
     app_score,
     control,
@@ -110,7 +110,7 @@ def test_history_is_empty_before_the_first_recording(tmp_path):
 
 def test_collect_entries_reads_the_run_directory_layout(tmp_path):
     """The scorecard owns the layout: experiments/, seed-experiments/, bench-*."""
-    from specfcg.benchmark.scorecard import collect_entries
+    from specfcg.scoring.scorecard import collect_entries
 
     app = tmp_path / "omninotes"
     (app / "experiments").mkdir(parents=True)
@@ -153,7 +153,7 @@ def test_a_zero_round_selfopt_record_never_outscores_a_measured_one(tmp_path):
     non-measurement, so the recorded seed run stays the evidence for the
     dimension no matter which file is newer.
     """
-    from specfcg.benchmark.scorecard import collect_entries
+    from specfcg.scoring.scorecard import collect_entries
 
     app = tmp_path / "amaze"
     (app / "experiments").mkdir(parents=True)
@@ -182,7 +182,7 @@ def test_a_probe_record_with_no_probes_does_not_replace_the_seed_run(tmp_path):
     empty probe list.  That record is the same non-measurement as a
     zero-round growth run, and the recorded seed run stays the evidence.
     """
-    from specfcg.benchmark.scorecard import collect_entries
+    from specfcg.scoring.scorecard import collect_entries
 
     app = tmp_path / "amaze"
     (app / "experiments").mkdir(parents=True)
@@ -232,7 +232,7 @@ def test_measured_is_the_one_rule_the_readers_and_writers_share():
     score would disagree about the same file; one predicate answers both
     questions, so they cannot.
     """
-    from specfcg.benchmark.scorecard import measured
+    from specfcg.scoring.scorecard import measured
 
     assert measured({"summary": {"rounds": 0}}, "selfopt") is None
     assert measured({"summary": {"rounds": 3}}, "selfopt") is not None
@@ -255,7 +255,7 @@ def test_the_graph_dimension_is_recomputed_from_the_graph_not_read_back():
 
     import pytest
 
-    from specfcg.benchmark.scorecard import coverage_from_disk
+    from specfcg.scoring.scorecard import coverage_from_disk
 
     root = Path(__file__).resolve().parents[1]
     graph = root / "runs" / "mobileworld" / "activitydiary" / "graph"
@@ -274,7 +274,7 @@ def test_the_graph_dimension_is_recomputed_from_the_graph_not_read_back():
     # and inventory on disk.  The exact numbers belong to whichever graph is
     # on this machine -- a rebuild changes them, and pinning them would mean
     # the test fails every time the graph is honestly rebuilt.
-    from specfcg.benchmark.coverage_eval import graph_coverage, load_inventory
+    from specfcg.scoring.coverage_eval import graph_coverage, load_inventory
     from specfcg.cards.store import CardStore
     from specfcg.graph.store import GraphStore
 

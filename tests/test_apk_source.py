@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from specfcg.benchmark import apk_source
+from specfcg.datasets import apk_source
 
 
 def _release(tag: str, assets: list[tuple[str, str]]) -> dict:
@@ -153,7 +153,7 @@ def test_two_versions_of_one_app_do_not_share_a_file(tmp_path, fake_releases):
         target.write_bytes(b"apk")
         return _Result()
 
-    import specfcg.benchmark.apk_source as source
+    import specfcg.datasets.apk_source as source
 
     original = source.subprocess.run
     source.subprocess.run = fake_run

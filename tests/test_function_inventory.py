@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from specfcg.benchmark.function_inventory import (
+from specfcg.datasets.function_inventory import (
     load_inventory,
     scale_summary,
 )

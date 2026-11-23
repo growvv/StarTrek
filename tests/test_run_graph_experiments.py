@@ -110,7 +110,7 @@ def test_the_probe_plan_carries_the_app_package(tmp_path):
     """
     module = _module()
     pipeline = _RecordingPipeline()
-    from specfcg.benchmark.coverage_eval import FunctionSpec
+    from specfcg.scoring.coverage_eval import FunctionSpec
 
     function = FunctionSpec(
         id="rename",

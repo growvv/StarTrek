@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from specfcg.benchmark.bug_experiment import BugExperiment, summarise
-from specfcg.benchmark.themis import BuggyVersion, CrashSignature
+from specfcg.datasets.themis import BuggyVersion, CrashSignature
 from specfcg.executor.agent import AgentTrace
 from specfcg.models import Step
 

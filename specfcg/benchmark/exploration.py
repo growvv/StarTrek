@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from specfcg.benchmark.coverage_eval import (
+from specfcg.scoring.coverage_eval import (
     UNEXECUTED_PRIOR,
     FunctionSpec,
     _tokens,

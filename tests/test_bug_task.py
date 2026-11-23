@@ -1,14 +1,14 @@
 """A crash's stack names the action that reaches it."""
 from __future__ import annotations
 
-from specfcg.benchmark.bug_task import (
+from specfcg.datasets.bug_task import (
     ACTION_BY_CLASS,
     action_from_frames,
     app_frames,
     coverage,
     task_for,
 )
-from specfcg.benchmark.themis import BuggyVersion, CrashSignature
+from specfcg.datasets.themis import BuggyVersion, CrashSignature
 
 
 def _version(*frames: str, goal: str = "") -> BuggyVersion:

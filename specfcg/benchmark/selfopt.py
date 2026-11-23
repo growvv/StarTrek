@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from specfcg.benchmark.coverage_eval import FunctionSpec, graph_coverage
+from specfcg.scoring.coverage_eval import FunctionSpec, graph_coverage
 from specfcg.models import Graph
 
 

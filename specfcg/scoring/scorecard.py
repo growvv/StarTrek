@@ -68,7 +68,7 @@ def coverage_from_disk(
     no longer applies.  Both inputs are on disk, so the scorecard recomputes
     instead of trusting a snapshot: the same call the experiment makes.
     """
-    from specfcg.benchmark.coverage_eval import (
+    from specfcg.scoring.coverage_eval import (
         graph_coverage,
         load_inventory,
     )

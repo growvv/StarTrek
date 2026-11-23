@@ -31,7 +31,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.apk_source import (  # noqa: E402
+from specfcg.datasets.apk_source import (  # noqa: E402
     ApkUnavailable,
     download,
     find_apk,
@@ -44,7 +44,7 @@ from specfcg.benchmark.reach_experiment import (  # noqa: E402
     paired_summary,
     target_for_version,
 )
-from specfcg.benchmark.themis import load_dataset  # noqa: E402
+from specfcg.datasets.themis import load_dataset  # noqa: E402
 from specfcg.cli import build_pipeline  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 from specfcg.executor.mobile_agent_backend import MobileAgentBackend  # noqa: E402

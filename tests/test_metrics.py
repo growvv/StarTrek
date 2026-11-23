@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from specfcg.benchmark.metrics import (
+from specfcg.scoring.metrics import (
     action_accuracy,
     completion_rate,
     coverage,

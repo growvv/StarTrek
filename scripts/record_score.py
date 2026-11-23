@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.scorecard import (  # noqa: E402
+from specfcg.scoring.scorecard import (  # noqa: E402
     DIMENSIONS,
     collect_entries,
     record_point,

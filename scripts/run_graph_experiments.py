@@ -35,7 +35,7 @@ from specfcg.benchmark.agents import (  # noqa: E402
 )
 from specfcg.benchmark.suite import BenchTask  # noqa: E402
 from specfcg.benchmark.suite_runner import AgentRun  # noqa: E402
-from specfcg.benchmark.coverage_eval import (  # noqa: E402
+from specfcg.scoring.coverage_eval import (  # noqa: E402
     graph_coverage,
     load_inventory,
     observed_coverage,
@@ -49,7 +49,7 @@ from specfcg.benchmark.exploration import (  # noqa: E402
     uncovered,
 )
 from specfcg.benchmark.store import LatestStore  # noqa: E402
-from specfcg.benchmark.scorecard import measured  # noqa: E402
+from specfcg.scoring.scorecard import measured  # noqa: E402
 from specfcg.cli import build_pipeline  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 from specfcg.executor.device import Uiautomator2Device  # noqa: E402

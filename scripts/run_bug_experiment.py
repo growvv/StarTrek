@@ -21,16 +21,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.apk_source import (  # noqa: E402
+from specfcg.datasets.apk_source import (  # noqa: E402
     ApkUnavailable,
     download,
     find_apk,
     find_in_archive,
 )
 from specfcg.benchmark.bug_experiment import BugExperiment, summarise  # noqa: E402
-from specfcg.benchmark.bug_task import task_for  # noqa: E402
+from specfcg.datasets.bug_task import task_for  # noqa: E402
 from specfcg.benchmark.device_ops import AdbOps  # noqa: E402
-from specfcg.benchmark.themis import load_dataset  # noqa: E402
+from specfcg.datasets.themis import load_dataset  # noqa: E402
 from specfcg.executor.mobile_agent_backend import MobileAgentBackend  # noqa: E402
 from specfcg.config import load_config  # noqa: E402
 

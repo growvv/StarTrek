@@ -88,7 +88,7 @@ def test_an_empty_run_set_does_not_divide_by_zero():
 
 def test_every_action_target_has_a_screen_or_is_declared_absent():
     """A target list that silently misses a class would hide runs."""
-    from specfcg.benchmark.bug_task import ACTION_BY_CLASS
+    from specfcg.datasets.bug_task import ACTION_BY_CLASS
 
     covered = set(TARGET_BY_CLASS)
     absent_by_design = {

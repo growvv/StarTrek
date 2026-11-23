@@ -25,7 +25,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.coverage_eval import (  # noqa: E402
+from specfcg.scoring.coverage_eval import (  # noqa: E402
     graph_coverage,
     load_inventory,
 )

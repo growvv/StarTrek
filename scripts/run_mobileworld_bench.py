@@ -29,7 +29,7 @@ from specfcg.benchmark.agents import (  # noqa: E402
     RandomTraversalAgent,
     RawGoalAgent,
 )
-from specfcg.benchmark.coverage_eval import path_confidence  # noqa: E402
+from specfcg.scoring.coverage_eval import path_confidence  # noqa: E402
 from specfcg.benchmark.device_ops import AdbOps  # noqa: E402
 from specfcg.benchmark.suite import load_suite  # noqa: E402
 from specfcg.benchmark.suite_runner import TaskRunner  # noqa: E402

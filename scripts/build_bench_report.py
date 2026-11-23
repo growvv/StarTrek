@@ -17,8 +17,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from specfcg.benchmark.report import summarize  # noqa: E402
-from specfcg.benchmark.scorecard import (
+from specfcg.scoring.report import summarize  # noqa: E402
+from specfcg.scoring.scorecard import (
     control,  # noqa: E402
     DIMENSIONS,
     app_score,

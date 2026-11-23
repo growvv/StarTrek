@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from specfcg.benchmark.coverage_eval import FunctionSpec
+from specfcg.scoring.coverage_eval import FunctionSpec
 from specfcg.benchmark.selfopt import (
     growth,
     make_round,

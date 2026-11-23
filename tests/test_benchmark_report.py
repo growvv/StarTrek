@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from specfcg.benchmark.report import summarize
+from specfcg.scoring.report import summarize
 
 
 def _row(task_id: str, app: str, success: bool, failure=None, steps=5):

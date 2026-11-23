@@ -19,7 +19,7 @@ from specfcg.benchmark.cases import (  # noqa: E402
     load_cases,
     load_goals,
 )
-from specfcg.benchmark.metrics import (  # noqa: E402
+from specfcg.scoring.metrics import (  # noqa: E402
     action_accuracy,
     completion_rate,
     coverage,

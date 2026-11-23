@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from specfcg.benchmark.coverage_eval import (
+from specfcg.scoring.coverage_eval import (
     FunctionSpec,
     graph_coverage,
     load_inventory,

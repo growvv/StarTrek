@@ -111,3 +111,16 @@ def test_launch_settling_has_one_implementation():
     assert "settle_first_run" in text
     # The old copy is recognisable by its own control list.
     assert "permission_allow_button" not in text
+
+
+def test_the_dataset_and_scoring_packages_stay_off_the_device():
+    """They parse files and compute numbers; neither should need a device.
+
+    Keeping them device-free is what lets the offline suite check the
+    dataset parsing and the scoring rules without an emulator.
+    """
+    for package in ("datasets", "scoring"):
+        for path in (ROOT / "specfcg" / package).glob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            for name in ("uiautomator2", "AdbOps", "MobileAgentBackend"):
+                assert name not in text, f"{package}/{path.name} uses {name}"

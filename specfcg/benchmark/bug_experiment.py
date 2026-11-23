@@ -19,7 +19,7 @@ from pathlib import Path
 
 from specfcg.android.first_run import grant_storage_access, settle_first_run
 from specfcg.android.seeding import prepare as seed_data
-from specfcg.benchmark.themis import BuggyVersion, crash_hit
+from specfcg.datasets.themis import BuggyVersion, crash_hit
 
 # A crash that names the app's own process; the same shape FuncDroid checks.
 _CRASH_RE = re.compile(

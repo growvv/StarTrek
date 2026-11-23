@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from specfcg.benchmark.themis import (
+from specfcg.datasets.themis import (
     BuggyVersion,
     crash_hit,
     load_dataset,
