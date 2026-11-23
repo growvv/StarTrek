@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Protocol
 
+from specfcg.android.session import DeviceSession
 from specfcg.android.ui import compact_ui
 
 logger = logging.getLogger(__name__)
@@ -80,18 +81,19 @@ class Uiautomator2Device:
         self.serial = serial
         self.settle_s = settle_s
         self.overlay_packages = overlay_packages
-        self._device = None
+        self.session = DeviceSession(serial)
         self._package: str | None = None
 
     def _d(self):
-        if self._device is None:
-            import uiautomator2 as u2
+        return self.session.device
 
-            if self.serial:
-                self._device = u2.connect(self.serial)
-            else:
-                self._device = u2.connect()
-        return self._device
+    @property
+    def _device(self):
+        return self.session.installed
+
+    @_device.setter
+    def _device(self, device) -> None:
+        self.session.replace(device)
 
     def set_app(self, app: str) -> None:
         """Set the package used to filter UI dumps without launching it."""

@@ -7,6 +7,7 @@ import re
 import time
 from pathlib import Path
 
+from specfcg.android.session import DeviceSession
 from specfcg.android.ui import compact_ui
 
 _BOUNDS_RE = re.compile(r"bounds='\[(\d+),(\d+)\]\[(\d+),(\d+)\]'")
@@ -31,15 +32,19 @@ class AndroidDevice:
         self.package = package
         self.shot_width = shot_width
         self.settle_s = settle_s
-        self._device = None
+        self.session = DeviceSession(serial)
         self._size: tuple[int, int] | None = None
 
     def _d(self):
-        if self._device is None:
-            import uiautomator2 as u2
+        return self.session.device
 
-            self._device = u2.connect(self.serial)
-        return self._device
+    @property
+    def _device(self):
+        return self.session.installed
+
+    @_device.setter
+    def _device(self, device) -> None:
+        self.session.replace(device)
 
     def size(self) -> tuple[int, int]:
         if self._size is None:
@@ -122,8 +127,7 @@ class AndroidDevice:
                 # registered it.  Retrying on the same session repeats the
                 # failure, so the session is dropped and the next attempt
                 # connects again.
-                if "already registered" in str(exc):
-                    self._device = None
+                self.session.handle_failure(exc)
             if raw_ui and "<hierarchy" in raw_ui:
                 break
             time.sleep(0.8 * (attempt + 1))
