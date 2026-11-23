@@ -203,3 +203,24 @@ def test_a_device_error_is_recorded_rather_than_raised(tmp_path):
     assert result.success is False
     assert "device disconnected" in result.error
     assert (tmp_path / "t1" / "result.json").exists()
+
+
+def test_every_advertised_tool_has_a_handler_and_no_handler_is_hidden():
+    """The schema the model sees and the dispatch that runs it must agree.
+
+    A tool in the schema with no handler is an action the model can call and
+    the agent reports as "unknown tool"; a handler with no schema entry is
+    dead code the model can never reach. Both are silent until a run hits
+    them.
+    """
+    import re
+
+    from mobile_agent import prompts
+
+    schema = {tool["function"]["name"] for tool in prompts.TOOLS}
+    source = (
+        Path(__file__).resolve().parents[1] / "mobile_agent" / "agent.py"
+    ).read_text(encoding="utf-8")
+    handled = set(re.findall(r'if name == "([a-z_]+)"', source))
+
+    assert schema == handled
