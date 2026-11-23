@@ -54,6 +54,23 @@ Task F 之后：卡片是契约（不含 Steps）、计划输出任务描述、�
 Next Round 的八项任务已全部完成；下一轮尚未规划。README 里“卡片含 Steps /
 编译成动作”的描述已经过期，重写它属于文档收尾。
 
+## 1.1 包结构（2026-11-24 重构后）
+
+```
+specfcg/android/     设备无关的 Android 助手：UI 树压缩、首次启动清理、
+                     数据播种、uiautomator 会话。两边都可以依赖它，它不依赖任何一边。
+specfcg/datasets/    数据集适配：Themis 解析、APK 溯源、功能清单、任务推导。
+specfcg/scoring/     评分：覆盖率、scorecard、报告、指标。
+specfcg/benchmark/   实验编排：suite、runner、harness、各 *_experiment。
+specfcg/{cards,graph,planner,maintainer,executor,traces,completion,llm}
+                     FCG 本体。
+mobile_agent/        截图优先的 GUI agent（含 recorder.py 负责运行产物）。
+```
+
+依赖方向是单向的：`mobile_agent` 只能通过 `specfcg.android` 依赖 `specfcg`，
+`datasets` 与 `scoring` 不碰设备。三条规则都有测试钉住
+（`tests/test_import_hygiene.py`）。
+
 ## 2. 现在系统怎么工作（as built）
 
 一次完整链路：
